@@ -172,7 +172,6 @@
     <Compile Include="Controllers\AdminController.cs" />
     <Compile Include="Controllers\DirectorController.cs" />
     <Compile Include="Controllers\GuardsController.cs" />
-    <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\IncidentReportsController.cs" />
     <Compile Include="Controllers\InstructorController.cs" />
     <Compile Include="Controllers\ManageController.cs" />
@@ -253,9 +252,6 @@
     <Content Include="Views\_ViewStart.cshtml" />
     <Content Include="Views\Shared\Error.cshtml" />
     <Content Include="Views\Shared\_Layout.cshtml" />
-    <Content Include="Views\Home\About.cshtml" />
-    <Content Include="Views\Home\Contact.cshtml" />
-    <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Account\_ExternalLoginsListPartial.cshtml" />
     <Content Include="Views\Account\ConfirmEmail.cshtml" />
     <Content Include="Views\Account\ExternalLoginConfirmation.cshtml" />
@@ -279,7 +275,7 @@
     <Content Include="Views\Admin\Dashboard.cshtml" />
     <Content Include="Views\Admin\ManageGuards.cshtml" />
     <Content Include="Views\Admin\ManageInstructors.cshtml" />
-    <Content Include="Views\Admin\RegisterGuards.cshtml" />
+    <Content Include="Views\Admin\RegisterGuard.cshtml" />
     <Content Include="Views\Admin\RegisterInstructor.cshtml" />
     <Content Include="Views\Director\Dashboard.cshtml" />
     <Content Include="Views\Director\GuardLogs.cshtml" />
