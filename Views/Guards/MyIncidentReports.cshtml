@@ -1,0 +1,73 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.IncidentReport>
+
+@{
+    ViewBag.Title = "My Incidents";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>My Incidents</h2>
+
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Location</th>
+                            <th>Date Reported</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var incident in Model)
+                        {
+                            <tr>
+                                <td>INC-@incident.IncidentReportId.ToString("D4")</td>
+                                <td>@incident.IncidentType</td>
+                                <td>@incident.Location</td>
+                                <td>@incident.ReportDate.ToString("MM/dd/yyyy")</td>
+                                <td>
+                                    @if (incident.Status == "Resolved")
+                                    {
+                                        <span class="badge badge-success">@incident.Status</span>
+                                    }
+                                    else if (incident.Status == "In Progress")
+                                    {
+                                        <span class="badge badge-primary">@incident.Status</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-warning">@incident.Status</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (incident.Priority == "High")
+                                    {
+                                        <span class="badge badge-danger">@incident.Priority</span>
+                                    }
+                                    else if (incident.Priority == "Medium")
+                                    {
+                                        <span class="badge badge-warning">@incident.Priority</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-info">@incident.Priority</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info">View Details</button>
+                                    <button class="btn btn-sm btn-success">Update</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,422 @@
+﻿@model PiranaSecuritySystem.Models.Resident
+
+@{
+    ViewBag.Title = "Resident Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.FullPageLayout = true;
+
+    // Get notifications for this resident
+    var notifications = ViewBag.Notifications as List<PiranaSecuritySystem.Models.Notification> ?? new List<PiranaSecuritySystem.Models.Notification>();
+    var unreadCount = notifications.Count(n => !n.IsRead);
+}
+
+<style>
+    .resident-dashboard {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: white;
+        padding: 20px;
+    }
+
+    .dashboard-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .welcome-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+        .welcome-header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+    .dashboard-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .action-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 30px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .action-card i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+
+        .action-card h3 {
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+
+        .action-card p {
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+    .btn-action {
+        background: #e74c3c;
+        color: white;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.3s ease;
+    }
+
+        .btn-action:hover {
+            background: #c0392b;
+        }
+
+    /* Notification Styles */
+    .notification-bell {
+        position: relative;
+        display: inline-block;
+        margin-left: 20px;
+    }
+
+    .notification-count {
+        background-color: #e74c3c;
+        color: white;
+        border-radius: 50%;
+        padding: 3px 8px;
+        font-size: 12px;
+        position: absolute;
+        top: -5px;
+        right: -5px;
+    }
+
+    .notification-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        width: 300px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+        display: none;
+    }
+
+    .notification-item {
+        padding: 10px 15px;
+        border-bottom: 1px solid #eee;
+        color: #333;
+    }
+
+        .notification-item.unread {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+
+        .notification-item:hover {
+            background-color: #f0f0f0;
+        }
+
+    .notification-header {
+        padding: 10px 15px;
+        background-color: #f8f8f8;
+        border-bottom: 1px solid #eee;
+        font-weight: bold;
+        color: #333;
+    }
+</style>
+
+<div class="resident-dashboard">
+    <div class="dashboard-container">
+        <div class="welcome-header">
+            <h1>Welcome, @Model.FullName!</h1>
+            <p>Resident Security Dashboard</p>
+
+            <!-- Notification Bell for Resident -->
+            <div class="notification-bell">
+                <a href="#" id="residentNotificationBell">
+                    <i class="fas fa-bell fa-2x"></i>
+                    @if (unreadCount > 0)
+                    {
+                        <span class="notification-count" id="residentNotificationCount">@unreadCount</span>
+                    }
+                    else
+                    {
+                        <span class="notification-count" id="residentNotificationCount" style="display: none;">0</span>
+                    }
+                </a>
+                <div class="notification-dropdown" id="residentNotificationDropdown">
+                    <div class="notification-header">Notifications</div>
+                    <div id="residentNotificationList">
+                        @foreach (var notification in notifications)
+                        {
+                            <div class="notification-item @(!notification.IsRead ? "unread" : "")"
+                                 data-id="@notification.NotificationId">
+                                <strong>@notification.Message</strong>
+                                <br>
+                                <small>@notification.CreatedAt.ToString("g")</small>
+                            </div>
+                        }
+                        @if (!notifications.Any())
+                        {
+                            <div class="notification-item">No notifications</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        <div class="dashboard-actions">
+            <!-- FIXED: Use proper URL helpers -->
+            <div class="action-card" onclick="openModal('detailsModal')">
+                <i class="fas fa-user-circle"></i>
+                <h3>My Details</h3>
+                <p>View and update your personal information</p>
+                <button class="btn-action">View Details</button>
+            </div>
+
+            <!-- FIXED: Use proper URL helpers -->
+            <div class="action-card" onclick="openModal('reportModal')">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Report Incident</h3>
+                <p>Report a security incident or concern</p>
+                <button class="btn-action">Report Now</button>
+            </div>
+
+
+            <!-- FIXED: Use proper URL for MyIncidents -->
+            <div class="action-card" onclick="window.location.href='@Url.Action("MyIncidents", "Resident")'">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>My Reports</h3>
+                <p>View your submitted incident reports</p>
+                <button class="btn-action">View Reports</button>
+            </div>
+        </div>
+
+        <!-- FIXED: Logout form should point to Resident controller -->
+        <div style="text-align: center; margin-top: 30px;">
+            @using (Html.BeginForm("Logout", "Resident", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-action">Logout</button>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- My Details Modal -->
+<div id="detailsModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('detailsModal')">&times;</span>
+        <h2>My Details</h2>
+        @using (Html.BeginForm("UpdateDetails", "Resident", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(model => model.ResidentId)
+
+            <div class="form-group">
+                @Html.LabelFor(model => model.FullName)
+                @Html.TextBoxFor(model => model.FullName, new { @class = "form-control" })
+            </div>
+
+            <div class="form-group">
+                @Html.LabelFor(model => model.Email)
+                @Html.TextBoxFor(model => model.Email, new { @class = "form-control", type = "email" })
+            </div>
+
+            <div class="form-group">
+                @Html.LabelFor(model => model.PhoneNumber)
+                @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control" })
+            </div>
+
+            <button type="submit" class="btn-action">Update Details</button>
+        }
+    </div>
+</div>
+
+<!-- Report Incident Modal -->
+<div id="reportModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('reportModal')">&times;</span>
+        <h2>Report Incident</h2>
+        @using (Html.BeginForm("ReportIncident", "Resident", FormMethod.Post, new { id = "incidentForm" }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.Hidden("ResidentId", Model.ResidentId)
+
+            <div class="form-group">
+                <label for="IncidentType">Incident Type</label>
+                <select id="IncidentType" name="IncidentType" class="form-control" required>
+                    <option value="">Select Incident Type</option>
+                    <option value="Suspicious Activity">Suspicious Activity</option>
+                    <option value="Break-in Attempt">Break-in Attempt</option>
+                    <option value="Theft">Theft</option>
+                    <option value="Vandalism">Vandalism</option>
+                    <option value="Noise Complaint">Noise Complaint</option>
+                    <option value="Parking Violation">Parking Violation</option>
+                    <option value="Fire Hazard">Fire Hazard</option>
+                    <option value="Water Leak">Water Leak</option>
+                    <option value="Electrical Issue">Electrical Issue</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="Description">Description</label>
+                <textarea id="Description" name="Description" class="form-control" rows="4" required placeholder="Please describe the incident in detail"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="Location">Location</label>
+                <input type="text" id="Location" name="Location" class="form-control" value="@Model.Address, Unit @Model.UnitNumber" readonly>
+            </div>
+
+            <div class="form-group">
+                <label for="EmergencyContact">Emergency Contact</label>
+                <input type="text" id="EmergencyContact" name="EmergencyContact" class="form-control" value="@Model.PhoneNumber">
+            </div>
+
+            <button type="submit" class="btn-action">Submit Report</button>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function (event) {
+            if (event.target.className === 'modal') {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Notification bell functionality
+        $(document).ready(function () {
+            // Load notifications on page load
+            loadResidentNotifications();
+
+            // Toggle notification dropdown
+            $('#residentNotificationBell').click(function (e) {
+                e.preventDefault();
+                $('#residentNotificationDropdown').toggle();
+                loadResidentNotifications();
+            });
+
+            // Close dropdown when clicking outside
+            $(document).click(function (e) {
+                if (!$(e.target).closest('.notification-bell').length) {
+                    $('#residentNotificationDropdown').hide();
+                }
+            });
+
+            // Refresh notifications every 30 seconds
+            setInterval(loadResidentNotifications, 30000);
+
+            // Handle incident form submission
+            $('#incidentForm').submit(function () {
+                // This will be handled by the controller which will create notifications
+            });
+        });
+
+        function loadResidentNotifications() {
+            $.get('@Url.Action("GetResidentNotifications", "Notification")', { residentId: @Model.ResidentId }, function (data) {
+                var notificationList = $('#residentNotificationList');
+                notificationList.empty();
+
+                if (data.length > 0) {
+                    $.each(data, function (index, notification) {
+                        var item = $('<div>').addClass('notification-item ' + (notification.IsRead ? '' : 'unread'))
+                            .attr('data-id', notification.NotificationId)
+                            .html('<strong>' + notification.Message + '</strong><br><small>' +
+                                new Date(notification.CreatedAt).toLocaleString() + '</small>')
+                            .click(function () {
+                                if (!notification.IsRead) {
+                                    markNotificationAsRead(notification.NotificationId);
+                                }
+                                if (notification.RelatedUrl) {
+                                    window.location.href = notification.RelatedUrl;
+                                }
+                            });
+                        notificationList.append(item);
+                    });
+                } else {
+                    notificationList.append('<div class="notification-item">No notifications</div>');
+                }
+
+                // Update notification count
+                var unreadCount = data.filter(function (n) { return !n.IsRead; }).length;
+                updateNotificationCount(unreadCount);
+            });
+        }
+
+        function updateNotificationCount(count) {
+            var countElement = $('#residentNotificationCount');
+            if (count > 0) {
+                countElement.text(count).show();
+            } else {
+                countElement.hide();
+            }
+        }
+
+        function markNotificationAsRead(notificationId) {
+            $.post('@Url.Action("MarkAsRead", "Notification")', { id: notificationId }, function () {
+                loadResidentNotifications(); // Reload notifications after marking as read
+            });
+        }
+
+        // Show success/error messages from TempData
+        $(document).ready(function () {
+            if ('@TempData["SuccessMessage"]') {
+                setTimeout(function () {
+                    $('.alert-success').fadeOut('slow');
+                }, 5000);
+            }
+            if ('@TempData["ErrorMessage"]') {
+                setTimeout(function () {
+                    $('.alert-danger').fadeOut('slow');
+                }, 5000);
+            }
+        });
+    </script>
+}

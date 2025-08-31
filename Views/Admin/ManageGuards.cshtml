@@ -1,0 +1,63 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.Guard>
+
+@{
+    ViewBag.Title = "Manage Guards";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <h2>Manage Guards</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    <p>
+        @Html.ActionLink("Register New Guard", "RegisterGuard", null, new { @class = "btn btn-primary" })
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>PSIRA Number</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Phone Number</th>
+                    <th>Date Registered</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var guard in Model)
+                {
+                    <tr>
+                        <td>@guard.PSIRAnumber</td>
+                        <td>@guard.Guard_FName @guard.Guard_LName</td>
+                        <td>@guard.Email</td>
+                        <td>@guard.PhoneNumber</td>
+                        <td>@guard.DateRegistered.ToString("MM/dd/yyyy")</td>
+                        <td>
+                            @if (guard.IsActive)
+                            {
+                                <span class="badge badge-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-danger">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-info" })
+                            @Html.ActionLink("Details", "GuardDetails", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-secondary" })
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

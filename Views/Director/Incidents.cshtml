@@ -1,0 +1,172 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.IncidentReport>
+@{
+    ViewBag.Title = "Incident Reports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Incident Reports</h1>
+        <div>
+            <a href="@Url.Action("Dashboard", "Director")" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+        </div>
+        <div class="card-body">
+            @using (Html.BeginForm("Incidents", "Director", FormMethod.Get, new { @class = "form-inline" }))
+            {
+                <div class="form-group mr-3 mb-2">
+                    <label for="status" class="mr-2">Status:</label>
+                    @Html.DropDownList("status", ViewBag.StatusList as SelectList, "All Status", new { @class = "form-control form-control-sm" })
+                </div>
+
+                <div class="form-group mr-3 mb-2">
+                    <label for="priority" class="mr-2">Priority:</label>
+                    @Html.DropDownList("priority", ViewBag.PriorityList as SelectList, "All Priority", new { @class = "form-control form-control-sm" })
+                </div>
+
+                <div class="form-group mr-3 mb-2">
+                    <label for="type" class="mr-2">Type:</label>
+                    @Html.DropDownList("type", ViewBag.TypeList as SelectList, "All Types", new { @class = "form-control form-control-sm" })
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-sm mb-2">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+
+                <a href="@Url.Action("Incidents", "Director")" class="btn btn-secondary btn-sm mb-2 ml-2">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Incidents Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">All Incidents</h6>
+            <span class="badge badge-primary">@Model.Count() incidents found</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Report Date</th>
+                            <th>Resident</th>
+                            <th>Location</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.IncidentReportId.ToString("D4")</td>
+                                <td>@item.IncidentType</td>
+                                <td title="@item.Description">
+                                    @(item.Description.Length > 50 ? item.Description.Substring(0, 50) + "..." : item.Description)
+                                </td>
+                                <td>
+                                    @GetPriorityBadge(item.Priority)
+                                </td>
+                                <td>
+                                    @GetStatusBadge(item.Status)
+                                </td>
+                                <td>@item.ReportDate.ToString("MM/dd/yyyy HH:mm")</td>
+                                <td>@(item.Resident?.FullName ?? "N/A")</td>
+                                <td>@item.Location</td>
+                                <td>
+                                    <a href="@Url.Action("IncidentDetails", "Director", new { id = item.IncidentReportId })"
+                                       class="btn btn-info btn-sm" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Helper functions for badges -->
+@functions {
+    private IHtmlString GetPriorityBadge(string priority)
+    {
+        string badgeClass;
+        switch (priority?.ToLower())
+        {
+            case "critical":
+                badgeClass = "badge badge-danger";
+                break;
+            case "high":
+                badgeClass = "badge badge-warning";
+                break;
+            case "medium":
+                badgeClass = "badge badge-info";
+                break;
+            case "low":
+                badgeClass = "badge badge-success";
+                break;
+            default:
+                badgeClass = "badge badge-secondary";
+                break;
+        }
+        return new HtmlString($"<span class='{badgeClass}'>{priority}</span>");
+    }
+
+    private IHtmlString GetStatusBadge(string status)
+    {
+        string badgeClass;
+        switch (status?.ToLower())
+        {
+            case "resolved":
+                badgeClass = "badge badge-success";
+                break;
+            case "in progress":
+                badgeClass = "badge badge-primary";
+                break;
+            case "pending":
+                badgeClass = "badge badge-warning";
+                break;
+            default:
+                badgeClass = "badge badge-secondary";
+                break;
+        }
+        return new HtmlString($"<span class='{badgeClass}'>{status}</span>");
+    }
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#dataTable').DataTable({
+                "pageLength": 25,
+                "order": [[5, "desc"]], // Sort by report date descending
+                "columnDefs": [
+                    { "orderable": false, "targets": [2, 8] } // Make description and actions columns not sortable
+                ]
+            });
+
+            // Set the selected values for filters
+            $('#status').val('@ViewBag.StatusFilter');
+            $('#priority').val('@ViewBag.PriorityFilter');
+            $('#type').val('@ViewBag.TypeFilter');
+        });
+    </script>
+}

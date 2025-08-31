@@ -1,0 +1,115 @@
+﻿
+@{
+    ViewBag.Title = "Statistics";
+}
+
+<h2>Statistics</h2>
+
+@model dynamic
+
+@{
+    ViewBag.Title = "Incident Statistics";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    int totalIncidents = Model.TotalIncidents;
+    int resolvedIncidents = Model.ResolvedIncidents;
+    int pendingIncidents = Model.PendingIncidents;
+    int inProgressIncidents = Model.InProgressIncidents;
+    int highPriority = Model.HighPriority;
+
+    int resolutionRate = totalIncidents > 0 ? (resolvedIncidents * 100) / totalIncidents : 0;
+}
+
+<div class="container">
+    <h2>Incident Statistics</h2>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Incidents</h5>
+                    <p class="card-text display-4">@totalIncidents</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Resolved</h5>
+                    <p class="card-text display-4">@resolvedIncidents</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Pending</h5>
+                    <p class="card-text display-4">@pendingIncidents</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger mb-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title">High Priority</h5>
+                    <p class="card-text display-4">@highPriority</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Incident Distribution</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Status Distribution</h6>
+                    <canvas id="statusChart" width="400" height="200"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <h6>Resolution Rate</h6>
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @resolutionRate%;"
+                             aria-valuenow="@resolutionRate" aria-valuemin="0" aria-valuemax="100">
+                            @resolutionRate% Resolved
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        @Html.ActionLink("Back to Dashboard", "Dashboard", "Director", null, new { @class = "btn btn-secondary" })
+        @Html.ActionLink("View All Incidents", "Index", null, new { @class = "btn btn-primary" })
+    </div>
+</div>
+
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function () {
+            var ctx = document.getElementById('statusChart').getContext('2d');
+            var statusChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Resolved', 'In Progress', 'Pending'],
+                    datasets: [{
+                        data: [@resolvedIncidents, @inProgressIncidents, @pendingIncidents],
+                        backgroundColor: [
+                            '#28a745',
+                            '#007bff',
+                            '#ffc107'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        });
+    </script>
+}

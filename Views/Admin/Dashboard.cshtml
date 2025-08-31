@@ -1,0 +1,84 @@
+﻿@model PiranaSecuritySystem.Models.DashboardStats
+@{
+    ViewBag.Title = "Admin Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Admin Dashboard</h2>
+            <div class="alert alert-success">
+                <h4>Welcome, Administrator!</h4>
+                <p>You have successfully logged in to the Pirana Security System admin panel.</p>
+            </div>
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-warning">
+                    @ViewBag.Error
+                </div>
+            }
+
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Total Guards</h5>
+                            <p class="card-text display-4">@Model.TotalGuards</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Active Guards</h5>
+                            <p class="card-text display-4">@Model.ActiveGuards</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Total Instructors</h5>
+                            <p class="card-text display-4">@Model.TotalInstructors</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Active Instructors</h5>
+                            <p class="card-text display-4">@Model.ActiveInstructors</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rest of your dashboard content -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Guard Management</h5>
+                            <p class="card-text">Register and manage security guards</p>
+                            @Html.ActionLink("Manage Guards", "ManageGuards", null, new { @class = "btn btn-primary" })
+                            @Html.ActionLink("Register Guard", "RegisterGuard", null, new { @class = "btn btn-success" })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Instructor Management</h5>
+                            <p class="card-text">Register and manage instructors</p>
+                            @Html.ActionLink("Manage Instructors", "ManageInstructors", null, new { @class = "btn btn-primary" })
+                            @Html.ActionLink("Register Instructor", "RegisterInstructor", null, new { @class = "btn btn-success" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

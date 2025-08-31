@@ -1,0 +1,65 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.Instructor>
+
+@{
+    ViewBag.Title = "Manage Instructors";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <h2>Manage Instructors</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    <p>
+        @Html.ActionLink("Register New Instructor", "RegisterInstructor", null, new { @class = "btn btn-primary" })
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Employee ID</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Phone Number</th>
+                    <th>Specialization</th>
+                    <th>Date Registered</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var instructor in Model)
+                {
+                    <tr>
+                        <td>@instructor.EmployeeId</td>
+                        <td>@instructor.FullName</td>
+                        <td>@instructor.Email</td>
+                        <td>@instructor.PhoneNumber</td>
+                        <td>@instructor.Specialization</td>
+                        <td>@instructor.DateRegistered.ToString("MM/dd/yyyy")</td>
+                        <td>
+                            @if (instructor.IsActive)
+                            {
+                                <span class="badge badge-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-danger">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            @Html.ActionLink("Edit", "EditInstructor", new { id = instructor.Id }, new { @class = "btn btn-sm btn-info" })
+                            @Html.ActionLink("Details", "InstructorDetails", new { id = instructor.Id }, new { @class = "btn btn-sm btn-secondary" })
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

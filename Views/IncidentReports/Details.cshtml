@@ -1,0 +1,369 @@
+﻿@model PiranaSecuritySystem.Models.IncidentReport
+
+@{
+    ViewBag.Title = "Incident Report Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <h2>Incident Report Details</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    <div id="updateAlert" class="alert alert-success alert-dismissible fade show" role="alert" style="display: none;">
+        <span id="alertMessage"></span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>INC-@Model.IncidentReportId.ToString("D4")</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label><strong>Incident Type:</strong></label>
+                        <p>@Model.IncidentType</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label><strong>Location:</strong></label>
+                        <p>@Model.Location</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label><strong>Description:</strong></label>
+                <p>@Model.Description</p>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><strong>Incident Date:</strong></label>
+                        <p>@Model.ReportDate.ToString("MM/dd/yyyy")</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><strong>Date Reported:</strong></label>
+                        <p>@Model.ReportDate.ToString("MM/dd/yyyy")</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><strong>Emergency Contact:</strong></label>
+                        <p>@(string.IsNullOrEmpty(Model.EmergencyContact) ? "N/A" : Model.EmergencyContact)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><strong>Status:</strong></label>
+                        <p id="statusDisplay">@GetStatusBadge(Model.Status)</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><strong>Priority:</strong></label>
+                        <p>@GetPriorityBadge(Model.Priority)</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><strong>Reported By:</strong></label>
+                        <p>@Model.ReportedBy</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="feedbackSection">
+                @if (!string.IsNullOrEmpty(Model.Feedback) && Model.Feedback.EndsWith(".pdf"))
+                {
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label><strong>Uploaded Feedback PDF:</strong></label>
+                                <div class="alert alert-info p-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <i class="fas fa-file-pdf text-danger mr-2"></i>
+                                            @Model.Feedback
+                                        </span>
+                                        <a href="@Url.Action("DownloadFeedback", "Director", new { id = Model.IncidentReportId })"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download mr-1"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(Model.Feedback))
+                {
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label><strong>Director Feedback:</strong></label>
+                                <div class="alert alert-info">
+                                    @Model.Feedback
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Status Update Section -->
+        <div class="card-footer">
+            <h5>Update Incident Status</h5>
+            @using (Html.BeginForm("UpdateIncidentStatus", "Director", FormMethod.Post, new { @class = "mt-3", enctype = "multipart/form-data", id = "statusForm" }))
+            {
+                @Html.AntiForgeryToken()
+                @Html.Hidden("incidentId", Model.IncidentReportId)
+
+                <div class="form-row">
+                    <div class="form-group col-md-3">
+                        <label for="status">New Status:</label>
+                        <select id="status" name="status" class="form-control">
+                            <option value="Pending" @(Model.Status == "Pending" ? "selected" : "")>Pending</option>
+                            <option value="In Progress" @(Model.Status == "In Progress" ? "selected" : "")>In Progress</option>
+                            <option value="Resolved" @(Model.Status == "Resolved" ? "selected" : "")>Resolved</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group col-md-5">
+                        <label for="pdfFile">Upload PDF Feedback:</label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="pdfFile" name="pdfFile" accept=".pdf">
+                            <label class="custom-file-label" for="pdfFile">Choose PDF file...</label>
+                        </div>
+                        <small class="form-text text-muted">Only PDF files are accepted. Max size: 5MB</small>
+                    </div>
+
+                    <div class="form-group col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-block">Update Status</button>
+                    </div>
+                </div>
+
+                <div class="form-group mt-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="removeFile" name="removeFile" value="true">
+                        <label class="form-check-label" for="removeFile">
+                            Remove existing PDF file
+                        </label>
+                    </div>
+                </div>
+            }
+
+            <div class="mt-3">
+                @Html.ActionLink("Back to List", "Incidents", null, new { @class = "btn btn-secondary" })
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            // Update custom file input label with selected file name
+            $('.custom-file-input').on('change', function () {
+                var fileName = $(this).val().split('\\').pop();
+                $(this).next('.custom-file-label').addClass("selected").html(fileName);
+            });
+
+            // Show confirmation when removing file
+            $('#removeFile').on('change', function () {
+                if ($(this).is(':checked')) {
+                    if (!confirm('Are you sure you want to remove the existing PDF file?')) {
+                        $(this).prop('checked', false);
+                    }
+                }
+            });
+
+            // Handle form submission with AJAX
+            $('#statusForm').on('submit', function (e) {
+                e.preventDefault();
+
+                var formData = new FormData(this);
+                var fileInput = $('#pdfFile')[0];
+
+                // Validate file type before form submission
+                if (fileInput.files.length > 0) {
+                    var file = fileInput.files[0];
+                    if (file.type !== 'application/pdf') {
+                        showAlert('Please select a PDF file only.', 'danger');
+                        return false;
+                    }
+
+                    // Check file size (5MB max)
+                    if (file.size > 5 * 1024 * 1024) {
+                        showAlert('File size must be less than 5MB.', 'danger');
+                        return false;
+                    }
+                }
+
+                // Show loading state
+                $('button[type="submit"]').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...');
+
+                // Submit form via AJAX
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        if (response.success) {
+                            // Update status badge
+                            $('#statusDisplay').html(response.statusBadge);
+
+                            // Update feedback section if needed
+                            if (response.hasFeedback) {
+                                if (response.isPdf) {
+                                    $('#feedbackSection').html(`
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label><strong>Uploaded Feedback PDF:</strong></label>
+                                                    <div class="alert alert-info p-2">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span>
+                                                                <i class="fas fa-file-pdf text-danger mr-2"></i>
+                                                                ${response.feedback}
+                                                            </span>
+                                                            <a href="@Url.Action("DownloadFeedback", "Director")/${@Model.IncidentReportId}"
+                                                               class="btn btn-sm btn-outline-primary">
+                                                                <i class="fas fa-download mr-1"></i> Download
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `);
+                                } else {
+                                    $('#feedbackSection').html(`
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label><strong>Director Feedback:</strong></label>
+                                                    <div class="alert alert-info">
+                                                        ${response.feedback}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `);
+                                }
+                            } else {
+                                $('#feedbackSection').html('');
+                            }
+
+                            // Show success message
+                            showAlert(response.message, 'success');
+                        } else {
+                            showAlert(response.message, 'danger');
+                        }
+                    },
+                    error: function () {
+                        showAlert('An error occurred while updating the status.', 'danger');
+                    },
+                    complete: function () {
+                        // Reset button state
+                        $('button[type="submit"]').prop('disabled', false).html('Update Status');
+
+                        // Reset file input
+                        $('#pdfFile').val('');
+                        $('.custom-file-label').html('Choose PDF file...');
+                    }
+                });
+            });
+
+            function showAlert(message, type) {
+                $('#alertMessage').text(message);
+                $('#updateAlert')
+                    .removeClass('alert-success alert-danger')
+                    .addClass('alert-' + type)
+                    .show();
+
+                // Auto-hide after 5 seconds
+                setTimeout(function() {
+                    $('#updateAlert').fadeOut();
+                }, 5000);
+            }
+        });
+    </script>
+}
+
+@functions {
+    public IHtmlString GetStatusBadge(string status)
+    {
+        string badgeClass;
+        switch (status)
+        {
+            case "Resolved":
+                badgeClass = "badge badge-success";
+                break;
+            case "In Progress":
+                badgeClass = "badge badge-primary";
+                break;
+            case "Pending":
+                badgeClass = "badge badge-warning";
+                break;
+            default:
+                badgeClass = "badge badge-secondary";
+                break;
+        }
+        return new HtmlString($"<span class='{badgeClass}'>{status}</span>");
+    }
+
+    public IHtmlString GetPriorityBadge(string priority)
+    {
+        string badgeClass;
+        switch (priority)
+        {
+            case "Critical":
+            case "High":
+                badgeClass = "badge badge-danger";
+                break;
+            case "Medium":
+                badgeClass = "badge badge-warning";
+                break;
+            case "Low":
+                badgeClass = "badge badge-info";
+                break;
+            default:
+                badgeClass = "badge badge-secondary";
+                break;
+        }
+        return new HtmlString($"<span class='{badgeClass}'>{priority}</span>");
+    }
+}

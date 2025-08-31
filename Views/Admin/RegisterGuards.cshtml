@@ -1,0 +1,295 @@
+﻿@model PiranaSecuritySystem.ViewModels.RegisterGuardViewModel
+
+@{
+    ViewBag.Title = "Register New Guard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2>@ViewBag.Title</h2>
+    <hr />
+
+    @using (Html.BeginForm("RegisterGuard", "Admin", FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "registerForm" }))
+    {
+        @Html.AntiForgeryToken()
+
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Personal Information</h4>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Guard_FName, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.Guard_FName, new { @class = "form-control", placeholder = "Enter first name" })
+                    @Html.ValidationMessageFor(m => m.Guard_FName, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Guard_LName, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.Guard_LName, new { @class = "form-control", placeholder = "Enter last name" })
+                    @Html.ValidationMessageFor(m => m.Guard_LName, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.IdentityNumber, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.IdentityNumber, new
+                    {
+                        @class = "form-control",
+                        placeholder = "13-digit ID number",
+                        maxlength = "13",
+                        id = "idNumber"
+                    })
+                    @Html.ValidationMessageFor(m => m.IdentityNumber, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Gender, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.Gender, new SelectList(new[] { "M", "F" }), "Select Gender", new { @class = "form-control" })
+                    @Html.ValidationMessageFor(m => m.Gender, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.PSIRAnumber, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.PSIRAnumber, new { @class = "form-control", placeholder = "Enter PSIRA number" })
+                    @Html.ValidationMessageFor(m => m.PSIRAnumber, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <h4>Contact Information</h4>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Email, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.Email, new
+                    {
+                        @class = "form-control",
+                        placeholder = "Enter email address",
+                        type = "email"
+                    })
+                    @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.PhoneNumber, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.PhoneNumber, new
+                    {
+                        @class = "form-control",
+                        placeholder = "10-digit number (e.g., 0831234567)",
+                        maxlength = "10",
+                        id = "phoneNumber"
+                    })
+                    @Html.ValidationMessageFor(m => m.PhoneNumber, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Emergency_CellNo, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.Emergency_CellNo, new
+                    {
+                        @class = "form-control",
+                        placeholder = "10-digit number (e.g., 0831234567)",
+                        maxlength = "10",
+                        id = "emergencyCell"
+                    })
+                    @Html.ValidationMessageFor(m => m.Emergency_CellNo, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Address, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.Address, new
+                    {
+                        @class = "form-control",
+                        placeholder = "Enter street number and street name",
+                        id = "addressInput",
+                        autocomplete = "off"
+                    })
+                    @Html.ValidationMessageFor(m => m.Address, "", new { @class = "text-danger" })
+                    <div id="autocomplete-results" style="border: 1px solid #ccc; max-width: 100%; display: none; position: absolute; z-index: 1000; background: white;"></div>
+
+                    @Html.HiddenFor(m => m.Street, new { id = "street" })
+                    @Html.HiddenFor(m => m.HouseNumber, new { id = "houseNumber" })
+                    @Html.HiddenFor(m => m.City, new { id = "city" })
+                    @Html.HiddenFor(m => m.PostalCode, new { id = "postalCode" })
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h4>Account Information</h4>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Password, new { @class = "control-label" })
+                    @Html.PasswordFor(m => m.Password, new
+                    {
+                        @class = "form-control",
+                        placeholder = "Enter password (min 6 characters)"
+                    })
+                    @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="form-group">
+                    @Html.LabelFor(m => m.ConfirmPassword, new { @class = "control-label" })
+                    @Html.PasswordFor(m => m.ConfirmPassword, new
+                    {
+                        @class = "form-control",
+                        placeholder = "Confirm your password"
+                    })
+                    @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" class="btn btn-outline-primary" value="Register Guard" />
+            </div>
+        </div>
+
+    }
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+
+    <!-- Input masking and address autocomplete -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.7/jquery.inputmask.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Apply input mask for ID number (13 digits only)
+            $("#idNumber").inputmask("9999999999999", { placeholder: "" });
+
+            // Apply input mask for phone numbers - 10 digits only
+            $("#phoneNumber, #emergencyCell").inputmask("9999999999", {
+                placeholder: "",
+                greedy: false
+            });
+
+            // Address autocomplete functionality
+            const apiKey = 'db1f2ec180bd423eadf3af1d333ff4d8'; // Your Geoapify API key
+            const input = document.getElementById('addressInput');
+            const resultsDiv = document.getElementById('autocomplete-results');
+
+            input.addEventListener('input', debounce(async function () {
+                const query = input.value;
+
+                if (query.length < 3) {
+                    resultsDiv.style.display = 'none';
+                    resultsDiv.innerHTML = '';
+                    return;
+                }
+
+                const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&limit=5&filter=countrycode:za&format=json&apiKey=${apiKey}`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    resultsDiv.innerHTML = '';
+
+                    if (data.results && data.results.length > 0) {
+                        resultsDiv.style.display = 'block';
+
+                        data.results.forEach(result => {
+                            let addressLine = result.address_line1 || "";
+                            let city = result.city || "";
+                            let postcode = result.postcode || "";
+
+                            const div = document.createElement('div');
+                            div.innerText = `${addressLine}, ${city}, ${postcode}`;
+                            div.style.padding = "8px";
+                            div.style.cursor = "pointer";
+                            div.style.borderBottom = "1px solid #eee";
+
+                            div.onmouseover = () => div.style.backgroundColor = "#f0f0f0";
+                            div.onmouseout = () => div.style.backgroundColor = "transparent";
+
+                            div.onclick = () => {
+                                input.value = div.innerText;
+
+                                // Fill hidden form fields
+                                document.getElementById('street').value = result.street || "";
+                                document.getElementById('houseNumber').value = result.housenumber || "";
+                                document.getElementById('city').value = result.city || "";
+                                document.getElementById('postalCode').value = result.postcode || "";
+
+                                resultsDiv.style.display = 'none';
+                                resultsDiv.innerHTML = '';
+                            };
+
+                            resultsDiv.appendChild(div);
+                        });
+                    } else {
+                        resultsDiv.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error fetching address suggestions:', error);
+                    resultsDiv.style.display = 'none';
+                }
+            }, 300));
+
+            // Hide results when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!resultsDiv.contains(e.target) && e.target !== input) {
+                    resultsDiv.style.display = 'none';
+                }
+            });
+
+            // Debounce function to limit API calls
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // Client-side validation for phone numbers
+            $("#registerForm").on("submit", function () {
+                var phone = $("#phoneNumber").val();
+                var emergency = $("#emergencyCell").val();
+
+                // Remove any non-digit characters
+                phone = phone.replace(/\D/g, '');
+                emergency = emergency.replace(/\D/g, '');
+
+                // Update the values
+                $("#phoneNumber").val(phone);
+                $("#emergencyCell").val(emergency);
+
+                return true;
+            });
+        });
+    </script>
+
+    <style>
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .field-validation-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+        }
+
+        #autocomplete-results div:hover {
+            background-color: #f8f9fa;
+        }
+
+        h4 {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        /* Style for the input masks */
+        .inputmask {
+            text-align: left;
+        }
+    </style>
+}

@@ -1,0 +1,164 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.IncidentReport>
+
+@{
+    ViewBag.Title = "Incident Reports Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <h2>Incident Reports Management</h2>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Filters</h5>
+        </div>
+        <div class="card-body">
+            @using (Html.BeginForm("Index", "IncidentReports", FormMethod.Get))
+            {
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Search</label>
+                            <input type="text" name="searchString" class="form-control" value="@ViewBag.SearchString" placeholder="Search incidents...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Status</label>
+                            @Html.DropDownList("statusFilter", ViewBag.StatusFilter as SelectList, "All", new { @class = "form-control" })
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Priority</label>
+                            @Html.DropDownList("priorityFilter", ViewBag.PriorityFilter as SelectList, "All", new { @class = "form-control" })
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary form-control">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Incidents Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5>All Incident Reports</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Location</th>
+                                <th>Date Reported</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <!-- FIXED: Changed item.Id to item.IncidentId -->
+                                    <td>INC-@item.IncidentReportId.ToString("D4")</td>
+                                    <td>@item.IncidentType</td>
+                                    <!-- FIXED: Added null check for Description -->
+                                    <td>@(item.Description != null && item.Description.Length > 50 ? item.Description.Substring(0, 50) + "..." : item.Description)</td>
+                                    <td>@item.Location</td>
+                                    <!-- FIXED: Changed item.DateReported to item.ReportDate -->
+                                    <td>@item.ReportDate.ToString("MM/dd/yyyy")</td>
+                                    <td>
+                                        @GetStatusBadge(item.Status)
+                                    </td>
+                                    <td>
+                                        @GetPriorityBadge(item.Priority)
+                                    </td>
+                                    <td>
+                                        <!-- FIXED: Changed id = item.Id to id = item.IncidentId -->
+                                        @Html.ActionLink("View", "Details", new { id = item.IncidentReportId }, new { @class = "btn btn-info btn-sm" })
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    No incident reports found.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    public IHtmlString GetStatusBadge(string status)
+    {
+        string badgeClass;
+        switch (status?.ToLower())
+        {
+            case "resolved":
+                badgeClass = "badge badge-success";
+                break;
+            case "in progress":
+                badgeClass = "badge badge-primary";
+                break;
+            case "pending":
+                badgeClass = "badge badge-warning";
+                break;
+            default:
+                badgeClass = "badge badge-secondary";
+                break;
+        }
+        return new HtmlString($"<span class='{badgeClass}'>{status}</span>");
+    }
+
+    public IHtmlString GetPriorityBadge(string priority)
+    {
+        string badgeClass;
+        switch (priority?.ToLower())
+        {
+            case "critical":
+            case "high":
+                badgeClass = "badge badge-danger";
+                break;
+            case "medium":
+                badgeClass = "badge badge-warning";
+                break;
+            case "low":
+                badgeClass = "badge badge-info";
+                break;
+            default:
+                badgeClass = "badge badge-secondary";
+                break;
+        }
+        return new HtmlString($"<span class='{badgeClass}'>{priority}</span>");
+    }
+}
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $('.table').DataTable({
+                "pageLength": 10,
+                "ordering": true,
+                "searching": false // We have our own search
+            });
+        });
+    </script>
+}

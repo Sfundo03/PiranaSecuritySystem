@@ -1,0 +1,274 @@
+﻿@{
+    ViewBag.Title = "Pirana Guarding - Resident Portal";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .resident-landing {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: white;
+        padding: 20px;
+    }
+
+    .resident-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .resident-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+        .resident-header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .resident-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+    .auth-tabs, .info-tabs {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 30px;
+        backdrop-filter: blur(10px);
+        margin-bottom: 30px;
+    }
+
+    .tab-buttons {
+        display: flex;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #3498db;
+        flex-wrap: wrap;
+    }
+
+    .tab-button {
+        padding: 15px 30px;
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+    }
+
+        .tab-button.active {
+            background: #3498db;
+            border-radius: 5px 5px 0 0;
+        }
+
+    .tab-content {
+        display: none;
+    }
+
+        .tab-content.active {
+            display: block;
+        }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .btn-resident {
+        background: #e74c3c;
+        color: white;
+        padding: 15px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        width: 100%;
+        transition: background 0.3s ease;
+    }
+
+        .btn-resident:hover {
+            background: #c0392b;
+        }
+
+    /* About & Contact Sections */
+    .info-section {
+        margin-top: 20px;
+    }
+
+        .info-section h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+
+        .info-section p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+</style>
+
+<div class="resident-landing">
+    <div class="resident-container">
+
+        <div class="resident-header">
+            <h1>Pirana Guarding</h1>
+            <p>Resident Security Portal</p>
+        </div>
+
+        @if (!User.Identity.IsAuthenticated)
+        {
+            <!-- Show only Login/Register if not logged in -->
+            <div class="auth-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-button active" data-tab="login">Login</button>
+                    <button class="tab-button" data-tab="register">Register</button>
+                </div>
+
+                <!-- Login Tab -->
+                <div class="tab-content active" id="login-tab">
+                    @using (Html.BeginForm("ResidentLogin", "Account", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+                        </div>
+
+                        <button type="submit" class="btn-resident">Login</button>
+                    }
+
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="@Url.Action("ForgotPassword", "Account")" style="color: #3498db;">Forgot Password?</a>
+                    </div>
+                </div>
+
+                <!-- Register Tab -->
+                <div class="tab-content" id="register-tab">
+                    @using (Html.BeginForm("Register", "Account", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+
+                        <div class="form-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" name="FullName" class="form-control" placeholder="Enter your full name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regEmail">Email Address</label>
+                            <input type="email" id="regEmail" name="Email" class="form-control" placeholder="Enter your email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" name="PhoneNumber" class="form-control" placeholder="Enter your phone number" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regPassword">Password</label>
+                            <input type="password" id="regPassword" name="Password" class="form-control" placeholder="Create a password (min 8 characters)" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input type="password" id="confirmPassword" name="ConfirmPassword" class="form-control" placeholder="Confirm your password" required>
+                        </div>
+
+                        <button type="submit" class="btn-resident">Register</button>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Show About and Contact tabs only (Report Incident removed) -->
+            <div class="info-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-button active" data-tab="about">About Us</button>
+                    <button class="tab-button" data-tab="contact">Contact Us</button>
+                </div>
+
+                <!-- About Us -->
+                <div class="tab-content active" id="about-tab">
+                    <div class="info-section">
+                        <h2>About Pirana Guarding</h2>
+                        <p>Pirana Guarding provides professional, PSIRA-registered security services backed by over 75 years of combined operational experience.</p>
+                        <p>Founded in 2019 by Douglas Benningfield and Welensky Mdluli, we specialize in Estate & Complex Security, 24/7 Control Room & Remote Monitoring, and Security Guard Training tailored to your needs.</p>
+                        <p>With advanced surveillance, well-trained guards, and a personalized approach, Pirana Guarding is committed to keeping communities safe.</p>
+                    </div>
+                </div>
+
+                <!-- Contact Us -->
+                <div class="tab-content" id="contact-tab">
+                    <div class="info-section">
+                        <h2>Contact Us</h2>
+                        <p><strong>Phone:</strong> 087 183 1585</p>
+                        <p><strong>Alternate Phone:</strong> 062 072 5794</p>
+                        <p><strong>Email:</strong> douglas@piranaguarding.co.za</p>
+                        <p><strong>Address:</strong> Annie Street, Fontainebleau, Gauteng, 2032</p>
+                        <p>Our team is available 24/7 to assist with your security needs or incident reports.</p>
+
+                        <h3 style="color:#3498db; margin-top:20px;">Quick Contact Form</h3>
+                        @using (Html.BeginForm("ContactResident", "Account", FormMethod.Post))
+                        {
+                            @Html.AntiForgeryToken()
+
+                            <div class="form-group">
+                                <label for="contactName">Name</label>
+                                <input type="text" id="contactName" name="Name" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="contactEmail">Email</label>
+                                <input type="email" id="contactEmail" name="Email" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="contactMessage">Message</label>
+                                <textarea id="contactMessage" name="Message" class="form-control" rows="4" required></textarea>
+                            </div>
+
+                            <button type="submit" class="btn-resident">Send Message</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Tab functionality
+            $('.tab-button').click(function () {
+                var tabId = $(this).data('tab');
+                $(this).siblings().removeClass('active');
+                $(this).addClass('active');
+
+                $(this).closest('.info-tabs, .auth-tabs').find('.tab-content').removeClass('active');
+                $('#' + tabId + '-tab').addClass('active');
+            });
+        });
+    </script>
+}

@@ -1,0 +1,181 @@
+﻿@model PiranaSecuritySystem.Models.IncidentReport
+
+@{
+    ViewBag.Title = "Report Incident";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Adjust based on your layout
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Report New Incident</h4>
+                </div>
+                <div class="card-body">
+                    @using (Html.BeginForm("SubmitIncidentReport", "Guard", FormMethod.Post, new { @class = "needs-validation", novalidate = "novalidate" }))
+                    {
+                        @Html.AntiForgeryToken()
+
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                        <!-- Incident Type Dropdown -->
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.IncidentType, "Incident Type", htmlAttributes: new { @class = "form-label fw-bold" })
+                            @Html.DropDownListFor(model => model.IncidentType,
+                                new SelectList(new[]
+                                {
+                                    new SelectListItem { Text = "Select Incident Type", Value = "" },
+                                    new SelectListItem { Text = "Security Breach", Value = "Security Breach" },
+                                    new SelectListItem { Text = "Unauthorized Access", Value = "Unauthorized Access" },
+                                    new SelectListItem { Text = "Suspicious Activity", Value = "Suspicious Activity" },
+                                    new SelectListItem { Text = "Theft", Value = "Theft" },
+                                    new SelectListItem { Text = "Vandalism", Value = "Vandalism" },
+                                    new SelectListItem { Text = "Fire Hazard", Value = "Fire Hazard" },
+                                    new SelectListItem { Text = "Medical Emergency", Value = "Medical Emergency" },
+                                    new SelectListItem { Text = "Noise Complaint", Value = "Noise Complaint" },
+                                    new SelectListItem { Text = "Parking Violation", Value = "Parking Violation" },
+                                    new SelectListItem { Text = "Property Damage", Value = "Property Damage" },
+                                    new SelectListItem { Text = "Other", Value = "Other" }
+                                }, "Value", "Text"),
+                                new { @class = "form-select", required = "required" })
+                            @Html.ValidationMessageFor(model => model.IncidentType, "", new { @class = "text-danger" })
+                        </div>
+
+                        <!-- Priority Dropdown -->
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.Priority, "Priority Level", htmlAttributes: new { @class = "form-label fw-bold" })
+                            @Html.DropDownListFor(model => model.Priority,
+                                new SelectList(new[]
+                                {
+                                    new SelectListItem { Text = "Select Priority", Value = "" },
+                                    new SelectListItem { Text = "High", Value = "High" },
+                                    new SelectListItem { Text = "Medium", Value = "Medium" },
+                                    new SelectListItem { Text = "Low", Value = "Low" }
+                                }, "Value", "Text"),
+                                new { @class = "form-select", required = "required" })
+                            @Html.ValidationMessageFor(model => model.Priority, "", new { @class = "text-danger" })
+                        </div>
+
+                        <!-- Location -->
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.Location, "Location", htmlAttributes: new { @class = "form-label fw-bold" })
+                            @Html.DropDownListFor(model => model.Location,
+                                new SelectList(new[]
+                                {
+                                    new SelectListItem { Text = "Select Location", Value = "" },
+                                    new SelectListItem { Text = "Main Gate", Value = "Main Gate" },
+                                    new SelectListItem { Text = "North Gate", Value = "North Gate" },
+                                    new SelectListItem { Text = "South Gate", Value = "South Gate" },
+                                    new SelectListItem { Text = "East Gate", Value = "East Gate" },
+                                    new SelectListItem { Text = "West Gate", Value = "West Gate" },
+                                    new SelectListItem { Text = "Building A", Value = "Building A" },
+                                    new SelectListItem { Text = "Building B", Value = "Building B" },
+                                    new SelectListItem { Text = "Building C", Value = "Building C" },
+                                    new SelectListItem { Text = "Parking Lot", Value = "Parking Lot" },
+                                    new SelectListItem { Text = "Recreation Area", Value = "Recreation Area" },
+                                    new SelectListItem { Text = "Pool Area", Value = "Pool Area" },
+                                    new SelectListItem { Text = "Gym", Value = "Gym" },
+                                    new SelectListItem { Text = "Common Area", Value = "Common Area" },
+                                    new SelectListItem { Text = "Other", Value = "Other" }
+                                }, "Value", "Text"),
+                                new { @class = "form-select", required = "required" })
+                            @Html.ValidationMessageFor(model => model.Location, "", new { @class = "text-danger" })
+                        </div>
+
+                        <!-- Incident Date/Time -->
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.ReportDate, "Incident Date & Time", htmlAttributes: new { @class = "form-label fw-bold" })
+                            @Html.TextBoxFor(model => model.ReportDate, new { @class = "form-control", type = "datetime-local", required = "required" })
+                            @Html.ValidationMessageFor(model => model.ReportDate, "", new { @class = "text-danger" })
+                        </div>
+
+                        <!-- Description -->
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.Description, "Description", htmlAttributes: new { @class = "form-label fw-bold" })
+                            @Html.TextAreaFor(model => model.Description, new { @class = "form-control", rows = "4", placeholder = "Provide detailed description of the incident...", required = "required" })
+                            @Html.ValidationMessageFor(model => model.Description, "", new { @class = "text-danger" })
+                        </div>
+
+                        <!-- Emergency Contact -->
+                        <div class="form-group mb-4">
+                            @Html.LabelFor(model => model.EmergencyContact, "Emergency Contact Notified", htmlAttributes: new { @class = "form-label fw-bold" })
+                            @Html.DropDownListFor(model => model.EmergencyContact,
+                                new SelectList(new[]
+                                {
+                                    new SelectListItem { Text = "Select Option", Value = "" },
+                                    new SelectListItem { Text = "Yes - Police", Value = "Police" },
+                                    new SelectListItem { Text = "Yes - Fire Department", Value = "Fire Department" },
+                                    new SelectListItem { Text = "Yes - Medical", Value = "Medical" },
+                                    new SelectListItem { Text = "Yes - Management", Value = "Management" },
+                                    new SelectListItem { Text = "No", Value = "No" }
+                                }, "Value", "Text"),
+                                new { @class = "form-select", required = "required" })
+                            @Html.ValidationMessageFor(model => model.EmergencyContact, "", new { @class = "text-danger" })
+                            s
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-paper-plane me-1"></i> Submit Report
+                            </button>
+                            @Html.ActionLink("Cancel", "Dashboard", "Guard", null, new { @class = "btn btn-secondary" })
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Client-side validation and form enhancement
+        $(document).ready(function () {
+            // Initialize form validation
+            $('.needs-validation').on('submit', function (event) {
+                if (!this.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                $(this).addClass('was-validated');
+            });
+
+            // Set current date/time as default for incident date
+            var now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            $('#DateReported').val(now.toISOString().slice(0, 16));
+        });
+    </script>
+}
+
+<style>
+    .form-label {
+        color: #2c3e50;
+    }
+
+    .form-select, .form-control {
+        border-radius: 0.375rem;
+        border: 1px solid #ced4da;
+    }
+
+        .form-select:focus, .form-control:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+    .card {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        border: none;
+        border-radius: 0.5rem;
+    }
+
+    .card-header {
+        border-radius: 0.5rem 0.5rem 0 0 !important;
+    }
+
+    .btn {
+        border-radius: 0.375rem;
+        padding: 0.5rem 1.5rem;
+    }
+</style>

@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Guard Check-In</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Guard Check-In</h1>
+        <input type="text" id="guardName" placeholder="Enter your first name">
+        <button onclick="validateGuard()">Validate Guard</button>
+        <div id="validationMessage"></div>
+        <div id="qrSection" style="display: none;">
+            <button onclick="generateQRCode()">Generate QR Code</button>
+            <div id="qrcode"></div>
+            <input type="text" id="scannedCode" placeholder="Paste scanned QR code">
+            <button onclick="checkIn()">Check In</button>
+            <button onclick="checkOut()">Check Out</button>
+        </div>
+        <p id="statusMessage"></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
