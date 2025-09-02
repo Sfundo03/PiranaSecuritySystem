@@ -10,7 +10,7 @@ namespace PiranaSecuritySystem.Models
     public class Guard
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        
         [Display(Name = "Guard ID")]
         public int GuardId { get; set; }
 
