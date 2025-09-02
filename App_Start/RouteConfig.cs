@@ -13,6 +13,20 @@ namespace PiranaSecuritySystem
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
+            routes.MapMvcAttributeRoutes();
+
+            routes.MapRoute(
+                name: "AdminEditProfile",
+                url: "Admin/EditProfile/{id}",
+                defaults: new { controller = "Admin", action = "EditProfile" , id=UrlParameter.Optional}
+            );
+
+            routes.MapRoute(
+                name: "Dashboard",
+                url: "Admin/{action}/{id}",
+                defaults: new { controller = "Admin", action = "Dashboard", id = UrlParameter.Optional }
+            );
+
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",

@@ -17,5 +17,7 @@ namespace PiranaSecuritySystem.Models
 
         public string NotificationType { get; set; } // "Login", "Incident", "System"
         public bool IsImportant { get; set; }
+
+        public virtual ApplicationUser User { get; set; }
     }
 }

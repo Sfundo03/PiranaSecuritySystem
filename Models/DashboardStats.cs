@@ -12,6 +12,7 @@ namespace PiranaSecuritySystem.Models
         public int ActiveGuards { get; set; }
         public int ActiveInstructors { get; set; }
         public int TotalShifts { get; set; }
+        public int TotalAdmins { get; set; }
         public int PendingIncidents { get; set; }
 
         // You can add more statistics as needed

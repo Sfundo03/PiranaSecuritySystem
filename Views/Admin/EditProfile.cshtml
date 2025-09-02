@@ -1,0 +1,104 @@
+﻿@model PiranaSecuritySystem.Models.ViewModels.EditAdminProfileViewModel
+@{
+    ViewBag.Title = "Edit Admin Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1 text-gray-800">Edit Profile</h1>
+                    <p class="text-muted">Update your profile information</p>
+                </div>
+                <a href="@Url.Action("AdminProfile", "Admin")" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Profile
+                </a>
+            </div>
+
+            @if (ViewData.ModelState.Any(x => x.Value.Errors.Any()))
+            {
+                <div class="alert alert-danger alert-dismissible fade show mb-4">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    @Html.ValidationSummary()
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Profile Information</h6>
+                        </div>
+                        <div class="card-body">
+                            @using (Html.BeginForm("EditProfile", "Admin", FormMethod.Post, new { @class = "form" }))
+                            {
+                                @Html.AntiForgeryToken()
+
+                                <div class="form-group row mb-3">
+                                    @Html.LabelFor(m => m.FullName, new { @class = "col-sm-3 col-form-label" })
+                                    <div class="col-sm-9">
+                                        @Html.TextBoxFor(m => m.FullName, new { @class = "form-control", placeholder = "Enter your full name" })
+                                        @Html.ValidationMessageFor(m => m.FullName, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+
+                                <div class="form-group row mb-3">
+                                    @Html.LabelFor(m => m.Email, new { @class = "col-sm-3 col-form-label" })
+                                    <div class="col-sm-9">
+                                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control", type = "email", placeholder = "Enter your email address", @readonly = "readonly" })
+                                        @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                                        <small class="form-text text-muted">Email cannot be changed</small>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row mb-3">
+                                    @Html.LabelFor(m => m.PhoneNumber, new { @class = "col-sm-3 col-form-label" })
+                                    <div class="col-sm-9">
+                                        @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = "Enter your phone number" })
+                                        @Html.ValidationMessageFor(m => m.PhoneNumber, "", new { @class = "text-danger" })
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <div class="col-sm-9 offset-sm-3">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-1"></i> Save Changes
+                                        </button>
+                                        <a href="@Url.Action("AdminProfile", "Admin")" class="btn btn-secondary">
+                                            Cancel
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Profile Picture</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <img class="img-profile rounded-circle mb-3" src="https://via.placeholder.com/150" width="150" height="150" alt="Admin Profile">
+                            <div class="mb-3">
+                                <label for="formFile" class="form-label">Upload new photo</label>
+                                <input class="form-control" type="file" id="formFile">
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-upload me-1"></i> Upload
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

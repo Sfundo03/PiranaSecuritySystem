@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNet.Identity;
+using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
 
@@ -101,6 +102,9 @@ namespace PiranaSecuritySystem.Controllers
                     IsPersistent = model.RememberMe
                 }, identity);
 
+                // ADDED: Update last login date for default admin
+                UpdateDefaultAdminLastLogin();
+
                 return RedirectToAction("Dashboard", "Admin");
             }
 
@@ -135,6 +139,10 @@ namespace PiranaSecuritySystem.Controllers
                     var user = await UserManager.FindByEmailAsync(model.Email);
                     if (user != null)
                     {
+                        // ADDED: Update last login date for regular users
+                        user.LastLoginDate = DateTime.Now;
+                        await UserManager.UpdateAsync(user);
+
                         // Check for Director role to add notification
                         if (await UserManager.IsInRoleAsync(user.Id, "Director"))
                         {
@@ -184,6 +192,49 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // ADDED: Helper method to update last login date for default admin
+        private void UpdateDefaultAdminLastLogin()
+        {
+            using (var db = new ApplicationDbContext())
+            {
+                // Try to find the default admin user in the database
+                var adminUser = db.Users.FirstOrDefault(u => u.Email == DefaultAdminEmail);
+
+                if (adminUser != null)
+                {
+                    // Update last login date if user exists in database
+                    adminUser.LastLoginDate = DateTime.Now;
+                    db.SaveChanges();
+                }
+                else
+                {
+                    // Create the default admin user if it doesn't exist
+                    var userManager = new ApplicationUserManager(new UserStore<ApplicationUser>(db));
+                    var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
+
+                    // Ensure Admin role exists
+                    if (!roleManager.RoleExists("Admin"))
+                    {
+                        roleManager.Create(new IdentityRole("Admin"));
+                    }
+
+                    var newAdminUser = new ApplicationUser
+                    {
+                        UserName = DefaultAdminEmail,
+                        Email = DefaultAdminEmail,
+                        FullName = "System Administrator",
+                        PhoneNumber = "+27743142722",
+                        LastLoginDate = DateTime.Now
+                    };
+
+                    var result = userManager.Create(newAdminUser, DefaultAdminPassword);
+                    if (result.Succeeded)
+                    {
+                        userManager.AddToRole(newAdminUser.Id, "Admin");
+                    }
+                }
+            }
+        }
         // Helper method to redirect to local URL
         private ActionResult RedirectToLocal(string returnUrl)
         {
@@ -395,3 +446,4 @@ namespace PiranaSecuritySystem.Controllers
         #endregion
     }
 }
+

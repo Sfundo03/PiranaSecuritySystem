@@ -1,11 +1,15 @@
-﻿using PiranaSecuritySystem.Models;
+﻿using Microsoft.AspNet.Identity;
+using Microsoft.AspNet.Identity.EntityFramework;
+using PiranaSecuritySystem.Models;
 using System;
+using System.Collections.Generic;
 using System.Data.Entity;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
-using System.Collections.Generic;
+using PiranaSecuritySystem.Models.ViewModels;
 
 namespace PiranaSecuritySystem.Controllers
 {
@@ -75,6 +79,9 @@ namespace PiranaSecuritySystem.Controllers
                 return View();
             }
         }
+
+
+       
 
         // GET: Director/GetNotifications
         [HttpGet]

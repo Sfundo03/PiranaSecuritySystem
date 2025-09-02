@@ -22,6 +22,8 @@ namespace PiranaSecuritySystem
             AntiForgeryConfig.UniqueClaimTypeIdentifier = ClaimTypes.NameIdentifier;
             // Or if using a different claim type:
             // AntiForgeryConfig.UniqueClaimTypeIdentifier = "sub";
+
+            System.Web.Routing.RouteTable.Routes.RouteExistingFiles = true;
         }
 
 

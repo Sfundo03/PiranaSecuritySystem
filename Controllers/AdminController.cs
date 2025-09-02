@@ -1,15 +1,19 @@
 ﻿using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using PiranaSecuritySystem.Models;
+using PiranaSecuritySystem.Models.ViewModels;
 using PiranaSecuritySystem.ViewModels;
 using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.Entity;
 using System.Data.Entity.Validation;
 using System.Linq;
-using System.Net.Mail;
 using System.Net;
+using System.Net.Mail;
 using System.Threading.Tasks;
 using System.Web.Mvc;
-using System.Configuration;
+
 
 namespace PiranaSecuritySystem.Controllers
 {
@@ -44,6 +48,30 @@ namespace PiranaSecuritySystem.Controllers
                     ActiveInstructors = db.Instructors.Count(i => i.IsActive)
                 };
 
+                // Get notifications for the admin
+                var userId = User.Identity.GetUserId();
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == userId)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(10)
+                    .ToList();
+
+                ViewBag.Notifications = notifications;
+                ViewBag.UnreadNotificationCount = notifications.Count(n => !n.IsRead);
+
+                // Get admin profile data
+                var adminUser = db.Users.Find(userId);
+                var adminProfile = new AdminProfile
+                {
+                    FullName = adminUser?.FullName ?? "Administrator",
+                    Email = adminUser?.Email ?? "admin@pirana.com",
+                    PhoneNumber = adminUser?.PhoneNumber ?? "Not set",
+                    Role = "Administrator",
+                    Department = "Security Administration",
+                    LastLoginDate = adminUser?.LastLoginDate
+                };
+                ViewBag.AdminProfile = adminProfile;
+
                 return View(dashboardStats);
             }
             catch (Exception ex)
@@ -58,6 +86,185 @@ namespace PiranaSecuritySystem.Controllers
 
                 ViewBag.Error = "Error loading statistics: " + ex.Message;
                 return View(errorStats);
+            }
+        }
+
+        // GET: Admin/AdminProfile
+        [Route("Admin/AdminProfile")]
+        public ActionResult AdminProfile()
+        {
+
+
+            var userId = User.Identity.GetUserId();
+            var user = db.Users.Find(userId);
+
+            if (user == null)
+            {
+                return HttpNotFound();
+            }
+
+            var model = new AdminProfileViewModel
+            {
+                FullName = user.FullName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                Department = "Security Administration",
+                LastLoginDate = user.LastLoginDate
+            };
+
+            return View("AdminProfile", model);
+        }
+
+        // GET: Admin/EditProfile
+        [Route("Admin/EditProfile")]
+        public ActionResult EditProfile()
+        {
+            var userId = User.Identity.GetUserId();
+            var user = db.Users.Find(userId);
+
+            if (user == null)
+            {
+                return HttpNotFound();
+            }
+
+            var model = new EditAdminProfileViewModel
+            {
+                FullName = user.FullName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber
+            };
+
+            return View("EditProfile", model);
+        }
+
+        // POST: Admin/EditProfile
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult EditProfile(EditAdminProfileViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var userId = User.Identity.GetUserId();
+                var user = db.Users.Find(userId);
+
+                if (user == null)
+                {
+                    return HttpNotFound();
+                }
+
+                user.FullName = model.FullName;
+                user.PhoneNumber = model.PhoneNumber;
+
+                db.Entry(user).State = EntityState.Modified;
+                db.SaveChanges();
+
+                TempData["SuccessMessage"] = "Profile updated successfully!";
+                return RedirectToAction("AdminProfile");
+            }
+
+            return View("EditProfile", model);
+        }
+
+        // GET: Admin/Notifications
+        public ActionResult Notifications()
+        {
+            var userId = User.Identity.GetUserId();
+            var notifications = db.Notifications
+                .Where(n => n.UserId == userId)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToList();
+
+            return View(notifications);
+        }
+
+        // AJAX: Get notifications for the admin
+        [HttpGet]
+        public JsonResult GetNotifications()
+        {
+            try
+            {
+                var userId = User.Identity.GetUserId();
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == userId)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(10)
+                    .Select(n => new
+                    {
+                        n.NotificationId,
+                        n.Message,
+                        n.IsRead,
+                        n.CreatedAt,
+                        n.NotificationType,
+                        n.RelatedUrl
+                    })
+                    .ToList();
+
+                var unreadCount = notifications.Count(n => !n.IsRead);
+
+                return Json(new
+                {
+                    success = true,
+                    notifications = notifications,
+                    unreadCount = unreadCount
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    error = ex.Message
+                }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // AJAX: Mark notification as read
+        [HttpPost]
+        public JsonResult MarkNotificationAsRead(int id)
+        {
+            try
+            {
+                var userId = User.Identity.GetUserId();
+                var notification = db.Notifications
+                    .FirstOrDefault(n => n.NotificationId == id && n.UserId == userId);
+
+                if (notification != null)
+                {
+                    notification.IsRead = true;
+                    db.SaveChanges();
+                }
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        // AJAX: Mark all notifications as read
+        [HttpPost]
+        public JsonResult MarkAllNotificationsAsRead()
+        {
+            try
+            {
+                var userId = User.Identity.GetUserId();
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == userId && !n.IsRead)
+                    .ToList();
+
+                foreach (var notification in notifications)
+                {
+                    notification.IsRead = true;
+                }
+
+                db.SaveChanges();
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
             }
         }
 
