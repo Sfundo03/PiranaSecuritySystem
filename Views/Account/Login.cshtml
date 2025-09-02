@@ -5,108 +5,162 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white text-center">
-                    <h2>PIRANA GUARDING</h2>
-                    <p class="mb-0">Secure Access Management System</p>
+<!-- Add Bootstrap CDN directly -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+    }
+
+    .login-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 2rem 1rem;
+        background: linear-gradient(45deg, #0d6efd, #0dcaf0) !important;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .btn-primary {
+        background: linear-gradient(45deg, #0d6efd, #0b5ed7);
+        border: none;
+        padding: 12px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
+        }
+
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+</style>
+
+<div class="login-container">
+    <div class="login-card card">
+        <div class="card-header text-white text-center">
+            <h2 class="mb-1">PIRANA GUARDING</h2>
+            <p class="mb-0">Secure Access Management System</p>
+        </div>
+        <div class="card-body">
+            <h4 class="text-center mb-4">System Login</h4>
+
+            @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { role = "form", id = "loginForm" }))
+            {
+                @Html.AntiForgeryToken()
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                <!-- Role Selection -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Select Your Role</label>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input role-radio" type="radio" name="SelectedRole" id="roleAdmin" value="Admin" required>
+                                <label class="form-check-label" for="roleAdmin">
+                                    Administrator
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input role-radio" type="radio" name="SelectedRole" id="roleDirector" value="Director" required>
+                                <label class="form-check-label" for="roleDirector">
+                                    Director
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input role-radio" type="radio" name="SelectedRole" id="roleGuard" value="Guard" required>
+                                <label class="form-check-label" for="roleGuard">
+                                    Security Guard
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input role-radio" type="radio" name="SelectedRole" id="roleInstructor" value="Instructor" required>
+                                <label class="form-check-label" for="roleInstructor">
+                                    Instructor
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-danger" id="SelectedRole-error"></span>
                 </div>
-                <div class="card-body">
-                    <h4 class="text-center mb-4">System Login</h4>
 
-                    @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { role = "form", id = "loginForm" }))
-                    {
-                        @Html.AntiForgeryToken()
-                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                <!-- Credentials Section -->
+                <div id="credentialsSection">
+                    <div class="mb-3">
+                        @Html.LabelFor(m => m.Email, new { @class = "form-label" })
+                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "name@example.com" })
+                        @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                    </div>
 
-                        <!-- Role Selection -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Select Your Role</label>
-                            <div class="row">
-                                <div class="col-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input role-radio" type="radio" name="SelectedRole" id="roleAdmin" value="Admin" required>
-                                        <label class="form-check-label" for="roleAdmin">
-                                            Administrator
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input role-radio" type="radio" name="SelectedRole" id="roleDirector" value="Director" required>
-                                        <label class="form-check-label" for="roleDirector">
-                                            Director
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input role-radio" type="radio" name="SelectedRole" id="roleGuard" value="Guard" required>
-                                        <label class="form-check-label" for="roleGuard">
-                                            Security Guard
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input role-radio" type="radio" name="SelectedRole" id="roleInstructor" value="Instructor" required>
-                                        <label class="form-check-label" for="roleInstructor">
-                                            Instructor
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <span class="text-danger field-validation-error" data-valmsg-for="SelectedRole" data-valmsg-replace="true">
-                                <span id="SelectedRole-error" class=""></span>
-                            </span>
-                        </div>
+                    <div class="mb-3">
+                        @Html.LabelFor(m => m.Password, new { @class = "form-label" })
+                        @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Enter your password" })
+                        @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                    </div>
 
-                        <!-- Credentials Section -->
-                        <div id="credentialsSection">
-                            <div class="mb-3">
-                                @Html.LabelFor(m => m.Email, new { @class = "form-label" })
-                                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "name@example.com" })
-                                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
-                            </div>
+                    <div class="mb-3 form-check">
+                        @Html.CheckBoxFor(m => m.RememberMe, new { @class = "form-check-input" })
+                        @Html.LabelFor(m => m.RememberMe, new { @class = "form-check-label" })
+                    </div>
 
-                            <div class="mb-3">
-                                @Html.LabelFor(m => m.Password, new { @class = "form-label" })
-                                @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Enter your password" })
-                                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
-                            </div>
+                    <button type="submit" class="btn btn-primary w-100">Log In</button>
 
-                            <div class="mb-3 form-check">
-                                @Html.CheckBoxFor(m => m.RememberMe, new { @class = "form-check-input" })
-                                @Html.LabelFor(m => m.RememberMe, new { @class = "form-check-label" })
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100">Log In</button>
-
-                            <div class="text-center mt-3">
-                                @Html.ActionLink("Forgot your password?", "ForgotPassword")
-                            </div>
-                        </div>
-                    }
-
-                    <div class="text-center mt-4 pt-3 border-top">
-                        <p class="mb-2">Are you a resident?</p>
-                        <a href="@Url.Action("Index", "Resident")" class="btn btn-outline-secondary">
-                            Access Resident Portal
-                        </a>
+                    <div class="text-center mt-3">
+                        @Html.ActionLink("Forgot your password?", "ForgotPassword", null, new { @class = "text-decoration-none" })
                     </div>
                 </div>
+            }
+
+            <div class="text-center mt-4 pt-3 border-top">
+                <p class="mb-2">Are you a resident?</p>
+                <a href="@Url.Action("Index", "Resident")" class="btn btn-outline-secondary">
+                    Access Resident Portal
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Add jQuery and Bootstrap JS CDN -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 @section Scripts {
     @Scripts.Render("~/bundles/jqueryval")
 
     <script>
         $(document).ready(function () {
+            console.log("Login page loaded successfully");
+
             // Auto-fill credentials based on role selection
             $('.role-radio').change(function () {
                 var role = $(this).val();
@@ -116,11 +170,11 @@
                 switch (role) {
                     case "Admin":
                         email = "admin@pirana.com";
-                        password = "admin123";
+                        password = "Admin@123";
                         break;
                     case "Director":
                         email = "director@pirana.com";
-                        password = "director123";
+                        password = "Director@123";
                         break;
                     case "Guard":
                         email = "";

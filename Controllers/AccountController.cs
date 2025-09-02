@@ -2,8 +2,6 @@
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
-
-
 using PiranaSecuritySystem.Models;
 using System;
 using System.Globalization;
@@ -24,11 +22,11 @@ namespace PiranaSecuritySystem.Controllers
 
         // Default admin credentials
         private const string DefaultAdminEmail = "admin@pirana.com";
-        private const string DefaultAdminPassword = "admin123";
+        private const string DefaultAdminPassword = "Admin@123"; // Changed to stronger password
 
         // Default director credentials
         private const string DefaultDirectorEmail = "director@pirana.com";
-        private const string DefaultDirectorPassword = "director123";
+        private const string DefaultDirectorPassword = "Director@123"; // Changed to stronger password
 
         public AccountController()
         {
@@ -73,7 +71,6 @@ namespace PiranaSecuritySystem.Controllers
             return View();
         }
 
-
         // POST: /Account/Login
         [HttpPost]
         [AllowAnonymous]
@@ -89,20 +86,23 @@ namespace PiranaSecuritySystem.Controllers
             if (model.Email.Equals(DefaultAdminEmail, StringComparison.OrdinalIgnoreCase) &&
                 model.Password == DefaultAdminPassword)
             {
+                // Sign out any existing authentication
                 AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
 
+                // Create claims identity for default admin
                 var identity = new ClaimsIdentity(DefaultAuthenticationTypes.ApplicationCookie);
                 identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "admin-default-id"));
-                identity.AddClaim(new Claim(ClaimTypes.Name, "Default Admin"));
+                identity.AddClaim(new Claim(ClaimTypes.Name, "System Administrator"));
                 identity.AddClaim(new Claim(ClaimTypes.Email, DefaultAdminEmail));
                 identity.AddClaim(new Claim(ClaimTypes.Role, "Admin"));
 
+                // Sign in the user
                 AuthenticationManager.SignIn(new AuthenticationProperties
                 {
                     IsPersistent = model.RememberMe
                 }, identity);
 
-                // ADDED: Update last login date for default admin
+                // Update last login date for default admin
                 UpdateDefaultAdminLastLogin();
 
                 return RedirectToAction("Dashboard", "Admin");
@@ -112,15 +112,17 @@ namespace PiranaSecuritySystem.Controllers
             if (model.Email.Equals(DefaultDirectorEmail, StringComparison.OrdinalIgnoreCase) &&
                 model.Password == DefaultDirectorPassword)
             {
+                // Sign out any existing authentication
                 AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
 
+                // Create claims identity for default director
                 var identity = new ClaimsIdentity(DefaultAuthenticationTypes.ApplicationCookie);
                 identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "director-default-id"));
-                identity.AddClaim(new Claim("http://schemas.microsoft.com/accesscontrolservice/2010/07/claims/identityprovider", "ASP.NET Identity"));
-                identity.AddClaim(new Claim(ClaimTypes.Name, "Default Director"));
+                identity.AddClaim(new Claim(ClaimTypes.Name, "System Director"));
                 identity.AddClaim(new Claim(ClaimTypes.Email, DefaultDirectorEmail));
                 identity.AddClaim(new Claim(ClaimTypes.Role, "Director"));
 
+                // Sign in the user
                 AuthenticationManager.SignIn(new AuthenticationProperties
                 {
                     IsPersistent = model.RememberMe
@@ -129,8 +131,8 @@ namespace PiranaSecuritySystem.Controllers
                 return RedirectToAction("Dashboard", "Director");
             }
 
-            // Regular ASP.NET Identity login
-            AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+            // REMOVED THE SIGN OUT CALL HERE - This was causing the login failure
+            // Regular ASP.NET Identity login for database users
             var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
 
             switch (result)
@@ -139,7 +141,7 @@ namespace PiranaSecuritySystem.Controllers
                     var user = await UserManager.FindByEmailAsync(model.Email);
                     if (user != null)
                     {
-                        // ADDED: Update last login date for regular users
+                        // Update last login date
                         user.LastLoginDate = DateTime.Now;
                         await UserManager.UpdateAsync(user);
 
@@ -192,12 +194,20 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // ADDED: Helper method to update last login date for default admin
+        // Helper method to update last login date for default admin
         private void UpdateDefaultAdminLastLogin()
         {
             using (var db = new ApplicationDbContext())
             {
-                // Try to find the default admin user in the database
+                var userManager = new ApplicationUserManager(new UserStore<ApplicationUser>(db));
+                var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
+
+                // Ensure Admin role exists
+                if (!roleManager.RoleExists("Admin"))
+                {
+                    roleManager.Create(new IdentityRole("Admin"));
+                }
+
                 var adminUser = db.Users.FirstOrDefault(u => u.Email == DefaultAdminEmail);
 
                 if (adminUser != null)
@@ -209,22 +219,14 @@ namespace PiranaSecuritySystem.Controllers
                 else
                 {
                     // Create the default admin user if it doesn't exist
-                    var userManager = new ApplicationUserManager(new UserStore<ApplicationUser>(db));
-                    var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
-
-                    // Ensure Admin role exists
-                    if (!roleManager.RoleExists("Admin"))
-                    {
-                        roleManager.Create(new IdentityRole("Admin"));
-                    }
-
                     var newAdminUser = new ApplicationUser
                     {
                         UserName = DefaultAdminEmail,
                         Email = DefaultAdminEmail,
                         FullName = "System Administrator",
                         PhoneNumber = "+27743142722",
-                        LastLoginDate = DateTime.Now
+                        LastLoginDate = DateTime.Now,
+                        EmailConfirmed = true
                     };
 
                     var result = userManager.Create(newAdminUser, DefaultAdminPassword);
@@ -235,6 +237,7 @@ namespace PiranaSecuritySystem.Controllers
                 }
             }
         }
+
         // Helper method to redirect to local URL
         private ActionResult RedirectToLocal(string returnUrl)
         {
@@ -299,6 +302,13 @@ namespace PiranaSecuritySystem.Controllers
                     // Don't reveal that the user does not exist or is not confirmed
                     return View("ForgotPasswordConfirmation");
                 }
+
+                // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
+                // Send an email with this link
+                // string code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
+                // var callbackUrl = Url.Action("ResetPassword", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);		
+                // await UserManager.SendEmailAsync(user.Id, "Reset Password", "Please reset your password by clicking <a href=\"" + callbackUrl + "\">here</a>");
+                // return RedirectToAction("ForgotPasswordConfirmation", "Account");
             }
 
             // If we got this far, something failed, redisplay form
@@ -356,22 +366,101 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         //
+        // POST: /Account/ExternalLogin
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public ActionResult ExternalLogin(string provider, string returnUrl)
+        {
+            // Request a redirect to the external login provider
+            return new ChallengeResult(provider, Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = returnUrl }));
+        }
+
+        //
+        // GET: /Account/ExternalLoginCallback
+        [AllowAnonymous]
+        public async Task<ActionResult> ExternalLoginCallback(string returnUrl)
+        {
+            var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync();
+            if (loginInfo == null)
+            {
+                return RedirectToAction("Login");
+            }
+
+            // Sign in the user with this external login provider if the user already has a login
+            var result = await SignInManager.ExternalSignInAsync(loginInfo, isPersistent: false);
+            switch (result)
+            {
+                case SignInStatus.Success:
+                    return RedirectToLocal(returnUrl);
+                case SignInStatus.LockedOut:
+                    return View("Lockout");
+                case SignInStatus.RequiresVerification:
+                    return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = false });
+                case SignInStatus.Failure:
+                default:
+                    // If the user does not have an account, then prompt the user to create an account
+                    ViewBag.ReturnUrl = returnUrl;
+                    ViewBag.LoginProvider = loginInfo.Login.LoginProvider;
+                    return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = loginInfo.Email });
+            }
+        }
+
+        //
+        // POST: /Account/ExternalLoginConfirmation
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> ExternalLoginConfirmation(ExternalLoginConfirmationViewModel model, string returnUrl)
+        {
+            if (User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Index", "Manage");
+            }
+
+            if (ModelState.IsValid)
+            {
+                // Get the information about the user from the external login provider
+                var info = await AuthenticationManager.GetExternalLoginInfoAsync();
+                if (info == null)
+                {
+                    return View("ExternalLoginFailure");
+                }
+                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var result = await UserManager.CreateAsync(user);
+                if (result.Succeeded)
+                {
+                    result = await UserManager.AddLoginAsync(user.Id, info.Login);
+                    if (result.Succeeded)
+                    {
+                        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                        return RedirectToLocal(returnUrl);
+                    }
+                }
+                AddErrors(result);
+            }
+
+            ViewBag.ReturnUrl = returnUrl;
+            return View(model);
+        }
+
+        //
         // POST: /Account/LogOff
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult LogOff()
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+            Session.Clear();
             return RedirectToAction("Login", "Account");
         }
 
         //
-        // GET: /Account/LogOff (for cases where POST fails due to anti-forgery token issues)
+        // GET: /Account/ExternalLoginFailure
         [AllowAnonymous]
-        public ActionResult LogOffGet()
+        public ActionResult ExternalLoginFailure()
         {
-            AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
-            return RedirectToAction("Index", "Home");
+            return View();
         }
 
         protected override void Dispose(bool disposing)
@@ -414,7 +503,6 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-
         internal class ChallengeResult : HttpUnauthorizedResult
         {
             public ChallengeResult(string provider, string redirectUri)
@@ -446,4 +534,3 @@ namespace PiranaSecuritySystem.Controllers
         #endregion
     }
 }
-
