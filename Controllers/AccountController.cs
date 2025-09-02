@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
-
-
 using PiranaSecuritySystem.Models;
 using System;
 using System.Globalization;
@@ -68,10 +66,24 @@ namespace PiranaSecuritySystem.Controllers
         [AllowAnonymous]
         public ActionResult Login(string returnUrl)
         {
+            // If user is already authenticated, redirect to appropriate dashboard
+            if (User.Identity.IsAuthenticated)
+            {
+                if (User.IsInRole("Admin"))
+                    return RedirectToAction("Dashboard", "Admin");
+                if (User.IsInRole("Director"))
+                    return RedirectToAction("Dashboard", "Director");
+                if (User.IsInRole("Guard"))
+                    return RedirectToAction("Dashboard", "Guard");
+                if (User.IsInRole("Instructor"))
+                    return RedirectToAction("Dashboard", "Instructor");
+
+                return RedirectToLocal(returnUrl);
+            }
+
             ViewBag.ReturnUrl = returnUrl;
             return View();
         }
-
 
         // POST: /Account/Login
         [HttpPost]
@@ -88,14 +100,17 @@ namespace PiranaSecuritySystem.Controllers
             if (model.Email.Equals(DefaultAdminEmail, StringComparison.OrdinalIgnoreCase) &&
                 model.Password == DefaultAdminPassword)
             {
+                // Sign out any existing authentication
                 AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
 
+                // Create claims identity for default admin
                 var identity = new ClaimsIdentity(DefaultAuthenticationTypes.ApplicationCookie);
                 identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "admin-default-id"));
                 identity.AddClaim(new Claim(ClaimTypes.Name, "Default Admin"));
                 identity.AddClaim(new Claim(ClaimTypes.Email, DefaultAdminEmail));
                 identity.AddClaim(new Claim(ClaimTypes.Role, "Admin"));
 
+                // Sign in
                 AuthenticationManager.SignIn(new AuthenticationProperties
                 {
                     IsPersistent = model.RememberMe
@@ -108,15 +123,17 @@ namespace PiranaSecuritySystem.Controllers
             if (model.Email.Equals(DefaultDirectorEmail, StringComparison.OrdinalIgnoreCase) &&
                 model.Password == DefaultDirectorPassword)
             {
+                // Sign out any existing authentication
                 AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
 
+                // Create claims identity for default director
                 var identity = new ClaimsIdentity(DefaultAuthenticationTypes.ApplicationCookie);
                 identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "director-default-id"));
-                identity.AddClaim(new Claim("http://schemas.microsoft.com/accesscontrolservice/2010/07/claims/identityprovider", "ASP.NET Identity"));
                 identity.AddClaim(new Claim(ClaimTypes.Name, "Default Director"));
                 identity.AddClaim(new Claim(ClaimTypes.Email, DefaultDirectorEmail));
                 identity.AddClaim(new Claim(ClaimTypes.Role, "Director"));
 
+                // Sign in
                 AuthenticationManager.SignIn(new AuthenticationProperties
                 {
                     IsPersistent = model.RememberMe
@@ -125,62 +142,72 @@ namespace PiranaSecuritySystem.Controllers
                 return RedirectToAction("Dashboard", "Director");
             }
 
-            // Regular ASP.NET Identity login
-            AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
-            var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
-
-            switch (result)
+            // Regular ASP.NET Identity login for other users
+            try
             {
-                case SignInStatus.Success:
-                    var user = await UserManager.FindByEmailAsync(model.Email);
-                    if (user != null)
-                    {
-                        // Check for Director role to add notification
-                        if (await UserManager.IsInRoleAsync(user.Id, "Director"))
-                        {
-                            using (var db = new ApplicationDbContext())
-                            {
-                                var notification = new Notification
-                                {
-                                    UserId = user.Id,
-                                    UserType = "Director",
-                                    Message = $"Director {user.UserName} logged in successfully at {DateTime.Now:MM/dd/yyyy HH:mm}",
-                                    IsRead = false,
-                                    CreatedAt = DateTime.Now,
-                                    RelatedUrl = "/Director/Dashboard",
-                                    NotificationType = "Login"
-                                };
+                AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+                var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
 
-                                db.Notifications.Add(notification);
-                                await db.SaveChangesAsync();
+                switch (result)
+                {
+                    case SignInStatus.Success:
+                        var user = await UserManager.FindByEmailAsync(model.Email);
+                        if (user != null)
+                        {
+                            // Check for Director role to add notification
+                            if (await UserManager.IsInRoleAsync(user.Id, "Director"))
+                            {
+                                using (var db = new ApplicationDbContext())
+                                {
+                                    var notification = new Notification
+                                    {
+                                        UserId = user.Id,
+                                        UserType = "Director",
+                                        Message = $"Director {user.UserName} logged in successfully at {DateTime.Now:MM/dd/yyyy HH:mm}",
+                                        IsRead = false,
+                                        CreatedAt = DateTime.Now,
+                                        RelatedUrl = "/Director/Dashboard",
+                                        NotificationType = "Login"
+                                    };
+
+                                    db.Notifications.Add(notification);
+                                    await db.SaveChangesAsync();
+                                }
+
+                                // Store DirectorId in session
+                                Session["DirectorId"] = user.Id;
                             }
 
-                            // Store DirectorId in session
-                            Session["DirectorId"] = user.Id;
+                            // Redirect based on role
+                            if (await UserManager.IsInRoleAsync(user.Id, "Admin"))
+                                return RedirectToAction("Dashboard", "Admin");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Director"))
+                                return RedirectToAction("Dashboard", "Director");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Guard"))
+                                return RedirectToAction("Dashboard", "Guard");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Instructor"))
+                                return RedirectToAction("Dashboard", "Instructor");
                         }
+                        return RedirectToLocal(returnUrl);
 
-                        // Redirect based on role
-                        if (await UserManager.IsInRoleAsync(user.Id, "Admin"))
-                            return RedirectToAction("Dashboard", "Admin");
-                        if (await UserManager.IsInRoleAsync(user.Id, "Director"))
-                            return RedirectToAction("Dashboard", "Director");
-                        if (await UserManager.IsInRoleAsync(user.Id, "Guard"))
-                            return RedirectToAction("Dashboard", "Guard");
-                        if (await UserManager.IsInRoleAsync(user.Id, "Instructor"))
-                            return RedirectToAction("Dashboard", "Instructor");
-                    }
-                    return RedirectToLocal(returnUrl);
+                    case SignInStatus.LockedOut:
+                        return View("Lockout");
 
-                case SignInStatus.LockedOut:
-                    return View("Lockout");
+                    case SignInStatus.RequiresVerification:
+                        return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
 
-                case SignInStatus.RequiresVerification:
-                    return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
-
-                case SignInStatus.Failure:
-                default:
-                    ModelState.AddModelError("", "Invalid login attempt.");
-                    return View(model);
+                    case SignInStatus.Failure:
+                    default:
+                        ModelState.AddModelError("", "Invalid login attempt.");
+                        ViewBag.ErrorMessage = "Invalid login attempt. Please check your credentials.";
+                        return View(model);
+                }
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "An error occurred during login: " + ex.Message);
+                ViewBag.ErrorMessage = "An error occurred during login. Please try again.";
+                return View(model);
             }
         }
 
@@ -311,6 +338,7 @@ namespace PiranaSecuritySystem.Controllers
         public ActionResult LogOff()
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+            Session.Clear();
             return RedirectToAction("Login", "Account");
         }
 
@@ -320,6 +348,7 @@ namespace PiranaSecuritySystem.Controllers
         public ActionResult LogOffGet()
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+            Session.Clear();
             return RedirectToAction("Index", "Home");
         }
 
@@ -362,7 +391,6 @@ namespace PiranaSecuritySystem.Controllers
                 ModelState.AddModelError("", error);
             }
         }
-
 
         internal class ChallengeResult : HttpUnauthorizedResult
         {
