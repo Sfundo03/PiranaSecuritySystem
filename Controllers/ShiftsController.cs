@@ -21,17 +21,21 @@ namespace PiranaSecuritySystem.Controllers
             {
                 var groupedShifts = db.Shifts
                     .Include(s => s.Guard)
+                    .Where(s => s.Guard != null) // Filter out shifts without guards
                     .GroupBy(s => s.GuardId)
                     .Select(g => new
                     {
                         GuardID = g.Key,
-                        GuardName = g.FirstOrDefault().Guard.Guard_FName + " " + g.FirstOrDefault().Guard.Guard_LName,
+                        GuardName = g.FirstOrDefault() != null && g.FirstOrDefault().Guard != null
+                            ? g.FirstOrDefault().Guard.Guard_FName + " " + g.FirstOrDefault().Guard.Guard_LName
+                            : "Unknown Guard",
                         Shifts = g.OrderBy(s => s.ShiftDate).ToList()
                     }).ToList();
 
                 ViewBag.GroupedShifts = groupedShifts;
 
-                return View(db.Shifts.ToList());
+                var shifts = db.Shifts.Include(s => s.Guard).ToList();
+                return View(shifts);
             }
             catch (Exception ex)
             {
@@ -45,10 +49,18 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                var guards = db.Guards.Select(g => new {
-                    g.GuardId,
-                    FullName = g.Guard_FName + " " + g.Guard_LName
-                }).ToList();
+                var guards = db.Guards
+                    .Where(g => g != null)
+                    .Select(g => new {
+                        g.GuardId,
+                        FullName = g.Guard_FName + " " + g.Guard_LName
+                    }).ToList();
+
+                if (guards == null || !guards.Any())
+                {
+                    TempData["ErrorMessage"] = "No guards found in the system. Please add guards first.";
+                    return RedirectToAction("Index");
+                }
 
                 ViewBag.Guards = new SelectList(guards, "GuardId", "FullName");
                 ViewBag.Today = DateTime.Today.ToString("yyyy-MM-dd");
@@ -65,45 +77,58 @@ namespace PiranaSecuritySystem.Controllers
         // POST: Shifts/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(List<int> SelectedGuardIDs, DateTime startDate, DateTime endDate)
+        public ActionResult Create(List<int> SelectedGuardIDs, DateTime startDate)
         {
             try
             {
                 // Validate input
                 if (SelectedGuardIDs == null || !SelectedGuardIDs.Any())
                 {
-                    ModelState.AddModelError("SelectedGuardIDs", "Please select at least one guard.");
+                    ModelState.AddModelError("", "Please select at least one guard.");
                     RepopulateViewBag();
                     return View();
                 }
 
-                if (startDate < DateTime.Today)
+                if (startDate == DateTime.MinValue || startDate == DateTime.MaxValue)
                 {
-                    ModelState.AddModelError("startDate", "Cannot create shifts for past dates.");
+                    ModelState.AddModelError("", "Please select a valid start date.");
                     RepopulateViewBag();
                     return View();
                 }
 
-                if (endDate < startDate)
+                var shiftPattern = new List<string> { "Night", "Night", "Day", "Day", "Off", "Off" };
+
+                foreach (var guardId in SelectedGuardIDs)
                 {
-                    ModelState.AddModelError("endDate", "End date must be after start date.");
-                    RepopulateViewBag();
-                    return View();
-                }
+                    // Verify guard exists
+                    var guardExists = db.Guards.Any(g => g.GuardId == guardId);
+                    if (!guardExists)
+                    {
+                        ModelState.AddModelError("", $"Guard with ID {guardId} does not exist.");
+                        RepopulateViewBag();
+                        return View();
+                    }
 
-                // Check for existing shifts
-                if (HasExistingShifts(SelectedGuardIDs, startDate, endDate))
-                {
-                    ModelState.AddModelError("", "Shifts already exist for the selected guards in this date range. Please delete existing shifts first.");
-                    RepopulateViewBag();
-                    return View();
-                }
+                    DateTime currentDate = startDate;
 
-                // Generate shifts
-                GenerateShifts(SelectedGuardIDs, startDate, endDate);
+                    for (int i = 0; i < 30; i++) // Generate for 30 days
+                    {
+                        string shiftType = shiftPattern[i % shiftPattern.Count];
+
+                        var shift = new Shift
+                        {
+                            GuardId = guardId,
+                            ShiftDate = currentDate,
+                            ShiftType = shiftType
+                        };
+
+                        db.Shifts.Add(shift);
+                        currentDate = currentDate.AddDays(1);
+                    }
+                }
 
                 db.SaveChanges();
-                TempData["SuccessMessage"] = $"Shifts from {startDate.ToShortDateString()} to {endDate.ToShortDateString()} created successfully!";
+                TempData["SuccessMessage"] = $"Shifts from {startDate.ToShortDateString()} created successfully!";
                 return RedirectToAction("Index");
             }
             catch (DbEntityValidationException ex)
@@ -121,14 +146,14 @@ namespace PiranaSecuritySystem.Controllers
             {
                 // Check if this is a datetime conversion error
                 var innerEx = GetInnerException(ex);
-                if (innerEx.Message.Contains("datetime2") && innerEx.Message.Contains("datetime"))
+                if (innerEx != null && innerEx.Message.Contains("datetime2") && innerEx.Message.Contains("datetime"))
                 {
                     ModelState.AddModelError("", "Database schema issue detected. Please run the database update by clicking the button below.");
                     ViewBag.NeedsDatabaseUpdate = true;
                 }
                 else
                 {
-                    ModelState.AddModelError("", "Database error: " + innerEx.Message);
+                    ModelState.AddModelError("", "Database error: " + (innerEx != null ? innerEx.Message : ex.Message));
                 }
                 RepopulateViewBag();
                 return View();
@@ -160,6 +185,9 @@ namespace PiranaSecuritySystem.Controllers
 
         private bool HasExistingShifts(List<int> guardIds, DateTime startDate, DateTime endDate)
         {
+            if (guardIds == null || !guardIds.Any())
+                return false;
+
             return db.Shifts.Any(s => guardIds.Contains(s.GuardId) &&
                                      s.ShiftDate >= startDate &&
                                      s.ShiftDate <= endDate);
@@ -167,6 +195,9 @@ namespace PiranaSecuritySystem.Controllers
 
         private void GenerateShifts(List<int> guardIds, DateTime startDate, DateTime endDate)
         {
+            if (guardIds == null || !guardIds.Any())
+                throw new Exception("No guard IDs provided.");
+
             var shiftPattern = new List<string> { "Night", "Night", "Day", "Day", "Off", "Off" };
             int totalDays = (endDate - startDate).Days + 1;
 
@@ -198,10 +229,12 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                var guards = db.Guards.Select(g => new {
-                    g.GuardId,
-                    FullName = g.Guard_FName + " " + g.Guard_LName
-                }).ToList();
+                var guards = db.Guards
+                    .Where(g => g != null)
+                    .Select(g => new {
+                        g.GuardId,
+                        FullName = g.Guard_FName + " " + g.Guard_LName
+                    }).ToList();
 
                 ViewBag.Guards = new SelectList(guards, "GuardId", "FullName");
                 ViewBag.Today = DateTime.Today.ToString("yyyy-MM-dd");
@@ -244,7 +277,10 @@ namespace PiranaSecuritySystem.Controllers
         {
             if (disposing)
             {
-                db.Dispose();
+                if (db != null)
+                {
+                    db.Dispose();
+                }
             }
             base.Dispose(disposing);
         }
@@ -254,9 +290,16 @@ namespace PiranaSecuritySystem.Controllers
             try
             {
                 var allShifts = db.Shifts.ToList();
-                db.Shifts.RemoveRange(allShifts);
-                db.SaveChanges();
-                TempData["Message"] = "All shifts have been deleted.";
+                if (allShifts != null && allShifts.Any())
+                {
+                    db.Shifts.RemoveRange(allShifts);
+                    db.SaveChanges();
+                    TempData["Message"] = "All shifts have been deleted.";
+                }
+                else
+                {
+                    TempData["Message"] = "No shifts found to delete.";
+                }
             }
             catch (Exception ex)
             {
