@@ -282,6 +282,12 @@ namespace PiranaSecuritySystem.Controllers
             return View(instructors);
         }
 
+        // GET: Redirect to Payroll
+        public ActionResult Payroll()
+        {
+            return RedirectToAction("Index", "Payroll");
+        }
+
         private void EnsureRolesExist()
         {
             var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
@@ -394,7 +400,7 @@ namespace PiranaSecuritySystem.Controllers
         </div>
         <div class='footer'>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; {DateTime.Now.Year} Pirana Security System. All rights reserved.</p>
+            <p>&copy> {DateTime.Now.Year} Pirana Security System. All rights reserved.</p>
         </div>
     </div>
 </body>

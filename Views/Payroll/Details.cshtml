@@ -1,0 +1,46 @@
+﻿@model PiranaSecuritySystem.Models.Payroll
+
+@{
+    ViewBag.Title = "Payroll Details";
+}
+
+<h2>Payroll Details</h2>
+
+<div>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>Guard Name</dt>
+        <dd>@Html.DisplayFor(model => model.Guard.FullName)</dd>
+
+        <dt>Pay Period</dt>
+        <dd>@Model.PayPeriodStart.ToString("yyyy-MM-dd") to @Model.PayPeriodEnd.ToString("yyyy-MM-dd")</dd>
+
+        <dt>Total Hours</dt>
+        <dd>@Html.DisplayFor(model => model.TotalHours)</dd>
+
+        <dt>Hourly Rate</dt>
+        <dd>@Html.DisplayFor(model => model.HourlyRate)</dd>
+
+        <dt>Gross Pay</dt>
+        <dd>@Html.DisplayFor(model => model.GrossPay)</dd>
+
+        <dt>Tax Amount</dt>
+        <dd>@Html.DisplayFor(model => model.TaxAmount)</dd>
+
+        <dt>Net Pay</dt>
+        <dd>@Html.DisplayFor(model => model.NetPay)</dd>
+
+        <dt>Pay Date</dt>
+        <dd>@Html.DisplayFor(model => model.PayDate)</dd>
+
+        <dt>Status</dt>
+        <dd>@Html.DisplayFor(model => model.Status)</dd>
+
+        <dt>Payment Method</dt>
+        <dd>@Html.DisplayFor(model => model.PaymentMethod)</dd>
+    </dl>
+</div>
+<p>
+    @Html.ActionLink("Edit", "Edit", new { id = Model.PayrollId }) |
+    @Html.ActionLink("Back to List", "Index")
+</p>

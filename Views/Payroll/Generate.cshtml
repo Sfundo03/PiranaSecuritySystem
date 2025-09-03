@@ -1,0 +1,48 @@
+﻿@model PiranaSecuritySystem.Models.Payroll
+
+@{
+    ViewBag.Title = "Generate Payroll";
+}
+
+<h2>Generate Payroll</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="form-group">
+            @Html.Label("Guard", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownList("guardId", null, "Select Guard", htmlAttributes: new { @class = "form-control" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.Label("Pay Period Start", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.Editor("payPeriodStart", new { htmlAttributes = new { @class = "form-control", type = "date" } })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.Label("Pay Period End", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.Editor("payPeriodEnd", new { htmlAttributes = new { @class = "form-control", type = "date" } })
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Generate Payroll" class="btn btn-primary" />
+            </div>
+        </div>
+    </div>
+}
+
+<div>
+    @Html.ActionLink("Back to List", "Index")
+</div>

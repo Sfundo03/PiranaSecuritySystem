@@ -176,6 +176,7 @@
     <Compile Include="Controllers\InstructorController.cs" />
     <Compile Include="Controllers\ManageController.cs" />
     <Compile Include="Controllers\NotificationController.cs" />
+    <Compile Include="Controllers\PayrollController.cs" />
     <Compile Include="Controllers\ResidentController.cs" />
     <Compile Include="Controllers\ShiftsController.cs" />
     <Compile Include="Global.asax.cs">
@@ -194,6 +195,7 @@
     <Compile Include="Models\LoginViewModel.cs" />
     <Compile Include="Models\ManageViewModels.cs" />
     <Compile Include="Models\Notification.cs" />
+    <Compile Include="Models\PayrollModel.cs" />
     <Compile Include="Models\RegisterGuardViewModel.cs" />
     <Compile Include="Models\RegisterInstructorViewModel.cs" />
     <Compile Include="Models\Resident.cs" />
@@ -300,6 +302,12 @@
     <Content Include="Views\Shifts\Create.cshtml" />
     <Content Include="Views\Shifts\Details.cshtml" />
     <Content Include="Views\Shifts\Index.cshtml" />
+    <Content Include="Views\Payroll\Index.cshtml" />
+    <Content Include="Views\Payroll\Generate.cshtml" />
+    <Content Include="Views\Payroll\Details.cshtml" />
+    <Content Include="Views\Payroll\ManageRates.cshtml" />
+    <Content Include="Views\Payroll\CreateRate.cshtml" />
+    <Content Include="Views\Payroll\TaxConfig.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

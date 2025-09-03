@@ -32,7 +32,11 @@ namespace PiranaSecuritySystem.Models
         public DbSet<IncidentReport> IncidentReports { get; set; }
 
         public DbSet<Instructor> Instructors { get; set; }
-        
+        public DbSet<Payroll> Payrolls { get; set; }
+        public DbSet<GuardRate> GuardRates { get; set; }
+        public DbSet<Attendance> Attendances { get; set; }
+        public DbSet<TaxConfiguration> TaxConfigurations { get; set; }
+
         public DbSet<Resident> Residents { get; set; }
         public DbSet<Guard> Guards { get; set; }
         public DbSet<Shift> Shifts { get; set; }

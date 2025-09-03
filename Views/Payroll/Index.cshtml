@@ -1,0 +1,47 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.Payroll>
+
+@{
+    ViewBag.Title = "Payroll Records";
+}
+
+<h2>Payroll Records</h2>
+
+<p>
+    @Html.ActionLink("Generate New Payroll", "Generate", null, new { @class = "btn btn-primary" })
+    @Html.ActionLink("Manage Rates", "ManageRates", null, new { @class = "btn btn-default" })
+    @Html.ActionLink("Tax Configuration", "TaxConfig", null, new { @class = "btn btn-default" })
+</p>
+
+<table class="table table-striped">
+    <tr>
+        <th>Guard Name</th>
+        <th>Pay Period</th>
+        <th>Total Hours</th>
+        <th>Hourly Rate</th>
+        <th>Gross Pay</th>
+        <th>Tax</th>
+        <th>Net Pay</th>
+        <th>Status</th>
+        <th>Actions</th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@Html.DisplayFor(modelItem => item.Guard.FullName)</td>
+            <td>@item.PayPeriodStart.ToString("yyyy-MM-dd") to @item.PayPeriodEnd.ToString("yyyy-MM-dd")</td>
+            <td>@Html.DisplayFor(modelItem => item.TotalHours)</td>
+            <td>@Html.DisplayFor(modelItem => item.HourlyRate)</td>
+            <td>@Html.DisplayFor(modelItem => item.GrossPay)</td>
+            <td>@Html.DisplayFor(modelItem => item.TaxAmount)</td>
+            <td>@Html.DisplayFor(modelItem => item.NetPay)</td>
+            <td>@Html.DisplayFor(modelItem => item.Status)</td>
+            <td>
+                @Html.ActionLink("Details", "Details", new { id = item.PayrollId }) |
+                @Html.ActionLink("Edit", "Edit", new { id = item.PayrollId }) |
+                @Html.ActionLink("Delete", "Delete", new { id = item.PayrollId })
+            </td>
+        </tr>
+    }
+
+</table>

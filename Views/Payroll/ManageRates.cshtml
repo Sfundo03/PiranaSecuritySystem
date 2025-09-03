@@ -1,0 +1,31 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.GuardRate>
+
+@{
+    ViewBag.Title = "Manage Guard Rates";
+}
+
+<h2>Manage Guard Rates</h2>
+
+<p>
+    @Html.ActionLink("Create New Rate", "CreateRate", null, new { @class = "btn btn-primary" })
+</p>
+
+<table class="table table-striped">
+    <tr>
+        <th>Guard Name</th>
+        <th>Hourly Rate</th>
+        <th>Effective Date</th>
+        <th>Status</th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@Html.DisplayFor(modelItem => item.Guard.FullName)</td>
+            <td>@Html.DisplayFor(modelItem => item.Rate)</td>
+            <td>@Html.DisplayFor(modelItem => item.EffectiveDate)</td>
+            <td>@(item.IsActive ? "Active" : "Inactive")</td>
+        </tr>
+    }
+
+</table>
