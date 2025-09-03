@@ -1,5 +1,4 @@
-﻿
-@{
+﻿@{
     ViewBag.Title = "Director Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
@@ -61,7 +60,7 @@
                     </a>
                     <div class="notification-dropdown" id="directorNotificationDropdown">
                         <div class="notification-header">
-                            <span class="fw-bold">Notifications</span>
+                            <span class="fw-bold">All Notifications</span>
                             @if (unreadCount > 0)
                             {
                                 <a href="#" class="mark-all-read" id="markAllAsRead">Mark all as read</a>
@@ -74,6 +73,7 @@
                                      data-id="@notification.NotificationId"
                                      data-url="@notification.RelatedUrl">
                                     <div class="notification-content">
+                                        <div class="notification-title">@notification.Title</div>
                                         <div class="notification-message">@notification.Message</div>
                                         <div class="notification-time">@notification.CreatedAt.ToString("g")</div>
                                         @if (!string.IsNullOrEmpty(notification.NotificationType))
@@ -95,7 +95,7 @@
                             @if (notifications.Count > 10)
                             {
                                 <div class="notification-footer text-center py-2">
-                                    <a href="#" class="text-primary">View all notifications</a>
+                                    <a href="@Url.Action("Notifications", "Director")" class="text-primary">View all notifications</a>
                                 </div>
                             }
                         </div>
@@ -350,17 +350,17 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <a href="@Url.Action("Reports", "Director")" class="btn btn-outline-primary w-100">
                                         <i class="fas fa-chart-bar me-2"></i>View Reports
                                     </a>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-outline-info w-100">
                                         <i class="fas fa-clipboard-list me-2"></i>Guard Logs
                                     </a>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <a href="@Url.Action("Statistics", "Director")" class="btn btn-outline-success w-100">
                                         <i class="fas fa-chart-pie me-2"></i>Statistics
                                     </a>
@@ -432,6 +432,12 @@
                 return "bg-info";
             case "security":
                 return "bg-warning";
+            case "guard":
+                return "bg-primary";
+            case "instructor":
+                return "bg-purple";
+            case "checkin":
+                return "bg-teal";
             default:
                 return "bg-secondary";
         }
@@ -509,6 +515,7 @@
                             .attr('data-id', notification.NotificationId)
                             .attr('data-url', notification.RelatedUrl || '#')
                             .html('<div class="notification-content">' +
+                                  '<div class="notification-title">' + (notification.Title || 'Notification') + '</div>' +
                                   '<div class="notification-message">' + notification.Message + '</div>' +
                                   '<div class="notification-time">' +
                                   new Date(notification.CreatedAt).toLocaleString() + '</div>' +
@@ -519,6 +526,12 @@
 
                         notificationList.append(item);
                     });
+
+                    // Add view all link if there are more than 10 notifications
+                    if (data.notifications.length > 10) {
+                        notificationList.append('<div class="notification-footer text-center py-2">' +
+                            '<a href="@Url.Action("Notifications", "Director")" class="text-primary">View all notifications</a></div>');
+                    }
                 } else {
                     notificationList.append('<div class="notification-item text-center py-3">' +
                         '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
@@ -534,23 +547,37 @@
                     case 'incident': return 'bg-danger';
                     case 'system': return 'bg-info';
                     case 'security': return 'bg-warning';
+                    case 'guard': return 'bg-primary';
+                    case 'instructor': return 'bg-purple';
+                    case 'checkin': return 'bg-teal';
                     default: return 'bg-secondary';
                 }
             }
 
             function updateNotificationCount(count) {
                 var badge = $('#directorNotificationBell .badge');
+                var markAllLink = $('#markAllAsRead');
+
                 if (count > 0) {
                     badge.text(count).show();
-                    $('#markAllAsRead').show();
+                    markAllLink.show();
                 } else {
                     badge.hide();
-                    $('#markAllAsRead').hide();
+                    markAllLink.hide();
                 }
             }
 
             function markNotificationAsRead(notificationId) {
                 $.post('@Url.Action("MarkNotificationAsRead", "Director")', { id: notificationId })
+                    .done(function(response) {
+                        if (response.success) {
+                            // Update unread count
+                            var currentCount = parseInt($('#directorNotificationBell .badge').text()) || 0;
+                            if (currentCount > 0) {
+                                updateNotificationCount(currentCount - 1);
+                            }
+                        }
+                    })
                     .fail(function() {
                         console.error('Failed to mark notification as read');
                     });
@@ -562,6 +589,7 @@
                         if (response.success) {
                             $('.notification-item').removeClass('unread');
                             updateNotificationCount(0);
+                            $('#directorNotificationDropdown').hide();
                         }
                     })
                     .fail(function() {
@@ -622,14 +650,21 @@
         position: relative;
     }
 
-    .notification-message {
-        font-weight: 500;
+    .notification-title {
+        font-weight: 600;
         margin-bottom: 0.25rem;
         color: #212529;
+        font-size: 0.95rem;
+    }
+
+    .notification-message {
+        margin-bottom: 0.5rem;
+        color: #495057;
+        font-size: 0.875rem;
     }
 
     .notification-time {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         color: #6c757d;
     }
 
@@ -639,6 +674,7 @@
         right: 0;
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
+        color: white;
     }
 
     .notification-header {
@@ -704,5 +740,14 @@
 
     .border-left-dark {
         border-left: 4px solid #5a5c69 !important;
+    }
+
+    /* Additional badge colors for notification types */
+    .bg-purple {
+        background-color: #6f42c1 !important;
+    }
+
+    .bg-teal {
+        background-color: #20c9a6 !important;
     }
 </style>

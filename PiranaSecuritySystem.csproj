@@ -308,6 +308,7 @@
     <Content Include="Views\Payroll\ManageRates.cshtml" />
     <Content Include="Views\Payroll\CreateRate.cshtml" />
     <Content Include="Views\Payroll\TaxConfig.cshtml" />
+    <Content Include="Views\Director\Notifications.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

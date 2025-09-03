@@ -1,9 +1,8 @@
-﻿// Controllers/IncidentReportsController.cs
-using PiranaSecuritSystem.Models;
-using PiranaSecuritySystem.Models;
+﻿using PiranaSecuritySystem.Models;
 using System.Data.Entity;
 using System.Linq;
 using System.Web.Mvc;
+using System;
 
 namespace PiranaSecuritySystem.Controllers
 {
@@ -63,6 +62,99 @@ namespace PiranaSecuritySystem.Controllers
             return View(incidentReport);
         }
 
+        // GET: IncidentReports/Create
+        public ActionResult Create()
+        {
+            return View();
+        }
+
+        // POST: IncidentReports/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create(IncidentReport incidentReport)
+        {
+            if (ModelState.IsValid)
+            {
+                incidentReport.ReportDate = DateTime.Now;
+                incidentReport.Status = "Pending"; // Default status
+
+                db.IncidentReports.Add(incidentReport);
+                db.SaveChanges();
+
+                // Create notification for director
+                CreateIncidentNotification(incidentReport);
+
+                TempData["SuccessMessage"] = "Incident report created successfully!";
+                return RedirectToAction("Index");
+            }
+
+            return View(incidentReport);
+        }
+
+        // GET: IncidentReports/Edit/5
+        public ActionResult Edit(int? id)
+        {
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(System.Net.HttpStatusCode.BadRequest);
+            }
+
+            IncidentReport incidentReport = db.IncidentReports.Find(id);
+            if (incidentReport == null)
+            {
+                return HttpNotFound();
+            }
+
+            return View(incidentReport);
+        }
+
+        // POST: IncidentReports/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit(IncidentReport incidentReport)
+        {
+            if (ModelState.IsValid)
+            {
+                db.Entry(incidentReport).State = EntityState.Modified;
+                db.SaveChanges();
+
+                TempData["SuccessMessage"] = "Incident report updated successfully!";
+                return RedirectToAction("Index");
+            }
+
+            return View(incidentReport);
+        }
+
+        // GET: IncidentReports/Delete/5
+        public ActionResult Delete(int? id)
+        {
+            if (id == null)
+            {
+                return new HttpStatusCodeResult(System.Net.HttpStatusCode.BadRequest);
+            }
+
+            IncidentReport incidentReport = db.IncidentReports.Find(id);
+            if (incidentReport == null)
+            {
+                return HttpNotFound();
+            }
+
+            return View(incidentReport);
+        }
+
+        // POST: IncidentReports/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteConfirmed(int id)
+        {
+            IncidentReport incidentReport = db.IncidentReports.Find(id);
+            db.IncidentReports.Remove(incidentReport);
+            db.SaveChanges();
+
+            TempData["SuccessMessage"] = "Incident report deleted successfully!";
+            return RedirectToAction("Index");
+        }
+
         // GET: IncidentReports/Statistics
         public ActionResult Statistics()
         {
@@ -76,6 +168,32 @@ namespace PiranaSecuritySystem.Controllers
             };
 
             return View(stats);
+        }
+
+        private void CreateIncidentNotification(IncidentReport incident)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    Title = "New Incident Reported",
+                    Message = $"New {incident.IncidentType} incident reported at {incident.Location}",
+                    NotificationType = "Incident",
+                    RelatedUrl = Url.Action("Details", "IncidentReports", new { id = incident.IncidentReportId }),
+                    UserId = "Director", // Send to all directors
+                    UserType = "Director",
+                    CreatedAt = DateTime.Now,
+                    IsRead = false
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating incident notification: {ex.Message}");
+                // Don't throw, just log the error
+            }
         }
 
         protected override void Dispose(bool disposing)

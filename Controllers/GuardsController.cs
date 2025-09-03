@@ -58,8 +58,6 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // ... (keep all existing actions)
-
         // API method to validate guard (MVC style)
         [HttpPost]
         public JsonResult ValidateGuard(string firstName)
@@ -116,6 +114,12 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Invalid guard ID" });
                 }
 
+                var guard = db.Guards.Find(guardId);
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" });
+                }
+
                 // Create a new check-in record
                 var checkIn = new GuardCheckIn
                 {
@@ -128,6 +132,9 @@ namespace PiranaSecuritySystem.Controllers
                 db.GuardCheckIns.Add(checkIn);
                 db.SaveChanges();
 
+                // Create notification for director
+                CreateGuardCheckInNotification(guardId, $"{guard.Guard_FName} {guard.Guard_LName}", status);
+
                 return Json(new { success = true, message = "Check-in recorded successfully" });
             }
             catch (Exception ex)
@@ -137,7 +144,31 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // ... (keep all other existing actions)
+        private void CreateGuardCheckInNotification(int guardId, string guardName, string status)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    Title = "Guard Check-in",
+                    Message = $"{guardName} has {status.ToLower()} for duty at {DateTime.Now:HH:mm}",
+                    NotificationType = "Checkin",
+                    RelatedUrl = Url.Action("GuardLogs", "Director"),
+                    UserId = "Director", // Send to all directors
+                    UserType = "Director",
+                    CreatedAt = DateTime.Now,
+                    IsRead = false
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating guard check-in notification: {ex.Message}");
+                // Don't throw, just log the error
+            }
+        }
 
         protected override void Dispose(bool disposing)
         {

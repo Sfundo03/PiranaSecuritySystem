@@ -159,6 +159,9 @@ namespace PiranaSecuritySystem.Controllers
                     string fullName = $"{model.Guard_FName} {model.Guard_LName}";
                     await SendGuardCredentialsEmail(model.Email, model.Password, fullName);
 
+                    // Create notification for director
+                    CreateNewStaffNotification("Guard", fullName);
+
                     TempData["SuccessMessage"] = $"Guard {fullName} has been registered successfully! Credentials have been sent to their email.";
                     return RedirectToAction("ManageGuards");
                 }
@@ -258,6 +261,9 @@ namespace PiranaSecuritySystem.Controllers
                     // Send email with credentials
                     await SendInstructorCredentialsEmail(model.Email, model.Password, model.FullName);
 
+                    // Create notification for director
+                    CreateNewStaffNotification("Instructor", model.FullName);
+
                     TempData["SuccessMessage"] = $"Instructor {model.FullName} has been registered successfully! Credentials have been sent to their email.";
                     return RedirectToAction("ManageInstructors");
                 }
@@ -303,6 +309,34 @@ namespace PiranaSecuritySystem.Controllers
 
             if (!roleManager.RoleExists("Director"))
                 roleManager.Create(new IdentityRole("Director"));
+        }
+
+        private void CreateNewStaffNotification(string staffType, string staffName)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    Title = $"New {staffType} Added",
+                    Message = $"A new {staffType.ToLower()} ({staffName}) has been registered in the system",
+                    NotificationType = staffType.ToLower(),
+                    RelatedUrl = staffType.ToLower() == "guard"
+                        ? Url.Action("ManageGuards", "Admin")
+                        : Url.Action("ManageInstructors", "Admin"),
+                    UserId = "Director", // Send to all directors
+                    UserType = "Director",
+                    CreatedAt = DateTime.Now,
+                    IsRead = false
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating notification: {ex.Message}");
+                // Don't throw, just log the error
+            }
         }
 
         private async Task SendGuardCredentialsEmail(string email, string password, string fullName)

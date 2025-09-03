@@ -41,7 +41,6 @@ namespace PiranaSecuritySystem.Controllers
                     }
                 }
 
-
                 // Calculate statistics directly
                 ViewBag.TotalIncidents = db.IncidentReports.Count();
                 ViewBag.ResolvedIncidents = db.IncidentReports.Count(i => i.Status == "Resolved");
@@ -76,6 +75,62 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // GET: Director/Notifications
+        public ActionResult Notifications(string typeFilter = "", string statusFilter = "", int page = 1, int pageSize = 20)
+        {
+            try
+            {
+                if (Session["DirectorId"] == null)
+                {
+                    TempData["ErrorMessage"] = "Please log in to view notifications.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var directorId = Session["DirectorId"].ToString();
+                var query = db.Notifications
+                    .Where(n => n.UserId == directorId && n.UserType == "Director")
+                    .AsQueryable();
+
+                // Apply filters
+                if (!string.IsNullOrEmpty(typeFilter))
+                {
+                    query = query.Where(n => n.NotificationType == typeFilter);
+                }
+
+                if (!string.IsNullOrEmpty(statusFilter))
+                {
+                    if (statusFilter == "unread")
+                    {
+                        query = query.Where(n => !n.IsRead);
+                    }
+                    else if (statusFilter == "read")
+                    {
+                        query = query.Where(n => n.IsRead);
+                    }
+                }
+
+                // Order by creation date (newest first)
+                query = query.OrderByDescending(n => n.CreatedAt);
+
+                // For now, just get all notifications - you can implement pagination later
+                var notifications = query.ToList();
+
+                ViewBag.TypeFilter = typeFilter;
+                ViewBag.StatusFilter = statusFilter;
+                ViewBag.CurrentPage = page;
+                ViewBag.PageSize = pageSize;
+                ViewBag.TotalCount = query.Count();
+
+                return View(notifications);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading notifications: {ex.Message}");
+                TempData["ErrorMessage"] = "Error loading notifications.";
+                return View(new List<Notification>());
+            }
+        }
+
         // GET: Director/GetNotifications
         [HttpGet]
         public JsonResult GetNotifications()
@@ -87,18 +142,21 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { error = "Not authenticated" }, JsonRequestBehavior.AllowGet);
                 }
 
-                var directorId = Session["DirectorId"].ToString(); // Changed to string
+                var directorId = Session["DirectorId"].ToString();
                 var notifications = db.Notifications
-                    .Where(n => n.UserId == directorId && n.UserType == "Director") // Use string
+                    .Where(n => n.UserId == directorId && n.UserType == "Director")
                     .OrderByDescending(n => n.CreatedAt)
                     .Take(20)
                     .Select(n => new
                     {
                         n.NotificationId,
+                        n.Title,
                         n.Message,
                         n.IsRead,
                         n.CreatedAt,
-                        n.RelatedUrl
+                        n.RelatedUrl,
+                        n.NotificationType,
+                        n.IsImportant
                     })
                     .ToList();
 
@@ -173,6 +231,60 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // POST: Director/DeleteNotification
+        [HttpPost]
+        public JsonResult DeleteNotification(int id)
+        {
+            try
+            {
+                if (Session["DirectorId"] == null)
+                {
+                    return Json(new { success = false, error = "Not authenticated" });
+                }
+
+                var notification = db.Notifications.Find(id);
+                if (notification != null && notification.UserId == Session["DirectorId"].ToString() && notification.UserType == "Director")
+                {
+                    db.Notifications.Remove(notification);
+                    db.SaveChanges();
+                    return Json(new { success = true });
+                }
+
+                return Json(new { success = false, error = "Notification not found or access denied" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        // POST: Director/DeleteMultipleNotifications
+        [HttpPost]
+        public JsonResult DeleteMultipleNotifications(List<int> ids)
+        {
+            try
+            {
+                if (Session["DirectorId"] == null)
+                {
+                    return Json(new { success = false, error = "Not authenticated" });
+                }
+
+                var directorId = Session["DirectorId"].ToString();
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == directorId && n.UserType == "Director" && ids.Contains(n.NotificationId))
+                    .ToList();
+
+                db.Notifications.RemoveRange(notifications);
+                db.SaveChanges();
+
+                return Json(new { success = true, deletedCount = notifications.Count });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
         // GET: Director/NotificationBellPartial
         [ChildActionOnly]
         public ActionResult NotificationBellPartial()
@@ -184,7 +296,7 @@ namespace PiranaSecuritySystem.Controllers
 
             var directorId = Session["DirectorId"].ToString();
             var notifications = db.Notifications
-                .Where(n => n.UserId == directorId.ToString() && n.UserType == "Director")
+                .Where(n => n.UserId == directorId && n.UserType == "Director")
                 .OrderByDescending(n => n.CreatedAt)
                 .Take(10)
                 .ToList();
@@ -325,7 +437,7 @@ namespace PiranaSecuritySystem.Controllers
             {
                 System.Diagnostics.Debug.WriteLine("Incidents error: " + ex.Message);
                 TempData["ErrorMessage"] = "Error loading incidents.";
-                return View(new System.Collections.Generic.List<IncidentReport>());
+                return View(new List<IncidentReport>());
             }
         }
 
@@ -528,7 +640,7 @@ namespace PiranaSecuritySystem.Controllers
             {
                 System.Diagnostics.Debug.WriteLine("Residents error: " + ex.Message);
                 TempData["ErrorMessage"] = "Error loading residents list.";
-                return View(new System.Collections.Generic.List<Resident>());
+                return View(new List<Resident>());
             }
         }
 

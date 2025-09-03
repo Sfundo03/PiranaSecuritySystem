@@ -1,0 +1,379 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.Notification>
+@{
+    ViewBag.Title = "Notifications";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1 text-gray-800">Notifications</h1>
+                    <p class="text-muted">Manage and view all system notifications</p>
+                </div>
+                <div>
+                    <button id="markAllAsRead" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-check-double me-1"></i> Mark All as Read
+                    </button>
+                    <button id="refreshNotifications" class="btn btn-outline-secondary">
+                        <i class="fas fa-sync-alt me-1"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Filter Notifications</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Notification Type</label>
+                            <select id="typeFilter" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="System">System</option>
+                                <option value="Security">Security</option>
+                                <option value="Incident">Incident</option>
+                                <option value="Guard">Guard</option>
+                                <option value="Instructor">Instructor</option>
+                                <option value="Checkin">Check-in</option>
+                                <option value="Report">Report</option>
+                                <option value="Login">Login</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Status</label>
+                            <select id="statusFilter" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="unread">Unread Only</option>
+                                <option value="read">Read Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Priority</label>
+                            <select id="priorityFilter" class="form-select">
+                                <option value="">All Priorities</option>
+                                <option value="important">Important Only</option>
+                                <option value="normal">Normal Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Date Range</label>
+                            <select id="dateFilter" class="form-select">
+                                <option value="7">Last 7 Days</option>
+                                <option value="30" selected>Last 30 Days</option>
+                                <option value="90">Last 90 Days</option>
+                                <option value="365">Last Year</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications List -->
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Notifications <span id="notificationCount" class="badge bg-primary ms-2">0</span>
+                    </h6>
+                    <div class="d-flex align-items-center">
+                        <span class="me-2 text-muted small" id="selectedCount">0 selected</span>
+                        <button id="deleteSelected" class="btn btn-sm btn-danger" disabled>
+                            <i class="fas fa-trash me-1"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="notificationsContainer">
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var notification in Model)
+                            {
+                                <div class="notification-item card mb-3 @(!notification.IsRead ? "border-left-primary" : "")"
+                                     data-id="@notification.NotificationId"
+                                     data-read="@notification.IsRead.ToString().ToLower()"
+                                     data-type="@notification.NotificationType"
+                                     data-important="@notification.IsImportant.ToString().ToLower()">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start">
+                                            <div class="form-check me-3 mt-1">
+                                                <input type="checkbox" class="form-check-input notification-checkbox"
+                                                       data-id="@notification.NotificationId">
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="card-title mb-0 @(!notification.IsRead ? "text-primary fw-bold" : "")">
+                                                        @notification.Title
+                                                        @if (notification.IsImportant)
+                                                        {
+                                                            <span class="badge bg-danger ms-2">Important</span>
+                                                        }
+                                                        <span class="badge bg-secondary ms-2">@notification.NotificationType</span>
+                                                    </h6>
+                                                    <small class="text-muted">@notification.CreatedAt.ToString("MMM dd, yyyy HH:mm")</small>
+                                                </div>
+                                                <p class="card-text mb-2">@notification.Message</p>
+                                                @if (!string.IsNullOrEmpty(notification.RelatedUrl))
+                                                {
+                                                    <div class="mt-2">
+                                                        <a href="@notification.RelatedUrl" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-external-link-alt me-1"></i> View Details
+                                                        </a>
+                                                        <button class="btn btn-sm btn-outline-secondary mark-as-read ms-2"
+                                                                data-id="@notification.NotificationId">
+                                                            <i class="fas fa-check me-1"></i> Mark as Read
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No notifications found</h5>
+                                <p class="text-muted">You're all caught up! No notifications to display.</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav aria-label="Notifications pagination" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1">Previous</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            console.log("Notifications page loaded");
+
+            // Initialize counts
+            updateNotificationCounts();
+
+            // Mark as read functionality
+            $(document).on('click', '.mark-as-read', function () {
+                var notificationId = $(this).data('id');
+                var $notificationItem = $(this).closest('.notification-item');
+
+                $.post('@Url.Action("MarkNotificationAsRead", "Director")', { id: notificationId })
+                    .done(function (response) {
+                        if (response.success) {
+                            $notificationItem.removeClass('border-left-primary');
+                            $notificationItem.find('.card-title').removeClass('text-primary fw-bold');
+                            $notificationItem.attr('data-read', 'true');
+                            updateNotificationCounts();
+                        }
+                    })
+                    .fail(function () {
+                        alert('Error marking notification as read');
+                    });
+            });
+
+            // Mark all as read
+            $('#markAllAsRead').click(function () {
+                if (confirm('Are you sure you want to mark all notifications as read?')) {
+                    $.post('@Url.Action("MarkAllNotificationsAsRead", "Director")')
+                        .done(function (response) {
+                            if (response.success) {
+                                $('.notification-item').each(function () {
+                                    $(this).removeClass('border-left-primary');
+                                    $(this).find('.card-title').removeClass('text-primary fw-bold');
+                                    $(this).attr('data-read', 'true');
+                                });
+                                updateNotificationCounts();
+                                alert('All notifications marked as read successfully');
+                            }
+                        })
+                        .fail(function () {
+                            alert('Error marking all notifications as read');
+                        });
+                }
+            });
+
+            // Refresh notifications
+            $('#refreshNotifications').click(function () {
+                window.location.reload();
+            });
+
+            // Filter functionality
+            $('#typeFilter, #statusFilter, #priorityFilter, #dateFilter').change(function () {
+                applyFilters();
+            });
+
+            // Checkbox selection
+            $(document).on('change', '.notification-checkbox', function () {
+                updateSelectedCount();
+            });
+
+            // Select all checkbox (you can add this if needed)
+            $('#selectAll').change(function () {
+                $('.notification-checkbox').prop('checked', $(this).prop('checked'));
+                updateSelectedCount();
+            });
+
+            // Delete selected
+            $('#deleteSelected').click(function () {
+                var selectedIds = [];
+                $('.notification-checkbox:checked').each(function () {
+                    selectedIds.push($(this).data('id'));
+                });
+
+                if (selectedIds.length === 0) return;
+
+                if (confirm('Are you sure you want to delete ' + selectedIds.length + ' selected notification(s)?')) {
+                    // Implement bulk delete functionality
+                    alert('Bulk delete functionality would be implemented here');
+                }
+            });
+
+            function applyFilters() {
+                var typeFilter = $('#typeFilter').val();
+                var statusFilter = $('#statusFilter').val();
+                var priorityFilter = $('#priorityFilter').val();
+
+                $('.notification-item').each(function () {
+                    var show = true;
+                    var $item = $(this);
+
+                    // Type filter
+                    if (typeFilter && $item.data('type') !== typeFilter) {
+                        show = false;
+                    }
+
+                    // Status filter
+                    if (statusFilter === 'unread' && $item.data('read') === 'true') {
+                        show = false;
+                    } else if (statusFilter === 'read' && $item.data('read') === 'false') {
+                        show = false;
+                    }
+
+                    // Priority filter
+                    if (priorityFilter === 'important' && $item.data('important') === 'false') {
+                        show = false;
+                    } else if (priorityFilter === 'normal' && $item.data('important') === 'true') {
+                        show = false;
+                    }
+
+                    if (show) {
+                        $item.show();
+                    } else {
+                        $item.hide();
+                    }
+                });
+
+                updateNotificationCounts();
+            }
+
+            function updateNotificationCounts() {
+                var totalCount = $('.notification-item:visible').length;
+                var unreadCount = $('.notification-item[data-read="false"]:visible').length;
+
+                $('#notificationCount').text(totalCount);
+
+                // Update badge with unread count
+                if (unreadCount > 0) {
+                    $('#notificationCount').addClass('bg-danger').removeClass('bg-primary');
+                } else {
+                    $('#notificationCount').addClass('bg-primary').removeClass('bg-danger');
+                }
+            }
+
+            function updateSelectedCount() {
+                var selectedCount = $('.notification-checkbox:checked').length;
+                $('#selectedCount').text(selectedCount + ' selected');
+                $('#deleteSelected').prop('disabled', selectedCount === 0);
+            }
+
+            // Auto-refresh every 30 seconds
+            setInterval(function () {
+                console.log("Auto-refreshing notifications...");
+                // You could implement AJAX refresh here instead of full page reload
+                // loadNotifications();
+            }, 30000);
+        });
+
+        // Function to load notifications via AJAX (optional)
+        function loadNotifications() {
+            $.get('@Url.Action("GetNotifications", "Director")', function (data) {
+                if (data.error) {
+                    console.error('Error loading notifications:', data.error);
+                    return;
+                }
+                // Update notifications container with new data
+                updateNotificationsUI(data.notifications);
+            });
+        }
+
+        function updateNotificationsUI(notifications) {
+            // Implementation for dynamic UI update
+            console.log('Updating notifications UI', notifications);
+        }
+    </script>
+}
+
+<style>
+    .notification-item {
+        transition: all 0.3s ease;
+    }
+
+        .notification-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+
+    .notification-checkbox {
+        margin-top: 0.3rem;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+    }
+
+    .card-text {
+        color: #6c757d;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+
+    .pagination {
+        margin-bottom: 0;
+    }
+
+    .form-select {
+        border-radius: 0.375rem;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
