@@ -64,6 +64,18 @@
         margin-top: 5px;
     }
 
+    .alert {
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
     .btn-register {
         background: #3498db;
         color: white;
@@ -150,7 +162,7 @@
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.Password)
-                    @Html.PasswordFor(model => model.Password, new { @class = "form-control", placeholder = "Create a password (min. 6 characters)", required = "required" })
+                    @Html.PasswordFor(model => model.Password, new { @class = "form-control", placeholder = "Create a password (min. 6 characters)", required = "required", minlength = "6" })
                     @Html.ValidationMessageFor(model => model.Password, "", new { @class = "validation-error" })
                 </div>
 

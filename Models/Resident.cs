@@ -40,10 +40,6 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Emergency Contact")]
         public string EmergencyContact { get; set; }
 
-        public Resident()
-        {
-            DateRegistered = DateTime.Now;
-            IsActive = true;
-        }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

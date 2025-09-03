@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Web.Mvc;
 using System.Web.Security;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace PiranaSecuritySystem.Controllers
 {
@@ -13,9 +15,124 @@ namespace PiranaSecuritySystem.Controllers
     {
         private ApplicationDbContext db = new ApplicationDbContext();
 
+        // GET: Resident/Register
+        public ActionResult Register()
+        {
+            // If user is already logged in, redirect to dashboard
+            if (Session["ResidentId"] != null)
+            {
+                return RedirectToAction("Dashboard");
+            }
+            return View();
+        }
+
+        // POST: Resident/Register
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Register(Resident resident)
+        {
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    // Check if email already exists
+                    if (db.Residents.Any(r => r.Email == resident.Email))
+                    {
+                        ViewBag.ErrorMessage = "Email already registered.";
+                        return View(resident);
+                    }
+
+                    // Hash the password before saving
+                    resident.Password = HashPassword(resident.Password);
+                    resident.IsActive = true;
+                    resident.CreatedAt = DateTime.Now;
+
+                    db.Residents.Add(resident);
+                    db.SaveChanges();
+
+                    // Create success notification
+                    var notification = new Notification
+                    {
+                        UserId = resident.ResidentId.ToString(),
+                        UserType = "Resident",
+                        Message = "Welcome to Pirana Security System! Your account has been created successfully.",
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = Url.Action("Dashboard", "Resident")
+                    };
+                    db.Notifications.Add(notification);
+
+                    // Notify directors about new registration
+                    var directors = db.Directors.Where(d => d.IsActive).ToList();
+                    foreach (var director in directors)
+                    {
+                        var directorNotification = new Notification
+                        {
+                            UserId = director.DirectorId.ToString(),
+                            UserType = "Director",
+                            Message = $"New resident registered: {resident.FullName} ({resident.Email})",
+                            IsRead = false,
+                            CreatedAt = DateTime.Now,
+                            RelatedUrl = Url.Action("ResidentDetails", "Director", new { id = resident.ResidentId })
+                        };
+                        db.Notifications.Add(directorNotification);
+                    }
+
+                    db.SaveChanges();
+
+                    TempData["SuccessMessage"] = "Registration successful! Please login with your credentials.";
+                    return RedirectToAction("Index");
+                }
+
+                // If we got this far, something failed, redisplay form
+                return View(resident);
+            }
+            catch (DbEntityValidationException ex)
+            {
+                // Log detailed validation errors
+                var errorMessages = new List<string>();
+                foreach (var validationErrors in ex.EntityValidationErrors)
+                {
+                    foreach (var validationError in validationErrors.ValidationErrors)
+                    {
+                        errorMessages.Add($"Property: {validationError.PropertyName} Error: {validationError.ErrorMessage}");
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine("Validation errors: " + string.Join("; ", errorMessages));
+                ViewBag.ErrorMessage = "Validation failed: " + string.Join("; ", errorMessages);
+                return View(resident);
+            }
+            catch (System.Data.Entity.Infrastructure.DbUpdateException dbEx)
+            {
+                System.Diagnostics.Debug.WriteLine("Database update error: " + dbEx.Message);
+                if (dbEx.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("Inner exception: " + dbEx.InnerException.Message);
+                }
+                ViewBag.ErrorMessage = "Database error occurred. Please check your input data.";
+                return View(resident);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Registration error: " + ex.Message);
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("Inner exception: " + ex.InnerException.Message);
+                }
+                ViewBag.ErrorMessage = "An error occurred during registration. Please try again. Error: " + ex.Message;
+                return View(resident);
+            }
+        }
+
         // GET: Resident/Index
         public ActionResult Index()
         {
+            // If user is already logged in, redirect to dashboard
+            if (Session["ResidentId"] != null)
+            {
+                return RedirectToAction("Dashboard");
+            }
             return View();
         }
 
@@ -32,7 +149,10 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Index");
                 }
 
-                var resident = db.Residents.FirstOrDefault(r => r.Email == email && r.Password == password && r.IsActive);
+                // Hash the password for comparison
+                string hashedPassword = HashPassword(password);
+
+                var resident = db.Residents.FirstOrDefault(r => r.Email == email && r.Password == hashedPassword && r.IsActive);
 
                 if (resident != null)
                 {
@@ -108,7 +228,6 @@ namespace PiranaSecuritySystem.Controllers
                 return RedirectToAction("Dashboard");
             }
         }
-
 
         // GET: Resident/Dashboard
         public ActionResult Dashboard()
@@ -199,7 +318,6 @@ namespace PiranaSecuritySystem.Controllers
                 return RedirectToAction("Dashboard");
             }
         }
-
 
         // POST: Resident/ReportIncident
         [HttpPost]
@@ -511,9 +629,6 @@ namespace PiranaSecuritySystem.Controllers
             return PartialView("_NotificationBell", notifications);
         }
 
-        // Other methods remain the same (Register, MyIncidents, IncidentDetails, etc.)
-        // ...
-
         // GET: Resident/MyIncidents
         public ActionResult MyIncidents()
         {
@@ -541,7 +656,15 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-
+        // Password hashing method
+        private string HashPassword(string password)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+                return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+            }
+        }
 
         protected override void Dispose(bool disposing)
         {
@@ -560,6 +683,6 @@ namespace PiranaSecuritySystem.Controllers
         public int ResolvedIncidents { get; set; }
         public int PendingIncidents { get; set; }
         public int InProgressIncidents { get; set; }
-        public System.Collections.Generic.List<IncidentReport> RecentIncidents { get; set; }
+        public List<IncidentReport> RecentIncidents { get; set; }
     }
 }
