@@ -1,369 +1,415 @@
-﻿@{
-    ViewBag.Title = "Director Dashboard";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Director Dashboard - PIRANA GUARDING</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
 
-    // Get data from ViewBag
-    var totalIncidents = ViewBag.TotalIncidents ?? 0;
-    var resolvedIncidents = ViewBag.ResolvedIncidents ?? 0;
-    var pendingIncidents = ViewBag.PendingIncidents ?? 0;
-    var inProgressIncidents = ViewBag.InProgressIncidents ?? 0;
-    var thisMonthIncidents = ViewBag.ThisMonthIncidents ?? 0;
-    var highPriorityIncidents = ViewBag.HighPriorityIncidents ?? 0;
-    var criticalPriorityIncidents = ViewBag.CriticalPriorityIncidents ?? 0;
-    var urgentIncidents = highPriorityIncidents + criticalPriorityIncidents;
-    var recentIncidents = ViewBag.RecentIncidents as System.Collections.Generic.List<PiranaSecuritySystem.Models.IncidentReport> ?? new System.Collections.Generic.List<PiranaSecuritySystem.Models.IncidentReport>();
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Roboto', sans-serif;
+            color: var(--dark-text);
+            padding-top: 20px;
+        }
 
-    // Guard stats
-    var totalCheckIns = ViewBag.TotalGuardCheckIns ?? 0;
-    var todayCheckIns = ViewBag.TodayCheckIns ?? 0;
-    var currentOnDuty = ViewBag.CurrentOnDuty ?? 0;
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
 
-    // Notification data
-    var notifications = ViewBag.Notifications as System.Collections.Generic.List<PiranaSecuritySystem.Models.Notification> ?? new System.Collections.Generic.List<PiranaSecuritySystem.Models.Notification>();
-    var unreadCount = ViewBag.UnreadNotificationCount ?? 0;
+        .card-header {
+            background: white;
+            color: var(--primary-blue);
+            border-bottom: 2px solid var(--primary-blue);
+            font-weight: 600;
+        }
 
-    // Calculate resolved percentage
-    var resolvedPercentage = totalIncidents > 0 ? (resolvedIncidents * 100) / totalIncidents : 0;
-}
+        .btn-primary {
+            background: var(--primary-blue);
+            border: none;
+        }
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <!-- Login Success Notification at the top -->
-            @if (TempData["LoginSuccess"] != null)
-            {
-                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <strong>@TempData["LoginSuccess"]</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
+            .btn-primary:hover {
+                background: var(--secondary-blue);
             }
 
-            <!-- Page Header with Notification Bell -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-1 text-gray-800">Director Dashboard</h1>
-                    <p class="text-muted">Welcome to the security management system</p>
+        .alert {
+            border-radius: 6px;
+            border-left: 3px solid;
+        }
+
+        .alert-success {
+            border-left-color: #28a745;
+        }
+
+        .alert-info {
+            border-left-color: var(--primary-blue);
+        }
+
+        .alert-danger {
+            border-left-color: #dc3545;
+        }
+
+        .badge {
+            font-weight: 500;
+            padding: 0.5em 0.8em;
+        }
+
+        .notification-bell {
+            position: relative;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            z-index: 1050;
+            display: none;
+        }
+
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+            .notification-item.unread {
+                background-color: #f8f9fa;
+                border-left: 4px solid var(--primary-blue);
+            }
+
+            .notification-item:hover {
+                background-color: #e3f2fd;
+            }
+
+        .border-left-primary {
+            border-left: 4px solid #4e73df !important;
+        }
+
+        .border-left-success {
+            border-left: 4px solid #1cc88a !important;
+        }
+
+        .border-left-info {
+            border-left: 4px solid #36b9cc !important;
+        }
+
+        .border-left-warning {
+            border-left: 4px solid #f6c23e !important;
+        }
+
+        .border-left-danger {
+            border-left: 4px solid #e74a3b !important;
+        }
+
+        .border-left-secondary {
+            border-left: 4px solid #858796 !important;
+        }
+
+        .border-left-dark {
+            border-left: 4px solid #5a5c69 !important;
+        }
+
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+
+        .bg-teal {
+            background-color: #20c9a6 !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .table th {
+            color: var(--primary-blue);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <!-- Login Success Notification at the top -->
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert" style="display: none;">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong id="successMessage"></strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
 
-                <!-- Notification Bell -->
-                <div class="notification-bell">
-                    <a href="#" id="directorNotificationBell" class="btn btn-outline-primary position-relative">
-                        <i class="fas fa-bell"></i>
-                        @if (unreadCount > 0)
-                        {
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                @unreadCount
+                <!-- Page Header with Notification Bell -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-1">Director Dashboard</h1>
+                        <p class="text-muted">Welcome to the security management system</p>
+                    </div>
+
+                    <!-- Notification Bell -->
+                    <div class="notification-bell">
+                        <a href="#" id="directorNotificationBell" class="btn btn-outline-primary position-relative">
+                            <i class="fas fa-bell"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                                0
                                 <span class="visually-hidden">unread notifications</span>
                             </span>
-                        }
-                    </a>
-                    <div class="notification-dropdown" id="directorNotificationDropdown">
-                        <div class="notification-header">
-                            <span class="fw-bold">All Notifications</span>
-                            @if (unreadCount > 0)
-                            {
-                                <a href="#" class="mark-all-read" id="markAllAsRead">Mark all as read</a>
-                            }
-                        </div>
-                        <div id="directorNotificationList">
-                            @foreach (var notification in notifications.Take(10))
-                            {
-                                <div class="notification-item @(!notification.IsRead ? "unread" : "")"
-                                     data-id="@notification.NotificationId"
-                                     data-url="@notification.RelatedUrl">
-                                    <div class="notification-content">
-                                        <div class="notification-title">@notification.Title</div>
-                                        <div class="notification-message">@notification.Message</div>
-                                        <div class="notification-time">@notification.CreatedAt.ToString("g")</div>
-                                        @if (!string.IsNullOrEmpty(notification.NotificationType))
-                                        {
-                                            <span class="notification-type badge @GetNotificationTypeBadge(notification.NotificationType)">
-                                                @notification.NotificationType
-                                            </span>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                            @if (!notifications.Any())
-                            {
+                        </a>
+                        <div class="notification-dropdown" id="directorNotificationDropdown">
+                            <div class="notification-header">
+                                <span class="fw-bold">All Notifications</span>
+                                <a href="#" class="mark-all-read" id="markAllAsRead" style="display: none;">Mark all as read</a>
+                            </div>
+                            <div id="directorNotificationList">
                                 <div class="notification-item text-center py-3">
                                     <i class="fas fa-bell-slash text-muted me-2"></i>
                                     No notifications
                                 </div>
-                            }
-                            @if (notifications.Count > 10)
-                            {
-                                <div class="notification-footer text-center py-2">
-                                    <a href="@Url.Action("Notifications", "Director")" class="text-primary">View all notifications</a>
-                                </div>
-                            }
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Error/Success Messages -->
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger alert-dismissible fade show mb-4">
+                <!-- Error/Success Messages -->
+                <div class="alert alert-danger alert-dismissible fade show mb-4" style="display: none;">
                     <i class="fas fa-exclamation-circle me-2"></i>
-                    @TempData["ErrorMessage"]
+                    <span id="errorMessage"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-            }
 
-            @if (TempData["SuccessMessage"] != null)
-            {
-                <div class="alert alert-success alert-dismissible fade show mb-4">
+                <div class="alert alert-success alert-dismissible fade show mb-4" style="display: none;">
                     <i class="fas fa-check-circle me-2"></i>
-                    @TempData["SuccessMessage"]
+                    <span id="successMessageAlt"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-            }
 
-            <!-- Welcome Message -->
-            <div class="alert alert-info mb-4">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-user-shield me-3 fa-2x"></i>
-                    <div>
-                        <h4 class="alert-heading mb-1">Welcome, Director!</h4>
-                        <p class="mb-0">You have successfully logged in to the Pirana Security System director panel.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Access Cards -->
-            <div class="row mb-4">
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-primary shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                        Incident Reports
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@totalIncidents</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <a href="@Url.Action("Incidents", "Director")" class="btn btn-sm btn-primary">Manage Incidents</a>
-                            </div>
+                <!-- Welcome Message -->
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-shield me-3 fa-2x"></i>
+                        <div>
+                            <h4 class="alert-heading mb-1">Welcome, Director!</h4>
+                            <p class="mb-0">You have successfully logged in to the Pirana Security System director panel.</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-success shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                        Resolved Incidents
+                <!-- Quick Access Cards -->
+                <div class="row mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-primary h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            Incident Reports
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalIncidents">0</div>
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@resolvedIncidents</div>
-                                    <div class="mt-1">
-                                        <small class="text-success">@resolvedPercentage% resolved rate</small>
+                                    <div class="col-auto">
+                                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
                                     </div>
                                 </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                <div class="mt-2">
+                                    <a href="#" class="btn btn-sm btn-primary">Manage Incidents</a>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-warning shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                        This Month Incidents
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-success h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Resolved Incidents
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="resolvedIncidents">0</div>
+                                        <div class="mt-1">
+                                            <small class="text-success"><span id="resolvedPercentage">0</span>% resolved rate</small>
+                                        </div>
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@thisMonthIncidents</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                    <div class="col-auto">
+                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-danger shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                        Urgent Incidents
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-warning h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                            This Month Incidents
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="thisMonthIncidents">0</div>
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@urgentIncidents</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                    <div class="col-auto">
+                                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Guard Statistics Row -->
-            <div class="row mb-4">
-                <div class="col-xl-4 col-md-6 mb-4">
-                    <div class="card border-left-info shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                        Total Check-ins
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-danger h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                            Urgent Incidents
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="urgentIncidents">0</div>
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@totalCheckIns</div>
-                                    <div class="mt-1">
-                                        <small class="text-muted">All guard activities</small>
+                                    <div class="col-auto">
+                                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
                                     </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-history fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-sm btn-info">View Logs</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-4 col-md-6 mb-4">
-                    <div class="card border-left-secondary shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                        Today's Check-ins
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@todayCheckIns</div>
-                                    <div class="mt-1">
-                                        <small class="text-muted">Today's activities</small>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-clock fa-2x text-gray-300"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-xl-4 col-md-6 mb-4">
-                    <div class="card border-left-dark shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
-                                        Currently On Duty
+                <!-- Guard Statistics Row -->
+                <div class="row mb-4">
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card border-left-info h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                            Total Check-ins
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalCheckIns">0</div>
+                                        <div class="mt-1">
+                                            <small class="text-muted">All guard activities</small>
+                                        </div>
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@currentOnDuty</div>
-                                    <div class="mt-1">
-                                        <small class="text-muted">Active guards</small>
+                                    <div class="col-auto">
+                                        <i class="fas fa-history fa-2x text-gray-300"></i>
                                     </div>
                                 </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-user-shield fa-2x text-gray-300"></i>
+                                <div class="mt-2">
+                                    <a href="#" class="btn btn-sm btn-info">View Logs</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card border-left-secondary h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                            Today's Check-ins
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="todayCheckIns">0</div>
+                                        <div class="mt-1">
+                                            <small class="text-muted">Today's activities</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card border-left-dark h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
+                                            Currently On Duty
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="currentOnDuty">0</div>
+                                        <div class="mt-1">
+                                            <small class="text-muted">Active guards</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-user-shield fa-2x text-gray-300"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Recent Activity Section -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold text-primary">Recent Incident Activity</h6>
-                            <a href="@Url.Action("Incidents", "Director")" class="btn btn-sm btn-primary">View All</a>
-                        </div>
-                        <div class="card-body">
-                            @if (recentIncidents != null && recentIncidents.Any())
-                            {
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-hover" width="100%" cellspacing="0">
-                                        <thead class="thead-light">
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Type</th>
-                                                <th>Date Reported</th>
-                                                <th>Status</th>
-                                                <th>Priority</th>
-                                                <th>Location</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var incident in recentIncidents.Take(5))
-                                            {
-                                                <tr>
-                                                    <td>INC-@incident.IncidentReportId.ToString("D4")</td>
-                                                    <td>@incident.IncidentType</td>
-                                                    <td>@incident.ReportDate.ToString("MM/dd/yyyy HH:mm")</td>
-                                                    <td>@GetStatusBadge(incident.Status)</td>
-                                                    <td>@GetPriorityBadge(incident.Priority)</td>
-                                                    <td>@incident.Location</td>
-                                                    <td>
-                                                        <a href="@Url.Action("IncidentDetails", "Director", new { id = incident.IncidentReportId })"
-                                                           class="btn btn-sm btn-info" title="View Details">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            }
-                            else
-                            {
+                <!-- Recent Activity Section -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold">Recent Incident Activity</h6>
+                                <a href="#" class="btn btn-sm btn-primary">View All</a>
+                            </div>
+                            <div class="card-body">
                                 <div class="alert alert-info text-center py-4">
                                     <i class="fas fa-info-circle me-2"></i>
                                     No recent incidents found.
                                 </div>
-                            }
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Additional Quick Actions -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card shadow">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <a href="@Url.Action("Reports", "Director")" class="btn btn-outline-primary w-100">
-                                        <i class="fas fa-chart-bar me-2"></i>View Reports
-                                    </a>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-outline-info w-100">
-                                        <i class="fas fa-clipboard-list me-2"></i>Guard Logs
-                                    </a>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <a href="@Url.Action("Statistics", "Director")" class="btn btn-outline-success w-100">
-                                        <i class="fas fa-chart-pie me-2"></i>Statistics
-                                    </a>
+                <!-- Additional Quick Actions -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header py-3">
+                                <h6 class="m-0 font-weight-bold">Quick Actions</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <a href="#" class="btn btn-outline-primary w-100">
+                                            <i class="fas fa-chart-bar me-2"></i>View Reports
+                                        </a>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <a href="#" class="btn btn-outline-info w-100">
+                                            <i class="fas fa-clipboard-list me-2"></i>Guard Logs
+                                        </a>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <a href="#" class="btn btn-outline-success w-100">
+                                            <i class="fas fa-chart-pie me-2"></i>Statistics
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -372,382 +418,74 @@
             </div>
         </div>
     </div>
-</div>
 
-@functions {
-    public IHtmlString GetStatusBadge(string status)
-    {
-        string badgeClass;
-        switch (status?.ToLower())
-        {
-            case "resolved":
-                badgeClass = "badge bg-success";
-                break;
-            case "in progress":
-                badgeClass = "badge bg-primary";
-                break;
-            case "pending":
-                badgeClass = "badge bg-warning";
-                break;
-            default:
-                badgeClass = "badge bg-secondary";
-                break;
-        }
-        return new HtmlString($"<span class='{badgeClass}'>{status}</span>");
-    }
-
-    public IHtmlString GetPriorityBadge(string priority)
-    {
-        string badgeClass;
-        switch (priority?.ToLower())
-        {
-            case "critical":
-                badgeClass = "badge bg-danger";
-                break;
-            case "high":
-                badgeClass = "badge bg-warning";
-                break;
-            case "medium":
-                badgeClass = "badge bg-info";
-                break;
-            case "low":
-                badgeClass = "badge bg-success";
-                break;
-            default:
-                badgeClass = "badge bg-secondary";
-                break;
-        }
-        return new HtmlString($"<span class='{badgeClass}'>{priority}</span>");
-    }
-
-    public string GetNotificationTypeBadge(string type)
-    {
-        switch (type?.ToLower())
-        {
-            case "login":
-                return "bg-success";
-            case "incident":
-                return "bg-danger";
-            case "system":
-                return "bg-info";
-            case "security":
-                return "bg-warning";
-            case "guard":
-                return "bg-primary";
-            case "instructor":
-                return "bg-purple";
-            case "checkin":
-                return "bg-teal";
-            default:
-                return "bg-secondary";
-        }
-    }
-}
-
-@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        $(document).ready(function () {
-            console.log("Director dashboard loaded");
+        document.addEventListener('DOMContentLoaded', function () {
+            // Simulate loading data
+            setTimeout(function () {
+                document.getElementById('totalIncidents').textContent = '42';
+                document.getElementById('resolvedIncidents').textContent = '35';
+                document.getElementById('resolvedPercentage').textContent = '83';
+                document.getElementById('thisMonthIncidents').textContent = '8';
+                document.getElementById('urgentIncidents').textContent = '3';
+                document.getElementById('totalCheckIns').textContent = '127';
+                document.getElementById('todayCheckIns').textContent = '15';
+                document.getElementById('currentOnDuty').textContent = '7';
+
+                // Show login success message
+                document.querySelector('.alert-success').style.display = 'block';
+                document.getElementById('successMessage').textContent = 'Login successful! Welcome back.';
+            }, 1000);
 
             // Notification bell functionality
-            $('#directorNotificationBell').click(function (e) {
+            const notificationBell = document.getElementById('directorNotificationBell');
+            const notificationDropdown = document.getElementById('directorNotificationDropdown');
+
+            notificationBell.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $('#directorNotificationDropdown').toggle();
-                loadDirectorNotifications();
+                notificationDropdown.style.display = notificationDropdown.style.display === 'none' ? 'block' : 'none';
             });
 
             // Close dropdown when clicking outside
-            $(document).click(function (e) {
-                if (!$(e.target).closest('.notification-bell').length) {
-                    $('#directorNotificationDropdown').hide();
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('.notification-bell')) {
+                    notificationDropdown.style.display = 'none';
                 }
             });
 
-            // Mark notification as read and navigate when clicked
-            $(document).on('click', '.notification-item', function (e) {
-                e.preventDefault();
-                var notificationId = $(this).data('id');
-                var url = $(this).data('url');
-
-                if (notificationId) {
-                    markNotificationAsRead(notificationId);
-                    $(this).removeClass('unread');
-
-                    // Navigate to related URL if available
-                    if (url && url !== '#') {
-                        window.location.href = url;
-                    }
-                }
-            });
-
-            // Mark all as read
-            $('#markAllAsRead').click(function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                markAllNotificationsAsRead();
-            });
-
-            // Auto-refresh notifications every 30 seconds
-            setInterval(loadDirectorNotifications, 30000);
-
-            // Load notifications function
-            function loadDirectorNotifications() {
-                $.get('@Url.Action("GetNotifications", "Director")', function (data) {
-                    if (data.error) {
-                        console.error('Error loading notifications:', data.error);
-                        return;
-                    }
-
-                    updateNotificationUI(data);
-                }).fail(function(xhr, status, error) {
-                    console.error('Failed to load notifications:', error);
-                });
-            }
-
-            function updateNotificationUI(data) {
-                var notificationList = $('#directorNotificationList');
-                notificationList.empty();
-
-                if (data.notifications && data.notifications.length > 0) {
-                    $.each(data.notifications, function (index, notification) {
-                        var item = $('<div>').addClass('notification-item ' + (notification.IsRead ? '' : 'unread'))
-                            .attr('data-id', notification.NotificationId)
-                            .attr('data-url', notification.RelatedUrl || '#')
-                            .html('<div class="notification-content">' +
-                                  '<div class="notification-title">' + (notification.Title || 'Notification') + '</div>' +
-                                  '<div class="notification-message">' + notification.Message + '</div>' +
-                                  '<div class="notification-time">' +
-                                  new Date(notification.CreatedAt).toLocaleString() + '</div>' +
-                                  (notification.NotificationType ?
-                                  '<span class="notification-type badge ' + getNotificationTypeClass(notification.NotificationType) + '">' +
-                                  notification.NotificationType + '</span>' : '') +
-                                  '</div>');
-
-                        notificationList.append(item);
-                    });
-
-                    // Add view all link if there are more than 10 notifications
-                    if (data.notifications.length > 10) {
-                        notificationList.append('<div class="notification-footer text-center py-2">' +
-                            '<a href="@Url.Action("Notifications", "Director")" class="text-primary">View all notifications</a></div>');
-                    }
-                } else {
-                    notificationList.append('<div class="notification-item text-center py-3">' +
-                        '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
-                }
+            // Simulate notifications
+            setTimeout(function () {
+                const notificationList = document.getElementById('directorNotificationList');
+                notificationList.innerHTML = `
+                        <div class="notification-item unread" data-id="1" data-url="#">
+                            <div class="notification-content">
+                                <div class="notification-title">New Incident Reported</div>
+                                <div class="notification-message">Security breach detected at Main Gate</div>
+                                <div class="notification-time">${new Date().toLocaleString()}</div>
+                                <span class="notification-type badge bg-danger">Incident</span>
+                            </div>
+                        </div>
+                        <div class="notification-item" data-id="2" data-url="#">
+                            <div class="notification-content">
+                                <div class="notification-title">Weekly Report Generated</div>
+                                <div class="notification-message">Weekly security report is ready for review</div>
+                                <div class="notification-time">${new Date(Date.now() - 86400000).toLocaleString()}</div>
+                                <span class="notification-type badge bg-info">Report</span>
+                            </div>
+                        </div>
+                        <div class="notification-footer text-center py-2">
+                            <a href="#" class="text-primary">View all notifications</a>
+                        </div>
+                    `;
 
                 // Update notification count
-                updateNotificationCount(data.unreadCount || 0);
-            }
-
-            function getNotificationTypeClass(type) {
-                switch (type.toLowerCase()) {
-                    case 'login': return 'bg-success';
-                    case 'incident': return 'bg-danger';
-                    case 'system': return 'bg-info';
-                    case 'security': return 'bg-warning';
-                    case 'guard': return 'bg-primary';
-                    case 'instructor': return 'bg-purple';
-                    case 'checkin': return 'bg-teal';
-                    default: return 'bg-secondary';
-                }
-            }
-
-            function updateNotificationCount(count) {
-                var badge = $('#directorNotificationBell .badge');
-                var markAllLink = $('#markAllAsRead');
-
-                if (count > 0) {
-                    badge.text(count).show();
-                    markAllLink.show();
-                } else {
-                    badge.hide();
-                    markAllLink.hide();
-                }
-            }
-
-            function markNotificationAsRead(notificationId) {
-                $.post('@Url.Action("MarkNotificationAsRead", "Director")', { id: notificationId })
-                    .done(function(response) {
-                        if (response.success) {
-                            // Update unread count
-                            var currentCount = parseInt($('#directorNotificationBell .badge').text()) || 0;
-                            if (currentCount > 0) {
-                                updateNotificationCount(currentCount - 1);
-                            }
-                        }
-                    })
-                    .fail(function() {
-                        console.error('Failed to mark notification as read');
-                    });
-            }
-
-            function markAllNotificationsAsRead() {
-                $.post('@Url.Action("MarkAllNotificationsAsRead", "Director")')
-                    .done(function(response) {
-                        if (response.success) {
-                            $('.notification-item').removeClass('unread');
-                            updateNotificationCount(0);
-                            $('#directorNotificationDropdown').hide();
-                        }
-                    })
-                    .fail(function() {
-                        console.error('Failed to mark all notifications as read');
-                    });
-            }
-
-            // Initial load of notifications
-            loadDirectorNotifications();
-
-            // Refresh dashboard every 5 minutes to get updated stats
-            setInterval(function () {
-                console.log("Refreshing dashboard statistics...");
-                window.location.reload();
-            }, 300000); // 5 minutes
+                document.querySelector('#directorNotificationBell .badge').style.display = 'block';
+                document.querySelector('#directorNotificationBell .badge').textContent = '1';
+                document.getElementById('markAllAsRead').style.display = 'block';
+            }, 1500);
         });
     </script>
-}
-
-<style>
-    .notification-bell {
-        position: relative;
-        display: inline-block;
-    }
-
-    .notification-dropdown {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        width: 400px;
-        max-height: 500px;
-        overflow-y: auto;
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 0.375rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        z-index: 1050;
-        display: none;
-    }
-
-    .notification-item {
-        padding: 1rem;
-        border-bottom: 1px solid #e9ecef;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-        .notification-item.unread {
-            background-color: #f8f9fa;
-            border-left: 4px solid #007bff;
-        }
-
-        .notification-item:hover {
-            background-color: #e3f2fd;
-        }
-
-    .notification-content {
-        position: relative;
-    }
-
-    .notification-title {
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        color: #212529;
-        font-size: 0.95rem;
-    }
-
-    .notification-message {
-        margin-bottom: 0.5rem;
-        color: #495057;
-        font-size: 0.875rem;
-    }
-
-    .notification-time {
-        font-size: 0.75rem;
-        color: #6c757d;
-    }
-
-    .notification-type {
-        position: absolute;
-        top: 0;
-        right: 0;
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        color: white;
-    }
-
-    .notification-header {
-        padding: 1rem;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #e9ecef;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: 600;
-    }
-
-    .mark-all-read {
-        font-size: 0.875rem;
-        color: #0d6efd;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-        .mark-all-read:hover {
-            text-decoration: underline;
-        }
-
-    .notification-footer {
-        padding: 0.75rem;
-        background-color: #f8f9fa;
-        border-top: 1px solid #e9ecef;
-        text-align: center;
-    }
-
-    .card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-        }
-
-    .border-left-primary {
-        border-left: 4px solid #4e73df !important;
-    }
-
-    .border-left-success {
-        border-left: 4px solid #1cc88a !important;
-    }
-
-    .border-left-info {
-        border-left: 4px solid #36b9cc !important;
-    }
-
-    .border-left-warning {
-        border-left: 4px solid #f6c23e !important;
-    }
-
-    .border-left-danger {
-        border-left: 4px solid #e74a3b !important;
-    }
-
-    .border-left-secondary {
-        border-left: 4px solid #858796 !important;
-    }
-
-    .border-left-dark {
-        border-left: 4px solid #5a5c69 !important;
-    }
-
-    /* Additional badge colors for notification types */
-    .bg-purple {
-        background-color: #6f42c1 !important;
-    }
-
-    .bg-teal {
-        background-color: #20c9a6 !important;
-    }
-</style>
+</body>
+</html>
