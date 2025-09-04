@@ -87,12 +87,13 @@
                                 @using (Html.BeginForm("MarkAttendance", "Guard", FormMethod.Post))
                                 {
                                     @Html.AntiForgeryToken()
-
-
                                     <a href="~/Content/Guard/Index.html" class="btn btn-primary">Mark My Attendance</a>
-
-
                                 }
+
+                                <!-- My Calendar Button -->
+                                <a href="@Url.Action("Calendar", "Guard")" class="btn btn-secondary btn-lg mb-3">
+                                    My Calendar
+                                </a>
 
                                 <!-- Report Incident Button -->
                                 <a href="@Url.Action("Create", "IncidentReports")" class="btn btn-danger btn-lg mb-3">

@@ -63,6 +63,8 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Date Registered")]
         public DateTime DateRegistered { get; set; }
 
+        [NotMapped]
+        public List<GuardAttendance> MonthlyAttendance { get; set; } = new List<GuardAttendance>();
         public string UserId { get; set; }
 
         [Display(Name = "Active")]
@@ -72,6 +74,8 @@ namespace PiranaSecuritySystem.Models
         {
             get { return $"{Guard_FName} {Guard_LName}"; }
         }
+        // In your Guard model, add this property
+        public virtual ICollection<GuardCheckIn> CheckIns { get; set; }
 
     }
 }

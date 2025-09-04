@@ -1,0 +1,150 @@
+﻿@model PiranaSecuritySystem.ViewModels.GuardCalendarViewModel
+@{
+    ViewBag.Title = "Guard Calendar";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>@Model.GuardName's Calendar - @ViewBag.MonthName @ViewBag.Year</h2>
+        <div>
+            <a href="@Url.Action("Calendar", new { year = ViewBag.PrevMonth.year, month = ViewBag.PrevMonth.month })"
+               class="btn btn-outline-primary">Previous Month</a>
+            <a href="@Url.Action("Calendar", new { year = DateTime.Now.Year, month = DateTime.Now.Month })"
+               class="btn btn-outline-secondary mx-2">Current Month</a>
+            <a href="@Url.Action("Calendar", new { year = ViewBag.NextMonth.year, month = ViewBag.NextMonth.month })"
+               class="btn btn-outline-primary">Next Month</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="row">
+                @foreach (var day in new[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" })
+                {
+                    <div class="col text-center fw-bold">@day.Substring(0, 3)</div>
+                }
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @{
+                var firstDayOfMonth = new DateTime(Model.Year, Model.Month, 1);
+                var daysInMonth = DateTime.DaysInMonth(Model.Year, Model.Month);
+                var startDay = (int)firstDayOfMonth.DayOfWeek;
+
+                // Create empty cells for days before the first day of the month
+                <div class="row">
+                    @for (int i = 0; i < startDay; i++)
+                    {
+                        <div class="col day-cell empty"></div>
+                    }
+
+                    @foreach (var day in Model.Days)
+                    {
+                        string cellClass = "day-cell";
+                        string tooltip = $"{day.Date:MMM d, yyyy} - {day.ShiftType} Shift";
+
+                        if (day.Status == "CheckedIn")
+                        {
+                            cellClass += " bg-success text-white";
+                            tooltip += " - Checked In";
+                        }
+                        else if (day.Status == "NotCheckedIn")
+                        {
+                            cellClass += " bg-danger text-white";
+                            tooltip += " - Not Checked In";
+                        }
+                        else if (day.Status == "OffDuty")
+                        {
+                            cellClass += " bg-secondary text-white";
+                            tooltip += " - Off Duty";
+                        }
+
+                        if (day.IsToday)
+                        {
+                            cellClass += " border border-primary";
+                        }
+
+                        <div class="col day-cell @cellClass" data-bs-toggle="tooltip" title="@tooltip">
+                            <div class="day-number">@day.Date.Day</div>
+                            <div class="shift-type small">@day.ShiftType</div>
+                            @if (day.HasCheckIn)
+                            {
+                                <i class="fas fa-check-circle text-white"></i>
+                            }
+                        </div>
+
+                        // Start a new row after Saturday
+                        if (day.Date.DayOfWeek == DayOfWeek.Saturday && day.Date.Day != daysInMonth)
+                        {
+                        @:</div><div class="row">
+                        }
+                    }
+
+                    @{
+                        var lastDayOfMonth = new DateTime(Model.Year, Model.Month, daysInMonth);
+                        var endDay = (int)lastDayOfMonth.DayOfWeek;
+
+                        // Create empty cells for days after the last day of the month
+                        for (int i = endDay + 1; i < 7; i++)
+                        {
+                            <div class="col day-cell empty"></div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4>Legend:</h4>
+        <div class="d-flex flex-wrap gap-3">
+            <div><span class="badge bg-success">Checked In</span> - Guard checked in for shift</div>
+            <div><span class="badge bg-danger">Not Checked In</span> - Guard didn't check in for scheduled shift</div>
+            <div><span class="badge bg-secondary">Off Duty</span> - Guard was off duty</div>
+            <div><span class="badge border border-primary">Today</span> - Current day</div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .day-cell {
+            min-height: 100px;
+            border: 1px solid #dee2e6;
+            padding: 5px;
+            position: relative;
+        }
+
+            .day-cell.empty {
+                background-color: #f8f9fa;
+            }
+
+        .day-number {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .shift-type {
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .row {
+            margin: 0;
+        }
+
+            .row > .col {
+                padding: 0;
+            }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        // Initialize tooltips
+        $(document).ready(function(){
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        });
+    </script>
+}

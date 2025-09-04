@@ -188,6 +188,8 @@
     <Compile Include="Models\Director.cs" />
     <Compile Include="Models\DirectorViewModel.cs" />
     <Compile Include="Models\Guard.cs" />
+    <Compile Include="Models\GuardAttendance.cs" />
+    <Compile Include="Models\GuardCalendarViewModel.cs" />
     <Compile Include="Models\GuardCheckIn.cs" />
     <Compile Include="Models\IdentityModels.cs" />
     <Compile Include="Models\IncidentReport.cs" />
@@ -309,6 +311,7 @@
     <Content Include="Views\Payroll\CreateRate.cshtml" />
     <Content Include="Views\Payroll\TaxConfig.cshtml" />
     <Content Include="Views\Director\Notifications.cshtml" />
+    <Content Include="Views\Guard\Calender.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

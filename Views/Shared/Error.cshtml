@@ -1,9 +1,16 @@
-﻿@model System.Web.Mvc.HandleErrorInfo
-
-@{
+﻿@{
     ViewBag.Title = "Error";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
-
+<div class="container mt-5">
+    <div class="alert alert-danger">
+        <h2>Error</h2>
+        <p>An error occurred while processing your request.</p>
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <p><strong>Details:</strong> @TempData["ErrorMessage"]</p>
+        }
+        <a href="@Url.Action("Dashboard", "Guard")" class="btn btn-primary">Return to Dashboard</a>
+    </div>
+</div>

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNet.Identity;
 using PiranaSecuritySystem.Models;
+using PiranaSecuritySystem.ViewModels;
 using System;
 using System.Linq;
 using System.Web.Mvc;
@@ -21,16 +22,16 @@ namespace PiranaSecuritySystem.Controllers
 
                 if (string.IsNullOrEmpty(currentUserId))
                 {
-                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
-                    return RedirectToAction("Login", "Account");
+                    ViewBag.ErrorMessage = "User not authenticated. Please log in again.";
+                    return View("Error");
                 }
 
                 var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
 
                 if (guard == null)
                 {
-                    TempData["ErrorMessage"] = "Guard profile not found. Please contact administrator.";
-                    return RedirectToAction("ProfileNotFound", "Error");
+                    ViewBag.ErrorMessage = "Guard profile not found. Please contact administrator.";
+                    return View("ProfileNotFound");
                 }
 
                 // Add dashboard statistics
@@ -53,8 +54,143 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in Dashboard: {ex.Message}");
-                TempData["ErrorMessage"] = "An error occurred while loading the dashboard.";
-                return RedirectToAction("Error", "Home");
+                ViewBag.ErrorMessage = "An error occurred while loading the dashboard.";
+                return View("Error");
+            }
+        }
+
+        // GET: Guard/Calendar
+        public ActionResult Calendar(int? year, int? month)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    ViewBag.ErrorMessage = "User not authenticated. Please log in again.";
+                    return View("Error");
+                }
+
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    ViewBag.ErrorMessage = "Guard profile not found. Please contact administrator.";
+                    return View("ProfileNotFound");
+                }
+
+                // Set current year/month if not provided
+                var currentDate = DateTime.Now;
+                int viewYear = year ?? currentDate.Year;
+                int viewMonth = month ?? currentDate.Month;
+
+                // Get the calendar data
+                var calendarData = GetGuardCalendarData(guard.GuardId, viewYear, viewMonth);
+
+                if (calendarData == null)
+                {
+                    ViewBag.ErrorMessage = "Could not load calendar data.";
+                    return View("Error");
+                }
+
+                ViewBag.Year = viewYear;
+                ViewBag.Month = viewMonth;
+                ViewBag.MonthName = new DateTime(viewYear, viewMonth, 1).ToString("MMMM");
+                ViewBag.PrevMonth = viewMonth == 1 ? new { year = viewYear - 1, month = 12 } : new { year = viewYear, month = viewMonth - 1 };
+                ViewBag.NextMonth = viewMonth == 12 ? new { year = viewYear + 1, month = 1 } : new { year = viewYear, month = viewMonth + 1 };
+
+                return View(calendarData);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in Calendar: {ex.Message}");
+                ViewBag.ErrorMessage = "An error occurred while loading the calendar.";
+                return View("Error");
+            }
+        }
+
+        private GuardCalendarViewModel GetGuardCalendarData(int guardId, int year, int month)
+        {
+            try
+            {
+                var guard = db.Guards.Find(guardId);
+                if (guard == null) return null;
+
+                var viewModel = new GuardCalendarViewModel
+                {
+                    GuardId = guardId,
+                    GuardName = $"{guard.Guard_FName} {guard.Guard_LName}",
+                    Year = year,
+                    Month = month,
+                    Days = new List<CalendarDay>()
+                };
+
+                // Get the first day of the month
+                var firstDayOfMonth = new DateTime(year, month, 1);
+
+                // Get the last day of the month
+                var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+
+                // Get all shifts for this guard in the month
+                var shifts = db.Shifts
+                    .Where(s => s.GuardId == guardId &&
+                               s.ShiftDate >= firstDayOfMonth &&
+                               s.ShiftDate <= lastDayOfMonth)
+                    .ToList();
+
+                // Get all check-ins for this guard in the month
+                var checkIns = db.GuardCheckIns
+                    .Where(c => c.GuardId == guardId &&
+                               c.CheckInTime >= firstDayOfMonth &&
+                               c.CheckInTime < lastDayOfMonth.AddDays(1))
+                    .ToList();
+
+                // Create calendar days
+                for (var day = firstDayOfMonth; day <= lastDayOfMonth; day = day.AddDays(1))
+                {
+                    var shift = shifts.FirstOrDefault(s => s.ShiftDate.Date == day.Date);
+                    var shiftType = shift?.ShiftType ?? "Not Scheduled";
+
+                    // Check if guard checked in on this day
+                    var hasCheckIn = checkIns.Any(c => c.CheckInTime.Date == day.Date && c.Status == "Present");
+                    var hasCheckOut = checkIns.Any(c => c.CheckInTime.Date == day.Date && c.Status == "Checked Out");
+
+                    string status;
+                    if (shiftType == "Off")
+                    {
+                        status = "OffDuty";
+                    }
+                    else if (hasCheckIn && hasCheckOut)
+                    {
+                        status = "CheckedIn";
+                    }
+                    else if (day.Date < DateTime.Today && shiftType != "Off" && !hasCheckIn)
+                    {
+                        status = "NotCheckedIn";
+                    }
+                    else
+                    {
+                        status = "Normal";
+                    }
+
+                    viewModel.Days.Add(new CalendarDay
+                    {
+                        Date = day,
+                        DayOfWeek = day.DayOfWeek.ToString(),
+                        ShiftType = shiftType,
+                        Status = status,
+                        HasCheckIn = hasCheckIn,
+                        IsToday = day.Date == DateTime.Today
+                    });
+                }
+
+                return viewModel;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetGuardCalendarData: {ex.Message}");
+                return null;
             }
         }
 
