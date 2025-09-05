@@ -9,6 +9,12 @@ namespace PiranaSecuritySystem.Models
     public class Notification
     {
         public int NotificationId { get; set; }
+        public int? ResidentId { get; set; } // Nullable, if notification is for a resident
+        public int? DirectorId { get; set; } // Nullable, if notification is for a director
+        public int? AdminId { get; set; } // Nullable, if notification is for an admin
+        public int? GuardId { get; set; } // Nullable, if notification is for a guard
+        public int? InstructorId { get; set; } // Nullable, if notification is for an instructor
+        public int RecipientId { get; set; } // The actual recipient's user ID
 
         [Required]
         public string UserId { get; set; } // Can be ResidentId or DirectorId
@@ -49,6 +55,7 @@ namespace PiranaSecuritySystem.Models
 
         // Navigation properties (if needed)
         public virtual ApplicationUser User { get; set; }
+        public DateTime DateRead { get; internal set; }
     }
 
     // Optional: You can create a view model for notification display

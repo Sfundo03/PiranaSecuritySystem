@@ -1,0 +1,51 @@
+﻿@model PiranaSecuritySystem.Models.TrainingSession
+
+@{
+    ViewBag.Title = "Edit Training Session";
+}
+
+<h2>Edit Training Session</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+
+    <div class="form-horizontal">
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="form-group">
+            @Html.LabelFor(m => m.Title)
+            @Html.TextBoxFor(m => m.Title, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.Title, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(m => m.StartDate)
+            @Html.TextBoxFor(m => m.StartDate, "{0:yyyy-MM-ddTHH:mm}", new { @class = "form-control", type = "datetime-local" })
+            @Html.ValidationMessageFor(m => m.StartDate, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(m => m.EndDate)
+            @Html.TextBoxFor(m => m.EndDate, "{0:yyyy-MM-ddTHH:mm}", new { @class = "form-control", type = "datetime-local" })
+            @Html.ValidationMessageFor(m => m.EndDate, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(m => m.Capacity)
+            @Html.TextBoxFor(m => m.Capacity, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.Capacity, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(m => m.Location)
+            @Html.TextBoxFor(m => m.Location, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.Location, "", new { @class = "text-danger" })
+        </div>
+
+        <button type="submit" class="btn btn-warning">Save</button>
+        @Html.ActionLink("Back to List", "Index", null, new { @class = "btn btn-secondary" })
+    </div>
+}

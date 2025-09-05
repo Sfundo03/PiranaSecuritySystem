@@ -103,6 +103,16 @@
                 padding: 15px;
                 border-radius: 50%;
             }
+
+        .status-active {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .status-inactive {
+            color: #dc3545;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -131,31 +141,43 @@
                                         <th><i class="fas fa-user me-1"></i> Name</th>
                                         <th><i class="fas fa-envelope me-1"></i> Email</th>
                                         <th><i class="fas fa-phone me-1"></i> Phone</th>
+                                        <th><i class="fas fa-user-check me-1"></i> Status</th>
                                         <th><i class="fas fa-tasks me-1"></i> Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- This would be populated from your model -->
-                                    <tr>
-                                        <td>G001</td>
-                                        <td>John Smith</td>
-                                        <td>john@example.com</td>
-                                        <td>0831234567</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-custom"><i class="fas fa-edit me-1"></i>Edit</button>
-                                            <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash me-1"></i>Delete</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>G002</td>
-                                        <td>Jane Doe</td>
-                                        <td>jane@example.com</td>
-                                        <td>0837654321</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-custom"><i class="fas fa-edit me-1"></i>Edit</button>
-                                            <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash me-1"></i>Delete</button>
-                                        </td>
-                                    </tr>
+                                    @if (Model != null && Model.Count > 0)
+                                    {
+                                        foreach (var guard in Model)
+                                        {
+                                            <tr>
+                                                <td>@guard.GuardId</td>
+                                                <td>@guard.Guard_FName @guard.Guard_LName</td>
+                                                <td>@guard.Email</td>
+                                                <td>@guard.PhoneNumber</td>
+                                                <td>
+                                                    @if (guard.IsActive)
+                                                    {
+                                                        <span class="status-active">Active</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="status-inactive">Inactive</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                    @Html.ActionLink("Delete", "DeleteGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-danger" })
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="6" class="text-center">No guards found in the database.</td>
+                                        </tr>
+                                    }
                                 </tbody>
                             </table>
                         </div>

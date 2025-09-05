@@ -150,6 +150,21 @@
             color: var(--primary-blue);
             font-weight: 500;
         }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -174,15 +189,15 @@
                     <div class="notification-bell">
                         <a href="#" id="directorNotificationBell" class="btn btn-outline-primary position-relative">
                             <i class="fas fa-bell"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationCount" style="display: none;">
                                 0
                                 <span class="visually-hidden">unread notifications</span>
                             </span>
                         </a>
                         <div class="notification-dropdown" id="directorNotificationDropdown">
-                            <div class="notification-header">
+                            <div class="notification-header p-3 border-bottom d-flex justify-content-between align-items-center">
                                 <span class="fw-bold">All Notifications</span>
-                                <a href="#" class="mark-all-read" id="markAllAsRead" style="display: none;">Mark all as read</a>
+                                <a href="#" class="mark-all-read small" id="markAllAsRead" style="display: none;">Mark all as read</a>
                             </div>
                             <div id="directorNotificationList">
                                 <div class="notification-item text-center py-3">
@@ -190,18 +205,21 @@
                                     No notifications
                                 </div>
                             </div>
+                            <div class="notification-footer text-center p-2 border-top">
+                                <a href="@Url.Action("Notifications", "Director")" class="text-primary small">View all notifications</a>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Error/Success Messages -->
-                <div class="alert alert-danger alert-dismissible fade show mb-4" style="display: none;">
+                <div class="alert alert-danger alert-dismissible fade show mb-4" id="errorAlert" style="display: none;">
                     <i class="fas fa-exclamation-circle me-2"></i>
                     <span id="errorMessage"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
 
-                <div class="alert alert-success alert-dismissible fade show mb-4" style="display: none;">
+                <div class="alert alert-success alert-dismissible fade show mb-4" id="successAlert" style="display: none;">
                     <i class="fas fa-check-circle me-2"></i>
                     <span id="successMessageAlt"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -228,14 +246,16 @@
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                                             Incident Reports
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalIncidents">0</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalIncidents">
+                                            <span class="loading-spinner"></span>
+                                        </div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
                                     </div>
                                 </div>
                                 <div class="mt-2">
-                                    <a href="#" class="btn btn-sm btn-primary">Manage Incidents</a>
+                                    <a href="@Url.Action("Incidents", "Director")" class="btn btn-sm btn-primary">Manage Incidents</a>
                                 </div>
                             </div>
                         </div>
@@ -249,7 +269,9 @@
                                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                             Resolved Incidents
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="resolvedIncidents">0</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="resolvedIncidents">
+                                            <span class="loading-spinner"></span>
+                                        </div>
                                         <div class="mt-1">
                                             <small class="text-success"><span id="resolvedPercentage">0</span>% resolved rate</small>
                                         </div>
@@ -270,7 +292,9 @@
                                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
                                             This Month Incidents
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="thisMonthIncidents">0</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="thisMonthIncidents">
+                                            <span class="loading-spinner"></span>
+                                        </div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="fas fa-calendar fa-2x text-gray-300"></i>
@@ -288,7 +312,9 @@
                                         <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
                                             Urgent Incidents
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="urgentIncidents">0</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="urgentIncidents">
+                                            <span class="loading-spinner"></span>
+                                        </div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
@@ -309,7 +335,9 @@
                                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                                             Total Check-ins
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalCheckIns">0</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalCheckIns">
+                                            <span class="loading-spinner"></span>
+                                        </div>
                                         <div class="mt-1">
                                             <small class="text-muted">All guard activities</small>
                                         </div>
@@ -319,7 +347,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-2">
-                                    <a href="#" class="btn btn-sm btn-info">View Logs</a>
+                                    <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-sm btn-info">View Logs</a>
                                 </div>
                             </div>
                         </div>
@@ -333,7 +361,9 @@
                                         <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
                                             Today's Check-ins
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="todayCheckIns">0</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="todayCheckIns">
+                                            <span class="loading-spinner"></span>
+                                        </div>
                                         <div class="mt-1">
                                             <small class="text-muted">Today's activities</small>
                                         </div>
@@ -354,7 +384,9 @@
                                         <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
                                             Currently On Duty
                                         </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="currentOnDuty">0</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="currentOnDuty">
+                                            <span class="loading-spinner"></span>
+                                        </div>
                                         <div class="mt-1">
                                             <small class="text-muted">Active guards</small>
                                         </div>
@@ -374,12 +406,12 @@
                         <div class="card">
                             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                                 <h6 class="m-0 font-weight-bold">Recent Incident Activity</h6>
-                                <a href="#" class="btn btn-sm btn-primary">View All</a>
+                                <a href="@Url.Action("Incidents", "Director")" class="btn btn-sm btn-primary">View All</a>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body" id="recentIncidentsContainer">
                                 <div class="alert alert-info text-center py-4">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    No recent incidents found.
+                                    Loading recent incidents...
                                 </div>
                             </div>
                         </div>
@@ -396,17 +428,17 @@
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
-                                        <a href="#" class="btn btn-outline-primary w-100">
+                                        <a href="@Url.Action("Reports", "Director")" class="btn btn-outline-primary w-100">
                                             <i class="fas fa-chart-bar me-2"></i>View Reports
                                         </a>
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <a href="#" class="btn btn-outline-info w-100">
+                                        <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-outline-info w-100">
                                             <i class="fas fa-clipboard-list me-2"></i>Guard Logs
                                         </a>
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <a href="#" class="btn btn-outline-success w-100">
+                                        <a href="@Url.Action("Reports", "Director")" class="btn btn-outline-success w-100">
                                             <i class="fas fa-chart-pie me-2"></i>Statistics
                                         </a>
                                     </div>
@@ -422,21 +454,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Simulate loading data
-            setTimeout(function () {
-                document.getElementById('totalIncidents').textContent = '42';
-                document.getElementById('resolvedIncidents').textContent = '35';
-                document.getElementById('resolvedPercentage').textContent = '83';
-                document.getElementById('thisMonthIncidents').textContent = '8';
-                document.getElementById('urgentIncidents').textContent = '3';
-                document.getElementById('totalCheckIns').textContent = '127';
-                document.getElementById('todayCheckIns').textContent = '15';
-                document.getElementById('currentOnDuty').textContent = '7';
+            // Load dashboard statistics
+            loadDashboardStats();
 
-                // Show login success message
-                document.querySelector('.alert-success').style.display = 'block';
-                document.getElementById('successMessage').textContent = 'Login successful! Welcome back.';
-            }, 1000);
+            // Load recent incidents
+            loadRecentIncidents();
+
+            // Load notifications
+            loadNotifications();
 
             // Notification bell functionality
             const notificationBell = document.getElementById('directorNotificationBell');
@@ -445,7 +470,7 @@
             notificationBell.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                notificationDropdown.style.display = notificationDropdown.style.display === 'none' ? 'block' : 'none';
+                notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
             });
 
             // Close dropdown when clicking outside
@@ -455,37 +480,285 @@
                 }
             });
 
-            // Simulate notifications
-            setTimeout(function () {
-                const notificationList = document.getElementById('directorNotificationList');
-                notificationList.innerHTML = `
-                        <div class="notification-item unread" data-id="1" data-url="#">
-                            <div class="notification-content">
-                                <div class="notification-title">New Incident Reported</div>
-                                <div class="notification-message">Security breach detected at Main Gate</div>
-                                <div class="notification-time">${new Date().toLocaleString()}</div>
-                                <span class="notification-type badge bg-danger">Incident</span>
-                            </div>
-                        </div>
-                        <div class="notification-item" data-id="2" data-url="#">
-                            <div class="notification-content">
-                                <div class="notification-title">Weekly Report Generated</div>
-                                <div class="notification-message">Weekly security report is ready for review</div>
-                                <div class="notification-time">${new Date(Date.now() - 86400000).toLocaleString()}</div>
-                                <span class="notification-type badge bg-info">Report</span>
-                            </div>
-                        </div>
-                        <div class="notification-footer text-center py-2">
-                            <a href="#" class="text-primary">View all notifications</a>
-                        </div>
-                    `;
+            // Mark all as read functionality
+            document.getElementById('markAllAsRead').addEventListener('click', function(e) {
+                e.preventDefault();
+                markAllNotificationsAsRead();
+            });
 
-                // Update notification count
-                document.querySelector('#directorNotificationBell .badge').style.display = 'block';
-                document.querySelector('#directorNotificationBell .badge').textContent = '1';
-                document.getElementById('markAllAsRead').style.display = 'block';
-            }, 1500);
+            // Check for login success message
+            if ('@TempData["LoginSuccess"]' !== '') {
+                document.querySelector('.alert-success').style.display = 'block';
+                document.getElementById('successMessage').textContent = '@TempData["LoginSuccess"]';
+            }
+
+            // Check for error message
+            if ('@TempData["ErrorMessage"]' !== '') {
+                document.getElementById('errorAlert').style.display = 'block';
+                document.getElementById('errorMessage').textContent = '@TempData["ErrorMessage"]';
+            }
         });
+
+        // Function to load dashboard statistics
+        function loadDashboardStats() {
+            fetch('@Url.Action("GetDashboardStats", "Director")')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update incident statistics
+                        document.getElementById('totalIncidents').textContent = data.totalIncidents;
+                        document.getElementById('resolvedIncidents').textContent = data.resolvedIncidents;
+                        document.getElementById('thisMonthIncidents').textContent = data.thisMonthIncidents;
+                        document.getElementById('urgentIncidents').textContent = data.highPriorityIncidents + data.criticalPriorityIncidents;
+
+                        // Calculate and update resolved percentage
+                        const resolvedPercentage = data.totalIncidents > 0
+                            ? Math.round((data.resolvedIncidents / data.totalIncidents) * 100)
+                            : 0;
+                        document.getElementById('resolvedPercentage').textContent = resolvedPercentage;
+
+                        // Update guard statistics
+                        document.getElementById('totalCheckIns').textContent = data.totalGuardCheckIns;
+                        document.getElementById('todayCheckIns').textContent = data.todayCheckIns;
+                        document.getElementById('currentOnDuty').textContent = data.currentOnDuty;
+                    } else {
+                        showError('Failed to load dashboard statistics');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading dashboard stats:', error);
+                    showError('Error loading dashboard statistics');
+                });
+        }
+
+        // Function to load recent incidents
+        function loadRecentIncidents() {
+            fetch('@Url.Action("GetRecentIncidents", "Director")')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('recentIncidentsContainer');
+
+                    if (data.success && data.incidents.length > 0) {
+                        let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Status</th><th>Priority</th></tr></thead><tbody>';
+
+                        data.incidents.forEach(incident => {
+                            html += `<tr>
+                                <td>${new Date(incident.reportDate).toLocaleDateString()}</td>
+                                <td>${incident.incidentType}</td>
+                                <td>${incident.location}</td>
+                                <td><span class="badge ${getStatusBadgeClass(incident.status)}">${incident.status}</span></td>
+                                <td><span class="badge ${getPriorityBadgeClass(incident.priority)}">${incident.priority}</span></td>
+                            </tr>`;
+                        });
+
+                        html += '</tbody></table></div>';
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No recent incidents found.</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading recent incidents:', error);
+                    document.getElementById('recentIncidentsContainer').innerHTML =
+                        '<div class="alert alert-danger text-center py-4"><i class="fas fa-exclamation-circle me-2"></i>Error loading recent incidents.</div>';
+                });
+        }
+
+        // Function to load notifications
+        function loadNotifications() {
+            fetch('@Url.Action("GetNotifications", "Director")')
+                .then(response => response.json())
+                .then(data => {
+                    const notificationList = document.getElementById('directorNotificationList');
+                    const notificationCount = document.getElementById('notificationCount');
+                    const markAllAsRead = document.getElementById('markAllAsRead');
+
+                    if (data.error) {
+                        notificationList.innerHTML = '<div class="notification-item text-center py-3"><i class="fas fa-exclamation-triangle text-muted me-2"></i>Error loading notifications</div>';
+                        return;
+                    }
+
+                    if (data.notifications && data.notifications.length > 0) {
+                        let html = '';
+                        let unreadCount = 0;
+
+                        data.notifications.forEach(notification => {
+                            if (!notification.isRead) unreadCount++;
+
+                            html += `<div class="notification-item ${notification.isRead ? '' : 'unread'}" data-id="${notification.notificationId}">
+                                <div class="notification-content">
+                                    <div class="notification-title d-flex justify-content-between">
+                                        <strong>${notification.title}</strong>
+                                        <span class="notification-time small text-muted">${formatNotificationTime(notification.createdAt)}</span>
+                                    </div>
+                                    <div class="notification-message">${notification.message}</div>
+                                    <div class="mt-1">
+                                        <span class="notification-type badge ${getNotificationTypeBadgeClass(notification.notificationType)}">${notification.notificationType}</span>
+                                        ${notification.isImportant ? '<span class="badge bg-danger ms-1">Important</span>' : ''}
+                                    </div>
+                                </div>
+                            </div>`;
+                        });
+
+                        notificationList.innerHTML = html;
+
+                        // Update notification count
+                        if (unreadCount > 0) {
+                            notificationCount.style.display = 'block';
+                            notificationCount.textContent = unreadCount;
+                        } else {
+                            notificationCount.style.display = 'none';
+                        }
+
+                        // Show mark all as read button if there are unread notifications
+                        markAllAsRead.style.display = unreadCount > 0 ? 'block' : 'none';
+
+                        // Add click handlers to notifications
+                        document.querySelectorAll('.notification-item').forEach(item => {
+                            item.addEventListener('click', function() {
+                                const notificationId = this.getAttribute('data-id');
+                                markNotificationAsRead(notificationId);
+
+                                // Check if there's a related URL to navigate to
+                                const notification = data.notifications.find(n => n.notificationId == notificationId);
+                                if (notification && notification.relatedUrl) {
+                                    window.location.href = notification.relatedUrl;
+                                }
+                            });
+                        });
+                    } else {
+                        notificationList.innerHTML = '<div class="notification-item text-center py-3"><i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>';
+                        notificationCount.style.display = 'none';
+                        markAllAsRead.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                    document.getElementById('directorNotificationList').innerHTML =
+                        '<div class="notification-item text-center py-3"><i class="fas fa-exclamation-triangle text-muted me-2"></i>Error loading notifications</div>';
+                });
+        }
+
+        // Function to mark a notification as read
+        function markNotificationAsRead(notificationId) {
+            fetch('@Url.Action("MarkNotificationAsRead", "Director")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: notificationId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI to reflect read status
+                    const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                    if (notificationItem) {
+                        notificationItem.classList.remove('unread');
+                    }
+
+                    // Update notification count
+                    const currentCount = parseInt(document.getElementById('notificationCount').textContent);
+                    if (currentCount > 1) {
+                        document.getElementById('notificationCount').textContent = currentCount - 1;
+                    } else {
+                        document.getElementById('notificationCount').style.display = 'none';
+                        document.getElementById('markAllAsRead').style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => console.error('Error marking notification as read:', error));
+        }
+
+        // Function to mark all notifications as read
+        function markAllNotificationsAsRead() {
+            fetch('@Url.Action("MarkAllNotificationsAsRead", "Director")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update all notifications to appear as read
+                    document.querySelectorAll('.notification-item').forEach(item => {
+                        item.classList.remove('unread');
+                    });
+
+                    // Hide notification count and mark all as read button
+                    document.getElementById('notificationCount').style.display = 'none';
+                    document.getElementById('markAllAsRead').style.display = 'none';
+
+                    showSuccess(`${data.markedCount} notifications marked as read`);
+                }
+            })
+            .catch(error => {
+                console.error('Error marking all notifications as read:', error);
+                showError('Error marking notifications as read');
+            });
+        }
+
+        // Helper function to format notification time
+        function formatNotificationTime(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} min ago`;
+            if (diffHours < 24) return `${diffHours} hr ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+            return date.toLocaleDateString();
+        }
+
+        // Helper function to get status badge class
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case 'Resolved': return 'bg-success';
+                case 'In Progress': return 'bg-primary';
+                case 'Pending': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        // Helper function to get priority badge class
+        function getPriorityBadgeClass(priority) {
+            switch (priority) {
+                case 'Critical': return 'bg-danger';
+                case 'High': return 'bg-warning';
+                case 'Medium': return 'bg-info';
+                case 'Low': return 'bg-secondary';
+                default: return 'bg-secondary';
+            }
+        }
+
+        // Helper function to get notification type badge class
+        function getNotificationTypeBadgeClass(type) {
+            switch (type) {
+                case 'Incident': return 'bg-danger';
+                case 'Report': return 'bg-info';
+                case 'System': return 'bg-secondary';
+                case 'Security': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        // Helper function to show error message
+        function showError(message) {
+            document.getElementById('errorAlert').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        // Helper function to show success message
+        function showSuccess(message) {
+            document.getElementById('successAlert').style.display = 'block';
+            document.getElementById('successMessageAlt').textContent = message;
+        }
     </script>
 </body>
 </html>

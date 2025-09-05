@@ -75,6 +75,65 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // GET: Director/GetDashboardStats
+        [HttpGet]
+        public JsonResult GetDashboardStats()
+        {
+            try
+            {
+                var stats = new
+                {
+                    TotalIncidents = db.IncidentReports.Count(),
+                    ResolvedIncidents = db.IncidentReports.Count(i => i.Status == "Resolved"),
+                    ThisMonthIncidents = db.IncidentReports.Count(i => i.ReportDate.Month == DateTime.Now.Month && i.ReportDate.Year == DateTime.Now.Year),
+                    HighPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "High"),
+                    CriticalPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "Critical"),
+                    TotalGuardCheckIns = db.GuardCheckIns.Count(),
+                    TodayCheckIns = db.GuardCheckIns.Count(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now)),
+                    CurrentOnDuty = db.GuardCheckIns
+                        .Where(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now) &&
+                                   g.Status == "Present")
+                        .GroupBy(g => g.GuardId)
+                        .Count(),
+                    Success = true
+                };
+
+                return Json(stats, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Success = false, Error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // GET: Director/GetRecentIncidents
+        [HttpGet]
+        public JsonResult GetRecentIncidents()
+        {
+            try
+            {
+                var recentIncidents = db.IncidentReports
+                    .OrderByDescending(i => i.ReportDate)
+                    .Take(10)
+                    .Select(i => new
+                    {
+                        i.IncidentReportId,
+                        i.IncidentType,
+                        i.Location,
+                        i.Status,
+                        i.Priority,
+                        ReportDate = i.ReportDate
+                    })
+                    .ToList();
+
+                return Json(new { Success = true, Incidents = recentIncidents }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Success = false, Error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         // GET: Director/Notifications
         public ActionResult Notifications(string typeFilter = "", string statusFilter = "", int page = 1, int pageSize = 20)
         {

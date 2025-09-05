@@ -30,6 +30,8 @@ namespace PiranaSecuritySystem.Models
 
         // Add your DbSets here
         public DbSet<IncidentReport> IncidentReports { get; set; }
+        public DbSet<TrainingSession> TrainingSessions { get; set; }
+        
 
         public DbSet<Instructor> Instructors { get; set; }
         public DbSet<Payroll> Payrolls { get; set; }
@@ -45,8 +47,7 @@ namespace PiranaSecuritySystem.Models
         public DbSet<GuardCheckIn> GuardCheckIns { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Director> Directors { get; set; }
-
-
+        public object TrainingEnrollments { get; internal set; }
 
         public static ApplicationDbContext Create()
         {
