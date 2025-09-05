@@ -1,51 +1,237 @@
 ﻿@model PiranaSecuritySystem.Models.GuardRate
-
 @{
     ViewBag.Title = "Create Guard Rate";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Create Guard Rate</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIRANA GUARDING - Create Guard Rate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
 
-@using (Html.BeginForm())
-{
-    @Html.AntiForgeryToken()
+        body {
+            background-color: var(--light-bg);
+            min-height: 100vh;
+            font-family: 'Roboto', sans-serif;
+            padding: 20px 0;
+            color: var(--dark-text);
+        }
 
-    <div class="form-horizontal">
-        <hr />
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.GuardId, "Guard", htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.DropDownList("GuardId", null, "Select Guard", htmlAttributes: new { @class = "form-control" })
-                @Html.ValidationMessageFor(model => model.GuardId, "", new { @class = "text-danger" })
+        .dashboard-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header-custom {
+            background: white;
+            color: var(--primary-blue);
+            padding: 20px;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .btn-custom {
+            background: var(--primary-blue);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            color: white;
+        }
+
+            .btn-custom:hover {
+                background: var(--secondary-blue);
+                color: white;
+            }
+
+        .btn-outline-custom {
+            background: transparent;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+            .btn-outline-custom:hover {
+                background: var(--primary-blue);
+                color: white;
+            }
+
+        h2, h4, h5 {
+            color: var(--primary-blue);
+        }
+
+        .form-container {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--dark-text);
+        }
+
+        .form-control {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px 15px;
+            transition: all 0.3s;
+        }
+
+            .form-control:focus {
+                border-color: var(--primary-blue);
+                box-shadow: 0 0 0 0.2rem rgba(0, 105, 170, 0.25);
+            }
+
+        .text-danger {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+            .back-link:hover {
+                color: var(--secondary-blue);
+                text-decoration: underline;
+            }
+
+        .security-icon {
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--primary-blue);
+        }
+
+            .security-icon i {
+                font-size: 24px;
+                background: #e8f4ff;
+                padding: 15px;
+                border-radius: 50%;
+            }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .form-container {
+                padding: 15px;
+            }
+
+            .btn-custom {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1"><i class="fas fa-money-bill-wave me-2"></i>Create Guard Rate</h1>
+                <p class="text-muted">Set hourly rates for security guards</p>
             </div>
         </div>
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.Rate, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.Rate, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.Rate, "", new { @class = "text-danger" })
+        <div class="dashboard-card">
+            <div class="card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0"><i class="fas fa-plus-circle me-2"></i>New Guard Rate</h2>
+                </div>
             </div>
-        </div>
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.EffectiveDate, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.EffectiveDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
-                @Html.ValidationMessageFor(model => model.EffectiveDate, "", new { @class = "text-danger" })
-            </div>
-        </div>
+            <div class="form-container">
+                @using (Html.BeginForm())
+                {
+                    @Html.AntiForgeryToken()
 
-        <div class="form-group">
-            <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Create" class="btn btn-primary" />
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.GuardId, "Guard", htmlAttributes: new { @class = "control-label" })
+                        <div>
+                            @Html.DropDownList("GuardId", null, "Select Guard", htmlAttributes: new { @class = "form-control" })
+                            @Html.ValidationMessageFor(model => model.GuardId, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Rate, htmlAttributes: new { @class = "control-label" })
+                        <div>
+                            @Html.EditorFor(model => model.Rate, new { htmlAttributes = new { @class = "form-control", placeholder = "Enter hourly rate" } })
+                            @Html.ValidationMessageFor(model => model.Rate, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.EffectiveDate, htmlAttributes: new { @class = "control-label" })
+                        <div>
+                            @Html.EditorFor(model => model.EffectiveDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
+                            @Html.ValidationMessageFor(model => model.EffectiveDate, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <input type="submit" value="Create Rate" class="btn btn-custom" />
+                    </div>
+                }
+
+                <div>
+                    <a href="@Url.Action("ManageRates")" class="back-link">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Rate List
+                    </a>
+                </div>
             </div>
         </div>
     </div>
-}
 
-<div>
-    @Html.ActionLink("Back to List", "ManageRates")
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Create guard rate page loaded");
+
+            // Add any custom JavaScript functionality here
+            // For example, you could add date validation or input formatting
+
+            // Set minimum date to today for the effective date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('EffectiveDate').setAttribute('min', today);
+        });
+    </script>
+</body>
+</html>

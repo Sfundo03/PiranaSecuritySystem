@@ -1,46 +1,297 @@
 ﻿@model PiranaSecuritySystem.Models.Payroll
-
 @{
     ViewBag.Title = "Payroll Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Payroll Details</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIRANA GUARDING - Payroll Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
 
-<div>
-    <hr />
-    <dl class="dl-horizontal">
-        <dt>Guard Name</dt>
-        <dd>@Html.DisplayFor(model => model.Guard.FullName)</dd>
+        body {
+            background-color: var(--light-bg);
+            min-height: 100vh;
+            font-family: 'Roboto', sans-serif;
+            padding: 20px 0;
+            color: var(--dark-text);
+        }
 
-        <dt>Pay Period</dt>
-        <dd>@Model.PayPeriodStart.ToString("yyyy-MM-dd") to @Model.PayPeriodEnd.ToString("yyyy-MM-dd")</dd>
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
 
-        <dt>Total Hours</dt>
-        <dd>@Html.DisplayFor(model => model.TotalHours)</dd>
+        .dashboard-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
 
-        <dt>Hourly Rate</dt>
-        <dd>@Html.DisplayFor(model => model.HourlyRate)</dd>
+        .card-header-custom {
+            background: white;
+            color: var(--primary-blue);
+            padding: 20px;
+            border-bottom: 2px solid var(--primary-blue);
+        }
 
-        <dt>Gross Pay</dt>
-        <dd>@Html.DisplayFor(model => model.GrossPay)</dd>
+        .btn-custom {
+            background: var(--primary-blue);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            color: white;
+        }
 
-        <dt>Tax Amount</dt>
-        <dd>@Html.DisplayFor(model => model.TaxAmount)</dd>
+            .btn-custom:hover {
+                background: var(--secondary-blue);
+                color: white;
+            }
 
-        <dt>Net Pay</dt>
-        <dd>@Html.DisplayFor(model => model.NetPay)</dd>
+        .btn-outline-custom {
+            background: transparent;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
 
-        <dt>Pay Date</dt>
-        <dd>@Html.DisplayFor(model => model.PayDate)</dd>
+            .btn-outline-custom:hover {
+                background: var(--primary-blue);
+                color: white;
+            }
 
-        <dt>Status</dt>
-        <dd>@Html.DisplayFor(model => model.Status)</dd>
+        h2, h4, h5 {
+            color: var(--primary-blue);
+        }
 
-        <dt>Payment Method</dt>
-        <dd>@Html.DisplayFor(model => model.PaymentMethod)</dd>
-    </dl>
-</div>
-<p>
-    @Html.ActionLink("Edit", "Edit", new { id = Model.PayrollId }) |
-    @Html.ActionLink("Back to List", "Index")
-</p>
+        .details-container {
+            padding: 25px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .detail-item {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .detail-value {
+            font-size: 1.1rem;
+            color: var(--dark-text);
+        }
+
+        .financial-highlight {
+            background-color: #e8f4ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-paid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-processing {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .action-links {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+            .back-link:hover {
+                color: var(--secondary-blue);
+                text-decoration: underline;
+            }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .details-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1"><i class="fas fa-file-invoice-dollar me-2"></i>Payroll Details</h1>
+                <p class="text-muted">Detailed view of payroll information</p>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0"><i class="fas fa-info-circle me-2"></i>Payroll Record</h2>
+                    <div>
+                        @{
+                            string statusClass = "";
+                            switch (Model.Status)
+                            {
+                                case "Paid":
+                                    statusClass = "status-paid";
+                                    break;
+                                case "Pending":
+                                    statusClass = "status-pending";
+                                    break;
+                                case "Processing":
+                                    statusClass = "status-processing";
+                                    break;
+                                default:
+                                    statusClass = "status-pending";
+                                    break;
+                            }
+                        }
+                        <span class="status-badge @statusClass">@Html.DisplayFor(model => model.Status)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="details-container">
+                <!-- Financial Summary -->
+                <div class="financial-highlight">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="detail-label">Gross Pay</div>
+                            <div class="detail-value fw-bold text-primary">@String.Format("{0:C}", Model.GrossPay)</div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="detail-label">Tax Amount</div>
+                            <div class="detail-value fw-bold text-danger">@String.Format("{0:C}", Model.TaxAmount)</div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="detail-label">Net Pay</div>
+                            <div class="detail-value fw-bold text-success">@String.Format("{0:C}", Model.NetPay)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Details Grid -->
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <div class="detail-label"><i class="fas fa-user-shield me-2"></i>Guard Name</div>
+                        <div class="detail-value">@Html.DisplayFor(model => model.Guard.FullName)</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label"><i class="fas fa-calendar-alt me-2"></i>Pay Period</div>
+                        <div class="detail-value">@Model.PayPeriodStart.ToString("yyyy-MM-dd") to @Model.PayPeriodEnd.ToString("yyyy-MM-dd")</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label"><i class="fas fa-clock me-2"></i>Total Hours</div>
+                        <div class="detail-value">@Html.DisplayFor(model => model.TotalHours)</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label"><i class="fas fa-money-bill-wave me-2"></i>Hourly Rate</div>
+                        <div class="detail-value">@String.Format("{0:C}", Model.HourlyRate)</div>
+                    </div>
+
+                    
+
+                    <div class="detail-item">
+                        <div class="detail-label"><i class="fas fa-credit-card me-2"></i>Payment Method</div>
+                        <div class="detail-value">
+                            @if (!string.IsNullOrEmpty(Model.PaymentMethod))
+                            {
+                                @Html.DisplayFor(model => model.PaymentMethod)
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not specified</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Links -->
+                <div class="action-links">
+                    @Html.ActionLink("Edit", "Edit", new { id = Model.PayrollId }, new { @class = "btn btn-custom me-2" })
+                    <a href="@Url.Action("Index")" class="btn btn-outline-custom">
+                        <i class="fas fa-arrow-left me-1"></i>Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Payroll details page loaded");
+
+            // Add any custom JavaScript functionality here
+            // For example, you could add a print functionality
+        });
+    </script>
+</body>
+</html>

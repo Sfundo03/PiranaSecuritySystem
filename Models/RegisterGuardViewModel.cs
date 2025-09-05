@@ -15,6 +15,8 @@ namespace PiranaSecuritySystem.ViewModels
         [Display(Name = "Last Name")]
         public string Guard_LName { get; set; }
 
+        public string Group { get; set; }
+
         [Required(ErrorMessage = "ID number has 13 Digits")]
         [StringLength(13, MinimumLength = 13, ErrorMessage = "ID number must be exactly 13 digits")]
         [Display(Name = "ID Number")]

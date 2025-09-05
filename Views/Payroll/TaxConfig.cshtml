@@ -1,59 +1,369 @@
 ﻿@model PiranaSecuritySystem.Models.TaxConfiguration
-
 @{
     ViewBag.Title = "Tax Configuration";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Tax Configuration</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIRANA GUARDING - Tax Configuration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
 
-@if (ViewBag.Message != null)
-{
-    <div class="alert alert-success">
-        @ViewBag.Message
+        body {
+            background-color: var(--light-bg);
+            min-height: 100vh;
+            font-family: 'Roboto', sans-serif;
+            padding: 20px 0;
+            color: var(--dark-text);
+        }
+
+        .dashboard-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header-custom {
+            background: white;
+            color: var(--primary-blue);
+            padding: 20px;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .btn-custom {
+            background: var(--primary-blue);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            color: white;
+        }
+
+            .btn-custom:hover {
+                background: var(--secondary-blue);
+                color: white;
+            }
+
+        .btn-outline-custom {
+            background: transparent;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+            .btn-outline-custom:hover {
+                background: var(--primary-blue);
+                color: white;
+            }
+
+        h2, h4, h5 {
+            color: var(--primary-blue);
+        }
+
+        .form-container {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--dark-text);
+        }
+
+        .form-control {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px 15px;
+            transition: all 0.3s;
+        }
+
+            .form-control:focus {
+                border-color: var(--primary-blue);
+                box-shadow: 0 0 0 0.2rem rgba(0, 105, 170, 0.25);
+            }
+
+        .text-danger {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+
+        .alert-custom {
+            border-radius: 4px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+            .back-link:hover {
+                color: var(--secondary-blue);
+                text-decoration: underline;
+            }
+
+        .info-box {
+            background-color: #e8f4ff;
+            border-left: 4px solid var(--primary-blue);
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+            .info-box i {
+                color: var(--primary-blue);
+                margin-right: 10px;
+            }
+
+        .tax-preview {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+            .tax-preview h5 {
+                margin-bottom: 15px;
+                color: var(--primary-blue);
+            }
+
+        .preview-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+            .preview-item:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
+                padding-bottom: 0;
+            }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .form-container {
+                padding: 15px;
+            }
+
+            .btn-custom {
+                width: 100%;
+            }
+
+            .preview-item {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1"><i class="fas fa-percent me-2"></i>Tax Configuration</h1>
+                <p class="text-muted">Configure tax settings for payroll calculations</p>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0"><i class="fas fa-cog me-2"></i>Tax Settings</h2>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <!-- Information Box -->
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Configure tax parameters that will be applied to all payroll calculations. Changes will affect future payroll generations.</span>
+                </div>
+
+                @if (ViewBag.Message != null)
+                {
+                    <div class="alert-custom">
+                        <i class="fas fa-check-circle me-2"></i>@ViewBag.Message
+                    </div>
+                }
+
+                @using (Html.BeginForm())
+                {
+                    @Html.AntiForgeryToken()
+
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                    @Html.HiddenFor(model => model.TaxConfigId)
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.TaxYear, htmlAttributes: new { @class = "control-label" })
+                        <div>
+                            @Html.EditorFor(model => model.TaxYear, new { htmlAttributes = new { @class = "form-control", placeholder = "Enter tax year (e.g., 2023)" } })
+                            @Html.ValidationMessageFor(model => model.TaxYear, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.TaxPercentage, htmlAttributes: new { @class = "control-label" })
+                        <div>
+                            <div class="input-group">
+                                @Html.EditorFor(model => model.TaxPercentage, new { htmlAttributes = new { @class = "form-control", placeholder = "Enter tax percentage", id = "taxPercentage" } })
+                                <span class="input-group-text">%</span>
+                            </div>
+                            @Html.ValidationMessageFor(model => model.TaxPercentage, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.TaxThreshold, htmlAttributes: new { @class = "control-label" })
+                        <div>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                @Html.EditorFor(model => model.TaxThreshold, new { htmlAttributes = new { @class = "form-control", placeholder = "Enter tax threshold amount", id = "taxThreshold" } })
+                            </div>
+                            @Html.ValidationMessageFor(model => model.TaxThreshold, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <!-- Tax Preview -->
+                    <div class="tax-preview">
+                        <h5><i class="fas fa-calculator me-2"></i>Tax Calculation Preview</h5>
+                        <div class="preview-item">
+                            <span>Gross Amount:</span>
+                            <span id="previewGross">$1,000.00</span>
+                        </div>
+                        <div class="preview-item">
+                            <span>Tax Rate:</span>
+                            <span id="previewRate">0%</span>
+                        </div>
+                        <div class="preview-item">
+                            <span>Tax Amount:</span>
+                            <span id="previewTax">$0.00</span>
+                        </div>
+                        <div class="preview-item">
+                            <span>Net Amount:</span>
+                            <span id="previewNet">$1,000.00</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <input type="submit" value="Save Configuration" class="btn btn-custom" />
+                    </div>
+                }
+
+                <div>
+                    <a href="@Url.Action("Index")" class="back-link">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Payroll
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-}
 
-@using (Html.BeginForm())
-{
-    @Html.AntiForgeryToken()
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Tax configuration page loaded");
 
-    <div class="form-horizontal">
-        <hr />
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-        @Html.HiddenFor(model => model.TaxConfigId)
+            // Set current year as default if empty
+            const taxYearField = document.getElementById('TaxYear');
+            if (!taxYearField.value) {
+                taxYearField.value = new Date().getFullYear();
+            }
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.TaxYear, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.TaxYear, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.TaxYear, "", new { @class = "text-danger" })
-            </div>
-        </div>
+            // Update tax preview when values change
+            const taxPercentageField = document.getElementById('taxPercentage');
+            const taxThresholdField = document.getElementById('taxThreshold');
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.TaxPercentage, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.TaxPercentage, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.TaxPercentage, "", new { @class = "text-danger" })
-            </div>
-        </div>
+            if (taxPercentageField && taxThresholdField) {
+                taxPercentageField.addEventListener('input', updateTaxPreview);
+                taxThresholdField.addEventListener('input', updateTaxPreview);
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.TaxThreshold, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.TaxThreshold, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.TaxThreshold, "", new { @class = "text-danger" })
-            </div>
-        </div>
+                // Initial update
+                updateTaxPreview();
+            }
 
-        <div class="form-group">
-            <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Save Configuration" class="btn btn-primary" />
-            </div>
-        </div>
-    </div>
-}
+            function updateTaxPreview() {
+                const taxPercentage = parseFloat(taxPercentageField.value) || 0;
+                const taxThreshold = parseFloat(taxThresholdField.value) || 0;
+                const grossAmount = 1000; // Example amount for preview
 
-<div>
-    @Html.ActionLink("Back to Payroll", "Index")
-</div>
+                // Calculate tax amount
+                let taxableAmount = grossAmount;
+                if (taxThreshold > 0 && grossAmount > taxThreshold) {
+                    taxableAmount = grossAmount - taxThreshold;
+                }
+
+                const taxAmount = (taxableAmount * taxPercentage) / 100;
+                const netAmount = grossAmount - taxAmount;
+
+                // Update preview
+                document.getElementById('previewRate').textContent = taxPercentage + '%';
+                document.getElementById('previewTax').textContent = '$' + taxAmount.toFixed(2);
+                document.getElementById('previewNet').textContent = '$' + netAmount.toFixed(2);
+            }
+
+            // Form validation
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                const taxYear = document.getElementById('TaxYear').value;
+                const taxPercentage = document.getElementById('taxPercentage').value;
+
+                if (!taxYear || taxYear < 2000 || taxYear > 2100) {
+                    e.preventDefault();
+                    alert('Please enter a valid tax year between 2000 and 2100');
+                    return false;
+                }
+
+                if (!taxPercentage || taxPercentage < 0 || taxPercentage > 100) {
+                    e.preventDefault();
+                    alert('Please enter a valid tax percentage between 0 and 100');
+                    return false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

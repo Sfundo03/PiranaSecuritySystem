@@ -122,7 +122,8 @@
                 color: #7f8c8d;
             }
 
-            .input-icon input {
+            .input-icon input,
+            .input-icon select {
                 padding-left: 45px;
             }
 
@@ -140,16 +141,17 @@
 
             .floating-label label {
                 position: absolute;
-                top: 12px;
-                left: 45px;
-                font-size: 14px;
-                color: #7f8c8d;
-                pointer-events: none;
-                transition: 0.2s ease all;
+                top: -10px;
+                left: 40px;
+                font-size: 12px;
+                background: white;
+                padding: 0 5px;
+                color: var(--secondary-color);
+                z-index: 1;
             }
 
-            .floating-label input:focus ~ label,
-            .floating-label input:not(:placeholder-shown) ~ label {
+            .floating-label select:focus + label,
+            .floating-label select:not([value=""]):valid + label {
                 top: -10px;
                 left: 40px;
                 font-size: 12px;
@@ -187,6 +189,38 @@
         .inputmask {
             text-align: left;
         }
+
+        /* Fix for dropdown labels */
+        .select-floating {
+            position: relative;
+        }
+
+            .select-floating select {
+                padding-top: 18px;
+                padding-bottom: 10px;
+                height: 50px;
+            }
+
+            .select-floating label {
+                position: absolute;
+                top: 12px;
+                left: 45px;
+                font-size: 14px;
+                color: #7f8c8d;
+                pointer-events: none;
+                transition: 0.2s ease all;
+                z-index: 1;
+            }
+
+            .select-floating select:focus + label,
+            .select-floating select:not([value=""]):valid + label {
+                top: -10px;
+                left: 40px;
+                font-size: 12px;
+                background: white;
+                padding: 0 5px;
+                color: var(--secondary-color);
+            }
     </style>
 </head>
 <body>
@@ -207,7 +241,7 @@
                         <div class="col-md-6">
                             <div class="input-icon floating-label">
                                 <i class="fas fa-signature"></i>
-                                @Html.TextBoxFor(m => m.Guard_FName, new { @class = "form-control", placeholder = "Enter first name" })
+                                @Html.TextBoxFor(m => m.Guard_FName, new { @class = "form-control", placeholder = " ", required = "required" })
                                 <label for="Guard_FName">First Name</label>
                                 @Html.ValidationMessageFor(m => m.Guard_FName, "", new { @class = "text-danger" })
                             </div>
@@ -215,7 +249,7 @@
                         <div class="col-md-6">
                             <div class="input-icon floating-label">
                                 <i class="fas fa-signature"></i>
-                                @Html.TextBoxFor(m => m.Guard_LName, new { @class = "form-control", placeholder = "Enter last name" })
+                                @Html.TextBoxFor(m => m.Guard_LName, new { @class = "form-control", placeholder = " ", required = "required" })
                                 <label for="Guard_LName">Last Name</label>
                                 @Html.ValidationMessageFor(m => m.Guard_LName, "", new { @class = "text-danger" })
                             </div>
@@ -226,16 +260,16 @@
                         <div class="col-md-6">
                             <div class="input-icon floating-label">
                                 <i class="fas fa-id-card"></i>
-                                @Html.TextBoxFor(m => m.IdentityNumber, new { @class = "form-control", placeholder = "13-digit ID number", maxlength = "13", id = "idNumber" })
+                                @Html.TextBoxFor(m => m.IdentityNumber, new { @class = "form-control", placeholder = " ", maxlength = "13", id = "idNumber", required = "required" })
                                 <label for="IdentityNumber">ID Number</label>
                                 @Html.ValidationMessageFor(m => m.IdentityNumber, "", new { @class = "text-danger" })
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="input-icon floating-label">
+                            <div class="input-icon select-floating">
                                 <i class="fas fa-venus-mars"></i>
-                                @Html.DropDownListFor(m => m.Gender, new SelectList(new[] { "M", "F" }), "Select Gender", new { @class = "form-control" })
-                                <label for="Gender" style="top: -10px; left: 40px; font-size: 12px; background: white; padding: 0 5px; color: var(--secondary-color);">Gender</label>
+                                @Html.DropDownListFor(m => m.Gender, new SelectList(new[] { "M", "F" }), "", new { @class = "form-control", required = "required" })
+                                <label for="Gender">Gender</label>
                                 @Html.ValidationMessageFor(m => m.Gender, "", new { @class = "text-danger" })
                             </div>
                         </div>
@@ -243,7 +277,7 @@
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-certificate"></i>
-                        @Html.TextBoxFor(m => m.PSIRAnumber, new { @class = "form-control", placeholder = "Enter PSIRA number" })
+                        @Html.TextBoxFor(m => m.PSIRAnumber, new { @class = "form-control", placeholder = " ", required = "required" })
                         <label for="PSIRAnumber">PSIRA Number</label>
                         @Html.ValidationMessageFor(m => m.PSIRAnumber, "", new { @class = "text-danger" })
                     </div>
@@ -255,7 +289,7 @@
                         <div class="col-md-6">
                             <div class="input-icon floating-label">
                                 <i class="fas fa-envelope"></i>
-                                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "Enter email address", type = "email" })
+                                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = " ", type = "email", required = "required" })
                                 <label for="Email">Email Address</label>
                                 @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
                             </div>
@@ -263,7 +297,7 @@
                         <div class="col-md-6">
                             <div class="input-icon floating-label">
                                 <i class="fas fa-phone"></i>
-                                @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = "10-digit number (e.g., 0831234567)", maxlength = "10", id = "phoneNumber" })
+                                @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = " ", maxlength = "10", id = "phoneNumber", required = "required" })
                                 <label for="PhoneNumber">Phone Number</label>
                                 @Html.ValidationMessageFor(m => m.PhoneNumber, "", new { @class = "text-danger" })
                             </div>
@@ -272,14 +306,14 @@
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-phone-alt"></i>
-                        @Html.TextBoxFor(m => m.Emergency_CellNo, new { @class = "form-control", placeholder = "10-digit number (e.g., 0831234567)", maxlength = "10", id = "emergencyCell" })
+                        @Html.TextBoxFor(m => m.Emergency_CellNo, new { @class = "form-control", placeholder = " ", maxlength = "10", id = "emergencyCell", required = "required" })
                         <label for="Emergency_CellNo">Emergency Contact</label>
                         @Html.ValidationMessageFor(m => m.Emergency_CellNo, "", new { @class = "text-danger" })
                     </div>
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-home"></i>
-                        @Html.TextBoxFor(m => m.Address, new { @class = "form-control", placeholder = "Enter street number and street name", id = "addressInput", autocomplete = "off" })
+                        @Html.TextBoxFor(m => m.Address, new { @class = "form-control", placeholder = " ", id = "addressInput", autocomplete = "off", required = "required" })
                         <label for="Address">Address</label>
                         @Html.ValidationMessageFor(m => m.Address, "", new { @class = "text-danger" })
                         <div id="autocomplete-results"></div>
@@ -297,7 +331,7 @@
                         <div class="col-md-6">
                             <div class="input-icon floating-label">
                                 <i class="fas fa-lock"></i>
-                                @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Enter password (min 6 characters)" })
+                                @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = " ", required = "required" })
                                 <label for="Password">Password</label>
                                 @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
                             </div>
@@ -305,11 +339,18 @@
                         <div class="col-md-6">
                             <div class="input-icon floating-label">
                                 <i class="fas fa-lock"></i>
-                                @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = "Confirm your password" })
+                                @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = " ", required = "required" })
                                 <label for="ConfirmPassword">Confirm Password</label>
                                 @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger" })
                             </div>
                         </div>
+                    </div>
+
+                    <div class="input-icon select-floating">
+                        <i class="fas fa-users"></i>
+                        @Html.DropDownListFor(m => m.Group, new SelectList(new[] { "Group A", "Group B", "Group C" }), "", new { @class = "form-control", required = "required" })
+                        <label for="Group">Guard Group</label>
+                        @Html.ValidationMessageFor(m => m.Group, "", new { @class = "text-danger" })
                     </div>
                 </div>
 
@@ -434,6 +475,23 @@
                     $("#emergencyCell").val(emergency);
 
                     return true;
+                });
+
+                // Initialize floating labels for all inputs
+                $('.form-control').each(function () {
+                    if ($(this).val() !== '') {
+                        $(this).addClass('has-value');
+                    }
+                });
+
+                $('.form-control').on('focus', function () {
+                    $(this).addClass('has-value');
+                });
+
+                $('.form-control').on('blur', function () {
+                    if ($(this).val() === '') {
+                        $(this).removeClass('has-value');
+                    }
                 });
             });
         </script>

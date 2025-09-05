@@ -1,31 +1,374 @@
 ﻿@model IEnumerable<PiranaSecuritySystem.Models.GuardRate>
-
 @{
     ViewBag.Title = "Manage Guard Rates";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Manage Guard Rates</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIRANA GUARDING - Manage Guard Rates</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
 
-<p>
-    @Html.ActionLink("Create New Rate", "CreateRate", null, new { @class = "btn btn-primary" })
-</p>
+        body {
+            background-color: var(--light-bg);
+            min-height: 100vh;
+            font-family: 'Roboto', sans-serif;
+            padding: 20px 0;
+            color: var(--dark-text);
+        }
 
-<table class="table table-striped">
-    <tr>
-        <th>Guard Name</th>
-        <th>Hourly Rate</th>
-        <th>Effective Date</th>
-        <th>Status</th>
-    </tr>
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
-    @foreach (var item in Model)
-    {
-        <tr>
-            <td>@Html.DisplayFor(modelItem => item.Guard.FullName)</td>
-            <td>@Html.DisplayFor(modelItem => item.Rate)</td>
-            <td>@Html.DisplayFor(modelItem => item.EffectiveDate)</td>
-            <td>@(item.IsActive ? "Active" : "Inactive")</td>
-        </tr>
-    }
+        .dashboard-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
 
-</table>
+        .card-header-custom {
+            background: white;
+            color: var(--primary-blue);
+            padding: 20px;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .stats-card {
+            border-radius: 8px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-custom {
+            background: var(--primary-blue);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            color: white;
+        }
+
+            .btn-custom:hover {
+                background: var(--secondary-blue);
+                color: white;
+            }
+
+        .btn-outline-custom {
+            background: transparent;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+            .btn-outline-custom:hover {
+                background: var(--primary-blue);
+                color: white;
+            }
+
+        .alert-custom {
+            border-radius: 4px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        h2, h4, h5 {
+            color: var(--primary-blue);
+        }
+
+        .welcome-section {
+            background: #e8f4ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .table-custom {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+            .table-custom th {
+                background-color: var(--primary-blue);
+                color: white;
+                padding: 15px;
+                font-weight: 500;
+                text-align: left;
+            }
+
+            .table-custom td {
+                padding: 15px;
+                border-bottom: 1px solid var(--border-color);
+                vertical-align: middle;
+            }
+
+            .table-custom tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-custom tr:hover {
+                background-color: #f8f9fa;
+            }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-links a {
+            color: var(--primary-blue);
+            margin-right: 10px;
+            transition: all 0.2s;
+        }
+
+            .action-links a:hover {
+                color: var(--secondary-blue);
+                text-decoration: underline;
+            }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* Summary cards */
+        .summary-cards {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+        }
+
+            .summary-card h5 {
+                font-size: 1rem;
+                margin-bottom: 10px;
+                color: var(--primary-blue);
+            }
+
+            .summary-card .value {
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: var(--dark-text);
+            }
+
+        .rate-value {
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .summary-cards {
+                flex-direction: column;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn-custom, .btn-outline-custom {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .table-custom {
+                min-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1"><i class="fas fa-money-bill-wave me-2"></i>Manage Guard Rates</h1>
+                <p class="text-muted">View and manage hourly rates for security guards</p>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0"><i class="fas fa-list me-2"></i>Guard Rate Records</h2>
+                    <div>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-sync-alt me-1"></i>Last updated: @DateTime.Now.ToString("hh:mm tt")
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    @Html.ActionLink("Create New Rate", "CreateRate", null, new { @class = "btn btn-custom" })
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <h5><i class="fas fa-users me-2"></i>Total Rates</h5>
+                        <div class="value">@Model.Count()</div>
+                    </div>
+                    <div class="summary-card">
+                        <h5><i class="fas fa-check-circle me-2"></i>Active Rates</h5>
+                        <div class="value">@Model.Count(r => r.IsActive)</div>
+                    </div>
+                    <div class="summary-card">
+                        <h5><i class="fas fa-times-circle me-2"></i>Inactive Rates</h5>
+                        <div class="value">@Model.Count(r => !r.IsActive)</div>
+                    </div>
+                    <div class="summary-card">
+                        <h5><i class="fas fa-dollar-sign me-2"></i>Avg. Rate</h5>
+                        <div class="value">
+                            @if (Model.Any())
+                            {
+                                @String.Format("{0:C}", Model.Average(r => r.Rate))
+                            }
+                            else
+                            {
+                                <span>N/A</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rates Table -->
+                <div class="table-container">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Guard Name</th>
+                                <th>Hourly Rate</th>
+                                <th>Effective Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@Html.DisplayFor(modelItem => item.Guard.FullName)</td>
+                                    <td class="rate-value">@String.Format("{0:C}", item.Rate)</td>
+                                    <td>@item.EffectiveDate.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="status-badge status-active">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge status-inactive">Inactive</span>
+                                        }
+                                    </td>
+                                    <td class="action-links">
+                                        @Html.ActionLink("Edit", "EditRate", new { id = item.GuardRateId }, new { @class = "text-primary" })
+                                        @if (item.IsActive)
+                                        {
+                                            @Html.ActionLink("Deactivate", "DeactivateRate", new { id = item.GuardRateId }, new { @class = "text-warning" })
+                                        }
+                                        else
+                                        {
+                                            @Html.ActionLink("Activate", "ActivateRate", new { id = item.GuardRateId }, new { @class = "text-success" })
+                                        }
+                                        @Html.ActionLink("Delete", "DeleteRate", new { id = item.GuardRateId }, new { @class = "text-danger", onclick = "return confirm('Are you sure you want to delete this rate?');" })
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (!Model.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No guard rates found</h4>
+                        <p>Create your first guard rate to get started</p>
+                        @Html.ActionLink("Create New Rate", "CreateRate", null, new { @class = "btn btn-custom mt-2" })
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Manage guard rates page loaded");
+
+            // Add any custom JavaScript functionality here
+            // For example, you could add sorting or filtering capabilities
+
+            // Auto-refresh page every 5 minutes to get updated data
+            setInterval(function() {
+                console.log("Refreshing guard rates data...");
+                window.location.reload();
+            }, 300000); // 5 minutes
+        });
+    </script>
+</body>
+</html>

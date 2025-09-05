@@ -85,6 +85,7 @@
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s;
+            margin-top: 10px;
         }
 
             .btn-outline-custom:hover {
@@ -115,9 +116,11 @@
                 top: 50%;
                 transform: translateY(-50%);
                 color: #7f8c8d;
+                z-index: 2;
             }
 
-            .input-icon input {
+            .input-icon input,
+            .input-icon select {
                 padding-left: 45px;
             }
 
@@ -128,16 +131,39 @@
 
             .floating-label label {
                 position: absolute;
+                top: -10px;
+                left: 40px;
+                font-size: 12px;
+                background: white;
+                padding: 0 5px;
+                color: var(--secondary-color);
+                z-index: 1;
+                transition: 0.2s ease all;
+            }
+
+        .select-floating {
+            position: relative;
+        }
+
+            .select-floating select {
+                padding-top: 18px;
+                padding-bottom: 10px;
+                height: 50px;
+            }
+
+            .select-floating label {
+                position: absolute;
                 top: 12px;
                 left: 45px;
                 font-size: 14px;
                 color: #7f8c8d;
                 pointer-events: none;
                 transition: 0.2s ease all;
+                z-index: 1;
             }
 
-            .floating-label input:focus ~ label,
-            .floating-label input:not(:placeholder-shown) ~ label {
+            .select-floating select:focus + label,
+            .select-floating select:not([value=""]):valid + label {
                 top: -10px;
                 left: 40px;
                 font-size: 12px;
@@ -149,6 +175,19 @@
         .field-validation-error {
             color: #dc3545;
             font-size: 0.875rem;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .form-control.has-value + label,
+        .form-control:focus + label,
+        .form-control:not(:placeholder-shown) + label {
+            top: -10px;
+            left: 40px;
+            font-size: 12px;
+            background: white;
+            padding: 0 5px;
+            color: var(--secondary-color);
         }
     </style>
 </head>
@@ -159,56 +198,63 @@
                 <h2 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i>Register New Instructor</h2>
             </div>
             <div class="card-body">
-                @using (Html.BeginForm("RegisterInstructor", "Admin", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+                @using (Html.BeginForm("RegisterInstructor", "Admin", FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "registerForm" }))
                 {
                     @Html.AntiForgeryToken()
                     @Html.ValidationSummary("", new { @class = "text-danger" })
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-id-card"></i>
-                        @Html.TextBoxFor(m => m.EmployeeId, new { @class = "form-control", placeholder = "Enter employee ID" })
+                        @Html.TextBoxFor(m => m.EmployeeId, new { @class = "form-control", placeholder = " ", required = "required" })
                         <label for="EmployeeId">Employee ID</label>
                         @Html.ValidationMessageFor(m => m.EmployeeId, "", new { @class = "text-danger" })
                     </div>
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-user"></i>
-                        @Html.TextBoxFor(m => m.FullName, new { @class = "form-control", placeholder = "Enter full name" })
+                        @Html.TextBoxFor(m => m.FullName, new { @class = "form-control", placeholder = " ", required = "required" })
                         <label for="FullName">Full Name</label>
                         @Html.ValidationMessageFor(m => m.FullName, "", new { @class = "text-danger" })
                     </div>
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-envelope"></i>
-                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "Enter email address", type = "email" })
+                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = " ", type = "email", required = "required" })
                         <label for="Email">Email Address</label>
                         @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
                     </div>
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-phone"></i>
-                        @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = "Enter phone number" })
+                        @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = " ", required = "required" })
                         <label for="PhoneNumber">Phone Number</label>
                         @Html.ValidationMessageFor(m => m.PhoneNumber, "", new { @class = "text-danger" })
                     </div>
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-star"></i>
-                        @Html.TextBoxFor(m => m.Specialization, new { @class = "form-control", placeholder = "Enter specialization" })
+                        @Html.TextBoxFor(m => m.Specialization, new { @class = "form-control", placeholder = " ", required = "required" })
                         <label for="Specialization">Specialization</label>
                         @Html.ValidationMessageFor(m => m.Specialization, "", new { @class = "text-danger" })
                     </div>
 
+                    <div class="input-icon select-floating">
+                        <i class="fas fa-users"></i>
+                        @Html.DropDownListFor(m => m.Group, new SelectList(new[] { "Group A", "Group B", "Group C" }), "", new { @class = "form-control", required = "required" })
+                        <label for="Group">Instructor Group</label>
+                        @Html.ValidationMessageFor(m => m.Group, "", new { @class = "text-danger" })
+                    </div>
+
                     <div class="input-icon floating-label">
                         <i class="fas fa-lock"></i>
-                        @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Enter password" })
+                        @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = " ", required = "required" })
                         <label for="Password">Password</label>
                         @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
                     </div>
 
                     <div class="input-icon floating-label">
                         <i class="fas fa-lock"></i>
-                        @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = "Confirm password" })
+                        @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = " ", required = "required" })
                         <label for="ConfirmPassword">Confirm Password</label>
                         @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger" })
                     </div>
@@ -226,6 +272,41 @@
 
     @section Scripts {
         @Scripts.Render("~/bundles/jqueryval")
+        <script>
+            $(document).ready(function () {
+                // Initialize floating labels for all inputs
+                $('.form-control').each(function() {
+                    if ($(this).val() !== '') {
+                        $(this).addClass('has-value');
+                    }
+                });
+
+                $('.form-control').on('focus', function() {
+                    $(this).addClass('has-value');
+                });
+
+                $('.form-control').on('blur', function() {
+                    if ($(this).val() === '') {
+                        $(this).removeClass('has-value');
+                    }
+                });
+
+                // Initialize select elements
+                $('select').each(function() {
+                    if ($(this).val() !== '') {
+                        $(this).addClass('has-value');
+                    }
+                });
+
+                $('select').on('change', function() {
+                    if ($(this).val() !== '') {
+                        $(this).addClass('has-value');
+                    } else {
+                        $(this).removeClass('has-value');
+                    }
+                });
+            });
+        </script>
     }
 </body>
 </html>
