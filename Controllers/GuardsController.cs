@@ -59,6 +59,122 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // GET: Guard/MyIncidentReports
+        public ActionResult MyIncidentReports()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found. Please contact administrator.";
+                    return RedirectToAction("ProfileNotFound", "Error");
+                }
+
+                var incidents = db.IncidentReports
+                    .Where(r => r.ResidentId == guard.GuardId)
+                    .OrderByDescending(r => r.ReportDate)
+                    .ToList();
+
+                // Check if the view exists, if not return a simple message
+                return View("~/Views/Guard/MyIncidentReports.cshtml", incidents);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in MyIncidentReports: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading your incident reports.";
+                return RedirectToAction("Dashboard");
+            }
+        }
+
+        // GET: Guard/Attendance
+        public ActionResult Attendance()
+        {
+            // Redirect to the static attendance page
+            return Redirect("~/Content/Guard/Index.html");
+        }
+
+        // GET: Guard/Calender
+        public ActionResult Calender()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found. Please contact administrator.";
+                    return RedirectToAction("ProfileNotFound", "Error");
+                }
+
+                var shifts = db.Shifts
+                    .Where(s => s.GuardId == guard.GuardId && s.StartDate >= DateTime.Today)
+                    .OrderBy(s => s.StartDate)
+                    .ToList();
+
+                // Check if the view exists, if not return a simple message
+                return View("~/Views/Guard/Calender.cshtml", shifts);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in Calender: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading the calendar.";
+                return RedirectToAction("Dashboard");
+            }
+        }
+
+        // GET: Guard/Notifications
+        public ActionResult Notifications()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found. Please contact administrator.";
+                    return RedirectToAction("ProfileNotFound", "Error");
+                }
+
+                // Get notifications for the guard (you'll need to implement this based on your notification system)
+                var notifications = new List<object>(); // Replace with actual notification retrieval
+
+                // Check if the view exists, if not return a simple message
+                return View("~/Views/Guard/Notifications.cshtml", notifications);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in Notifications: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading notifications.";
+                return RedirectToAction("Dashboard");
+            }
+        }
+
         // GET: Guard/CreateDashboardView (Temporary action to help create the view)
         public ActionResult CreateDashboardView()
         {
@@ -79,8 +195,6 @@ namespace PiranaSecuritySystem.Controllers
 
             return View("~/Views/Guard/Dashboard.cshtml", guard);
         }
-
-        // ... (keep all existing actions)
 
         // API method to validate guard (MVC style)
         [HttpPost]
@@ -158,8 +272,6 @@ namespace PiranaSecuritySystem.Controllers
                 return Json(new { success = false, message = "An error occurred while saving check-in" });
             }
         }
-
-        // ... (keep all other existing actions)
 
         protected override void Dispose(bool disposing)
         {

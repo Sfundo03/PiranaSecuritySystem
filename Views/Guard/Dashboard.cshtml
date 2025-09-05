@@ -1,126 +1,464 @@
-﻿@model PiranaSecuritySystem.Models.Guard
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guard Dashboard - PIRANA GUARDING</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
 
-@{
-    ViewBag.Title = "Guard Dashboard";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-}
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Roboto', sans-serif;
+            color: var(--dark-text);
+            padding-top: 20px;
+        }
 
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-            <!-- Welcome Message -->
-            <div class="alert alert-info">
-                <h4>Welcome, @Model.Guard_FName @Model.Guard_LName!</h4>
-                <p>You have successfully logged in to the Pirana Security System guard portal.</p>
-            </div>
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
 
-            @if (TempData["SuccessMessage"] != null)
-            {
-                <div class="alert alert-success">
-                    @TempData["SuccessMessage"]
-                </div>
+        .card-header {
+            background: white;
+            color: var(--primary-blue);
+            border-bottom: 2px solid var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            border: none;
+        }
+
+            .btn-primary:hover {
+                background: var(--secondary-blue);
             }
 
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger">
-                    @TempData["ErrorMessage"]
-                </div>
+        .alert {
+            border-radius: 6px;
+            border-left: 3px solid;
+        }
+
+        .alert-success {
+            border-left-color: #28a745;
+        }
+
+        .alert-info {
+            border-left-color: var(--primary-blue);
+        }
+
+        .alert-danger {
+            border-left-color: #dc3545;
+        }
+
+        .badge {
+            font-weight: 500;
+            padding: 0.5em 0.8em;
+        }
+
+        .notification-bell {
+            position: relative;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            z-index: 1050;
+            display: none;
+        }
+
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+            .notification-item.unread {
+                background-color: #f8f9fa;
+                border-left: 4px solid var(--primary-blue);
             }
 
-            <div class="row">
-                <!-- Guard Details Card -->
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>My Security Guard Details</h5>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th style="width: 40%">PSIRA Number:</th>
-                                    <td>@Model.PSIRAnumber</td>
-                                </tr>
-                                <tr>
-                                    <th>Full Name:</th>
-                                    <td>@Model.Guard_FName @Model.Guard_LName</td>
-                                </tr>
-                                <tr>
-                                    <th>Email:</th>
-                                    <td>@Model.Email</td>
-                                </tr>
-                                <tr>
-                                    <th>Phone:</th>
-                                    <td>@Model.PhoneNumber</td>
-                                </tr>
-                                <tr>
-                                    <th>Status:</th>
-                                    <td>
-                                        @if (Model.IsActive)
-                                        {
-                                            <span class="badge badge-success">Active</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge badge-danger">Inactive</span>
-                                        }
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Date Registered:</th>
-                                    <td>@Model.DateRegistered.ToString("MMM dd, yyyy")</td>
-                                </tr>
-                            </table>
-                        </div>
+            .notification-item:hover {
+                background-color: #e3f2fd;
+            }
+
+        .border-left-primary {
+            border-left: 4px solid #4e73df !important;
+        }
+
+        .border-left-success {
+            border-left: 4px solid #1cc88a !important;
+        }
+
+        .border-left-info {
+            border-left: 4px solid #36b9cc !important;
+        }
+
+        .border-left-warning {
+            border-left: 4px solid #f6c23e !important;
+        }
+
+        .border-left-danger {
+            border-left: 4px solid #e74a3b !important;
+        }
+
+        .border-left-secondary {
+            border-left: 4px solid #858796 !important;
+        }
+
+        .border-left-dark {
+            border-left: 4px solid #5a5c69 !important;
+        }
+
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+
+        .bg-teal {
+            background-color: #20c9a6 !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .table th {
+            color: var(--primary-blue);
+            font-weight: 500;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .checkin-modal {
+            display: none;
+            position: fixed;
+            z-index: 1060;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .checkin-modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <!-- Login Success Notification at the top -->
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert" style="display: none;">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong id="successMessage"></strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+
+                <!-- Page Header with Notification Bell -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-1">Guard Dashboard</h1>
+                        <p class="text-muted">Welcome to the security management system</p>
                     </div>
-                </div>
 
-                <!-- Quick Actions Card -->
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>Security Operations</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <!-- Mark Attendance Button -->
-                                @using (Html.BeginForm("MarkAttendance", "Guard", FormMethod.Post))
-                                {
-                                    @Html.AntiForgeryToken()
+                    <div class="header-actions">
+                        <!-- Logout Button -->
+                        <a href="@Url.Action("Login", "Account")" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
 
-
-                                    <a href="~/Content/Guard/Index.html" class="btn btn-primary">Mark My Attendance</a>
-
-
-                                }
-
-                                <!-- Report Incident Button -->
-                                <a href="@Url.Action("Create", "IncidentReports")" class="btn btn-danger btn-lg mb-3">
-                                    Report Incident
-                                </a>
-
-                                <!-- View Incidents -->
-                                <a href="@Url.Action("Incidents", "Guard")" class="btn btn-info btn-lg">
-                                    View My Incidents
-                                </a>
+                        <!-- Notification Bell -->
+                        <div class="notification-bell">
+                            <a href="#" id="guardNotificationBell" class="btn btn-outline-primary position-relative">
+                                <i class="fas fa-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationCount" style="display: none;">
+                                    0
+                                    <span class="visually-hidden">unread notifications</span>
+                                </span>
+                            </a>
+                            <div class="notification-dropdown" id="guardNotificationDropdown">
+                                <div class="notification-header p-3 border-bottom d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold">All Notifications</span>
+                                    <a href="#" class="mark-all-read small" id="markAllAsRead" style="display: none;">Mark all as read</a>
+                                </div>
+                                <div id="guardNotificationList">
+                                    <div class="notification-item text-center py-3">
+                                        <i class="fas fa-bell-slash text-muted me-2"></i>
+                                        No notifications
+                                    </div>
+                                </div>
+                                <div class="notification-footer text-center p-2 border-top">
+                                    <a href="@Url.Action("Notifications", "Guard")" class="text-primary small">View all notifications</a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Today's Security Stats -->
-            <div class="row mt-4">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>Today's Security Overview</h5>
+                <!-- Error/Success Messages -->
+                <div class="alert alert-danger alert-dismissible fade show mb-4" id="errorAlert" style="display: none;">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <span id="errorMessage"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+
+                <div class="alert alert-success alert-dismissible fade show mb-4" id="successAlert" style="display: none;">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span id="successMessageAlt"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+
+                <!-- Welcome Message -->
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-shield me-3 fa-2x"></i>
+                        <div>
+                            <h4 class="alert-heading mb-1">Welcome, @Model.Guard_FName @Model.Guard_LName!</h4>
+                            <p class="mb-0">You have successfully logged in to the Pirana Security System guard panel.</p>
                         </div>
-                        <div class="card-body">
-                            <div class="row text-center">
-                                <!-- Stats content will be dynamically loaded here -->
-                                <div class="col-md-12">
-                                    <p class="text-muted">Security overview data will appear here once available.</p>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Row -->
+                <div class="row mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-primary h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            Total Incidents
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalIncidents">
+                                            <span class="loading-spinner"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-warning h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                            Pending Incidents
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="pendingIncidents">
+                                            <span class="loading-spinner"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-success h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Resolved Incidents
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="resolvedIncidents">
+                                            <span class="loading-spinner"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-info h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                            Upcoming Shifts
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="upcomingShifts">
+                                            <span class="loading-spinner"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Row -->
+                <div class="row">
+                    <!-- Guard Details Card -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0 font-weight-bold">My Security Guard Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <th style="width: 40%">PSIRA Number:</th>
+                                        <td>@Model.PSIRAnumber</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Full Name:</th>
+                                        <td>@Model.Guard_FName @Model.Guard_LName</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Email:</th>
+                                        <td>@Model.Email</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Phone:</th>
+                                        <td>@Model.PhoneNumber</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Status:</th>
+                                        <td>
+                                            @if (Model.IsActive)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Inactive</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date Registered:</th>
+                                        <td>@Model.DateRegistered.ToString("MMM dd, yyyy")</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions Card -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0 font-weight-bold">Security Operations</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <!-- Mark Attendance Button -->
+                                    <button type="button" class="btn btn-primary btn-lg mb-3" id="markAttendanceBtn">
+                                        <i class="fas fa-qrcode me-2"></i>Mark My Attendance
+                                    </button>
+
+                                    <!-- Report Incident Button -->
+                                    <a href="@Url.Action("Create", "IncidentReports")" class="btn btn-danger btn-lg mb-3">
+                                        <i class="fas fa-exclamation-circle me-2"></i>Report Incident
+                                    </a>
+
+                                    <!-- View Incidents -->
+                                    <a href="@Url.Action("MyIncidentReports", "Guard")" class="btn btn-info btn-lg mb-3">
+                                        <i class="fas fa-clipboard-list me-2"></i>View My Incidents
+                                    </a>
+
+                                    <!-- View Calendar Button -->
+                                    <a href="@Url.Action("Calender", "Guard")" class="btn btn-warning btn-lg">
+                                        <i class="fas fa-calendar-alt me-2"></i>View Calendar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Incidents Section -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold">Recent Incident Activity</h6>
+                                <a href="@Url.Action("MyIncidentReports", "Guard")" class="btn btn-sm btn-primary">View All</a>
+                            </div>
+                            <div class="card-body" id="recentIncidentsContainer">
+                                <div class="alert alert-info text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Loading recent incidents...
                                 </div>
                             </div>
                         </div>
@@ -129,15 +467,313 @@
             </div>
         </div>
     </div>
-</div>
 
-@section scripts {
+    <!-- Check-in Modal -->
+    <div id="checkinModal" class="checkin-modal">
+        <div class="checkin-modal-content">
+            <span class="close-modal">&times;</span>
+            <h4 class="mb-3">Mark Attendance</h4>
+            <div class="mb-3">
+                <label for="guardName" class="form-label">Your Name</label>
+                <input type="text" class="form-control" id="guardName" value="@Model.Guard_FName @Model.Guard_LName" disabled>
+            </div>
+            <div class="mb-3">
+                <label for="attendanceStatus" class="form-label">Status</label>
+                <select class="form-select" id="attendanceStatus">
+                    <option value="Check-In">Check In</option>
+                    <option value="Check-Out">Check Out</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="currentTime" class="form-label">Current Time</label>
+                <input type="text" class="form-control" id="currentTime" disabled>
+            </div>
+            <button type="button" class="btn btn-primary w-100" id="submitCheckin">Submit</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        $(document).ready(function () {
+        document.addEventListener('DOMContentLoaded', function () {
+            // Load dashboard statistics
+            loadDashboardStats();
+
+            // Load recent incidents
+            loadRecentIncidents();
+
+            // Load notifications
+            loadNotifications();
+
+            // Notification bell functionality
+            const notificationBell = document.getElementById('guardNotificationBell');
+            const notificationDropdown = document.getElementById('guardNotificationDropdown');
+
+            notificationBell.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('.notification-bell')) {
+                    notificationDropdown.style.display = 'none';
+                }
+            });
+
+            // Mark all as read functionality
+            document.getElementById('markAllAsRead').addEventListener('click', function(e) {
+                e.preventDefault();
+                markAllNotificationsAsRead();
+            });
+
+            // Check-in modal functionality
+            const modal = document.getElementById("checkinModal");
+            const markAttendanceBtn = document.getElementById("markAttendanceBtn");
+            const closeModal = document.getElementsByClassName("close-modal")[0];
+            const submitCheckin = document.getElementById("submitCheckin");
+            const currentTimeField = document.getElementById("currentTime");
+
+            // Update current time
+            function updateCurrentTime() {
+                const now = new Date();
+                currentTimeField.value = now.toLocaleString();
+            }
+
+            setInterval(updateCurrentTime, 1000);
+            updateCurrentTime();
+
+            markAttendanceBtn.onclick = function() {
+                // Redirect to the attendance page instead of showing modal
+                window.location.href = '@Url.Action("Attendance", "Guard")';
+            }
+
+            closeModal.onclick = function() {
+                modal.style.display = "none";
+            }
+
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            }
+
+            submitCheckin.onclick = function() {
+                const status = document.getElementById("attendanceStatus").value;
+                submitAttendance(status);
+            }
+
+            // Check for success message
+            if ('@TempData["SuccessMessage"]' !== '') {
+                document.getElementById('successAlert').style.display = 'block';
+                document.getElementById('successMessageAlt').textContent = '@TempData["SuccessMessage"]';
+            }
+
+            // Check for error message
+            if ('@TempData["ErrorMessage"]' !== '') {
+                document.getElementById('errorAlert').style.display = 'block';
+                document.getElementById('errorMessage').textContent = '@TempData["ErrorMessage"]';
+            }
+
             // Auto-dismiss alerts after 5 seconds
             setTimeout(function () {
-                $('.alert').fadeOut('slow');
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    if (alert.id !== 'recentIncidentsContainer') {
+                        alert.style.display = 'none';
+                    }
+                });
             }, 5000);
         });
+
+        // Function to load dashboard statistics
+        function loadDashboardStats() {
+            // Get data from ViewBag
+            document.getElementById('totalIncidents').textContent = '@ViewBag.TotalIncidents';
+            document.getElementById('pendingIncidents').textContent = '@ViewBag.PendingIncidents';
+            document.getElementById('resolvedIncidents').textContent = '@ViewBag.ResolvedIncidents';
+            document.getElementById('upcomingShifts').textContent = '@ViewBag.UpcomingShifts';
+        }
+
+        // Function to load recent incidents
+        function loadRecentIncidents() {
+            const container = document.getElementById('recentIncidentsContainer');
+
+            // Check if we have recent incidents from ViewBag
+            const recentIncidents = @Html.Raw(Json.Encode(ViewBag.RecentIncidents));
+
+            if (recentIncidents && recentIncidents.length > 0) {
+                let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Status</th></tr></thead><tbody>';
+
+                recentIncidents.forEach(incident => {
+                    html += `<tr>
+                        <td>${new Date(incident.ReportDate).toLocaleDateString()}</td>
+                        <td>${incident.IncidentType || 'N/A'}</td>
+                        <td>${incident.Location || 'N/A'}</td>
+                        <td><span class="badge ${getStatusBadgeClass(incident.Status)}">${incident.Status}</span></td>
+                    </tr>`;
+                });
+
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No recent incidents found.</div>';
+            }
+        }
+
+        // Function to submit attendance
+        function submitAttendance(status) {
+            const guardId = @Model.GuardId;
+
+            fetch('@Url.Action("SaveCheckIn", "Guard")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ guardId: guardId, status: status })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess(data.message);
+                    document.getElementById('checkinModal').style.display = 'none';
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving check-in:', error);
+                showError('Error saving check-in. Please try again.');
+            });
+        }
+
+        // Function to load notifications
+        function loadNotifications() {
+            // Simulate API call with timeout
+            setTimeout(() => {
+                const notificationList = document.getElementById('guardNotificationList');
+                const notificationCount = document.getElementById('notificationCount');
+                const markAllAsRead = document.getElementById('markAllAsRead');
+
+                // Sample notifications (would be replaced with real data from your database)
+                const notifications = [
+                    {
+                        id: 1,
+                        title: 'Shift Reminder',
+                        message: 'Your shift starts in 30 minutes',
+                        time: '10 minutes ago',
+                        type: 'Shift',
+                        isRead: false,
+                        isImportant: true
+                    },
+                    {
+                        id: 2,
+                        title: 'Incident Update',
+                        message: 'Your reported incident has been reviewed',
+                        time: '2 hours ago',
+                        type: 'Incident',
+                        isRead: true,
+                        isImportant: false
+                    }
+                ];
+
+                if (notifications.length > 0) {
+                    let html = '';
+                    let unreadCount = 0;
+
+                    notifications.forEach(notification => {
+                        if (!notification.isRead) unreadCount++;
+
+                        html += `<div class="notification-item ${notification.isRead ? '' : 'unread'}" data-id="${notification.id}">
+                            <div class="notification-content">
+                                <div class="notification-title d-flex justify-content-between">
+                                    <strong>${notification.title}</strong>
+                                    <span class="notification-time small text-muted">${notification.time}</span>
+                                </div>
+                                <div class="notification-message">${notification.message}</div>
+                                <div class="mt-1">
+                                    <span class="notification-type badge ${getNotificationTypeBadgeClass(notification.type)}">${notification.type}</span>
+                                    ${notification.isImportant ? '<span class="badge bg-danger ms-1">Important</span>' : ''}
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+
+                    notificationList.innerHTML = html;
+
+                    // Update notification count
+                    if (unreadCount > 0) {
+                        notificationCount.style.display = 'block';
+                        notificationCount.textContent = unreadCount;
+                    } else {
+                        notificationCount.style.display = 'none';
+                    }
+
+                    // Show mark all as read button if there are unread notifications
+                    markAllAsRead.style.display = unreadCount > 0 ? 'block' : 'none';
+                }
+            }, 1500);
+        }
+
+        // Function to mark all notifications as read
+        function markAllNotificationsAsRead() {
+            // Simulate API call
+            setTimeout(() => {
+                // Update all notifications to appear as read
+                document.querySelectorAll('.notification-item').forEach(item => {
+                    item.classList.remove('unread');
+                });
+
+                // Hide notification count and mark all as read button
+                document.getElementById('notificationCount').style.display = 'none';
+                document.getElementById('markAllAsRead').style.display = 'none';
+
+                showSuccess('All notifications marked as read');
+            }, 500);
+        }
+
+        // Helper function to get status badge class
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case 'Resolved': return 'bg-success';
+                case 'In Progress': return 'bg-primary';
+                case 'Pending Review': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        // Helper function to get notification type badge class
+        function getNotificationTypeBadgeClass(type) {
+            switch (type) {
+                case 'Incident': return 'bg-danger';
+                case 'Shift': return 'bg-info';
+                case 'System': return 'bg-secondary';
+                case 'Security': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        // Helper function to show error message
+        function showError(message) {
+            document.getElementById('errorAlert').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                document.getElementById('errorAlert').style.display = 'none';
+            }, 5000);
+        }
+
+        // Helper function to show success message
+        function showSuccess(message) {
+            document.getElementById('successAlert').style.display = 'block';
+            document.getElementById('successMessageAlt').textContent = message;
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                document.getElementById('successAlert').style.display = 'none';
+            }, 5000);
+        }
     </script>
-}
+</body>
+</html>
