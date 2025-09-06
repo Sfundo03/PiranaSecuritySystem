@@ -369,6 +369,26 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.7/jquery.inputmask.min.js"></script>
         <script>
             $(document).ready(function () {
+                // Check for success message in TempData
+                var successMessage = '@(TempData["SuccessMessage"] ?? "")';
+                if (successMessage) {
+                    // Create and show success alert
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+                    alertDiv.innerHTML = `
+                        <strong>Success!</strong> ${successMessage}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alertDiv);
+
+                    // Auto-dismiss after 5 seconds
+                    setTimeout(() => {
+                        const bsAlert = new bootstrap.Alert(alertDiv);
+                        bsAlert.close();
+                    }, 5000);
+                }
+
                 // Apply input mask for ID number (13 digits only)
                 $("#idNumber").inputmask("9999999999999", { placeholder: "" });
 

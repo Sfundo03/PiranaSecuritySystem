@@ -161,8 +161,26 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("ProfileNotFound", "Error");
                 }
 
-                // Get notifications for the guard (you'll need to implement this based on your notification system)
-                var notifications = new List<object>(); // Replace with actual notification retrieval
+                // Get notifications for the guard
+                var notifications = db.Notifications
+                    .Where(n => n.GuardId == guard.GuardId)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .ToList()
+                    .Select(n => new NotificationViewModel
+                    {
+                        NotificationId = n.NotificationId,
+                        Title = n.Title,
+                        Message = n.Message,
+                        NotificationType = n.NotificationType,
+                        IsRead = n.IsRead,
+                        CreatedAt = n.CreatedAt,
+                        TimeAgo = GetTimeAgo(n.CreatedAt),
+                        RelatedUrl = n.RelatedUrl,
+                        IsImportant = n.IsImportant,
+                        PriorityLevel = n.PriorityLevel,
+                        PriorityClass = GetPriorityClass(n.PriorityLevel)
+                    })
+                    .ToList();
 
                 // Check if the view exists, if not return a simple message
                 return View("~/Views/Guard/Notifications.cshtml", notifications);
@@ -172,6 +190,120 @@ namespace PiranaSecuritySystem.Controllers
                 System.Diagnostics.Debug.WriteLine($"Error in Notifications: {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading notifications.";
                 return RedirectToAction("Dashboard");
+            }
+        }
+
+        // API: Get notifications for guard
+        [HttpGet]
+        public JsonResult GetGuardNotifications()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var notifications = db.Notifications
+                    .Where(n => n.GuardId == guard.GuardId)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(10)
+                    .ToList()
+                    .Select(n => new
+                    {
+                        notificationId = n.NotificationId,
+                        title = n.Title,
+                        message = n.Message,
+                        notificationType = n.NotificationType,
+                        isRead = n.IsRead,
+                        createdAt = n.CreatedAt,
+                        isImportant = n.IsImportant
+                    })
+                    .ToList();
+
+                return Json(notifications, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetGuardNotifications: {ex.Message}");
+                return Json(new { success = false, message = "Error loading notifications" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // API: Mark all notifications as read
+        [HttpPost]
+        public JsonResult MarkAllNotificationsAsRead()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" });
+                }
+
+                var unreadNotifications = db.Notifications
+                    .Where(n => n.GuardId == guard.GuardId && !n.IsRead)
+                    .ToList();
+
+                foreach (var notification in unreadNotifications)
+                {
+                    notification.IsRead = true;
+                    notification.DateRead = DateTime.Now;
+                }
+
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "All notifications marked as read" });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in MarkAllNotificationsAsRead: {ex.Message}");
+                return Json(new { success = false, message = "Error marking notifications as read" });
+            }
+        }
+
+        // API: Create a new notification
+        [HttpPost]
+        public JsonResult CreateNotification(string title, string message, string notificationType)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" });
+                }
+
+                var notification = new Notification
+                {
+                    GuardId = guard.GuardId,
+                    UserId = currentUserId,
+                    UserType = "Guard",
+                    Title = title,
+                    Message = message,
+                    NotificationType = notificationType,
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    IsImportant = notificationType == "Incident" || notificationType == "Security"
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Notification created successfully" });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in CreateNotification: {ex.Message}");
+                return Json(new { success = false, message = "Error creating notification" });
             }
         }
 
@@ -264,12 +396,57 @@ namespace PiranaSecuritySystem.Controllers
                 db.GuardCheckIns.Add(checkIn);
                 db.SaveChanges();
 
+                // Create a notification for the check-in
+                var currentUserId = User.Identity.GetUserId();
+                var notification = new Notification
+                {
+                    GuardId = guardId,
+                    UserId = currentUserId,
+                    UserType = "Guard",
+                    Title = "Check-in Recorded",
+                    Message = $"You have successfully {status.ToLower()} at {DateTime.Now.ToShortTimeString()}",
+                    NotificationType = "Checkin",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+
                 return Json(new { success = true, message = "Check-in recorded successfully" });
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in SaveCheckIn: {ex.Message}");
                 return Json(new { success = false, message = "An error occurred while saving check-in" });
+            }
+        }
+
+        // Helper method to get time ago string
+        private string GetTimeAgo(DateTime date)
+        {
+            var timeSpan = DateTime.Now - date;
+
+            if (timeSpan <= TimeSpan.FromSeconds(60))
+                return "Just now";
+            else if (timeSpan <= TimeSpan.FromMinutes(60))
+                return $"{(int)timeSpan.TotalMinutes} minutes ago";
+            else if (timeSpan <= TimeSpan.FromHours(24))
+                return $"{(int)timeSpan.TotalHours} hours ago";
+            else
+                return $"{(int)timeSpan.TotalDays} days ago";
+        }
+
+        // Helper method to get priority class
+        private string GetPriorityClass(int priorityLevel)
+        {
+            switch (priorityLevel)
+            {
+                case 1: return "badge bg-secondary";
+                case 2: return "badge bg-info";
+                case 3: return "badge bg-warning";
+                case 4: return "badge bg-danger";
+                default: return "badge bg-secondary";
             }
         }
 

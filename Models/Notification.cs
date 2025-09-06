@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Web;
 
@@ -8,16 +9,17 @@ namespace PiranaSecuritySystem.Models
 {
     public class Notification
     {
+        [Key]
         public int NotificationId { get; set; }
+
         public int? ResidentId { get; set; } // Nullable, if notification is for a resident
         public int? DirectorId { get; set; } // Nullable, if notification is for a director
         public int? AdminId { get; set; } // Nullable, if notification is for an admin
         public int? GuardId { get; set; } // Nullable, if notification is for a guard
         public int? InstructorId { get; set; } // Nullable, if notification is for an instructor
-        public int RecipientId { get; set; } // The actual recipient's user ID
 
         [Required]
-        public string UserId { get; set; } // Can be ResidentId or DirectorId
+        public string UserId { get; set; } // The actual recipient's user ID
 
         [Required]
         [StringLength(20)]
@@ -34,6 +36,8 @@ namespace PiranaSecuritySystem.Models
         public bool IsRead { get; set; } = false;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public DateTime? DateRead { get; set; }
 
         [StringLength(200)]
         public string RelatedUrl { get; set; } // URL to relevant page
@@ -55,7 +59,6 @@ namespace PiranaSecuritySystem.Models
 
         // Navigation properties (if needed)
         public virtual ApplicationUser User { get; set; }
-        public DateTime DateRead { get; internal set; }
     }
 
     // Optional: You can create a view model for notification display

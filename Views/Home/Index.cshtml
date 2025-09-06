@@ -1,0 +1,10 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="jumbotron">
+    <h1>Pirana Security System</h1>
+    <p class="lead">Welcome to the Pirana Security System portal.</p>
+    <p>@Html.ActionLink("Login »", "Login", "Account", null, new { @class = "btn btn-primary btn-lg" })</p>
+</div>

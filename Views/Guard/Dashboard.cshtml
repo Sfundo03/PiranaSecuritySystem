@@ -428,7 +428,7 @@
                                     </button>
 
                                     <!-- Report Incident Button -->
-                                    <a href="@Url.Action("Create", "IncidentReports")" class="btn btn-danger btn-lg mb-3">
+                                    <a href="@Url.Action("Create", "IncidentReports")" class="btn btn-danger btn-lg mb-3" id="reportIncidentBtn">
                                         <i class="fas fa-exclamation-circle me-2"></i>Report Incident
                                     </a>
 
@@ -637,6 +637,8 @@
                 if (data.success) {
                     showSuccess(data.message);
                     document.getElementById('checkinModal').style.display = 'none';
+                    // Create a notification for the check-in
+                    createNotification('Check-in Recorded', `You have successfully ${status.toLowerCase()} at ${new Date().toLocaleTimeString()}`, 'Checkin');
                 } else {
                     showError(data.message);
                 }
@@ -649,50 +651,29 @@
 
         // Function to load notifications
         function loadNotifications() {
-            // Simulate API call with timeout
-            setTimeout(() => {
+            fetch('@Url.Action("GetGuardNotifications", "Guard")')
+            .then(response => response.json())
+            .then(data => {
                 const notificationList = document.getElementById('guardNotificationList');
                 const notificationCount = document.getElementById('notificationCount');
                 const markAllAsRead = document.getElementById('markAllAsRead');
 
-                // Sample notifications (would be replaced with real data from your database)
-                const notifications = [
-                    {
-                        id: 1,
-                        title: 'Shift Reminder',
-                        message: 'Your shift starts in 30 minutes',
-                        time: '10 minutes ago',
-                        type: 'Shift',
-                        isRead: false,
-                        isImportant: true
-                    },
-                    {
-                        id: 2,
-                        title: 'Incident Update',
-                        message: 'Your reported incident has been reviewed',
-                        time: '2 hours ago',
-                        type: 'Incident',
-                        isRead: true,
-                        isImportant: false
-                    }
-                ];
-
-                if (notifications.length > 0) {
+                if (data && data.length > 0) {
                     let html = '';
                     let unreadCount = 0;
 
-                    notifications.forEach(notification => {
+                    data.forEach(notification => {
                         if (!notification.isRead) unreadCount++;
 
-                        html += `<div class="notification-item ${notification.isRead ? '' : 'unread'}" data-id="${notification.id}">
+                        html += `<div class="notification-item ${notification.isRead ? '' : 'unread'}" data-id="${notification.notificationId}">
                             <div class="notification-content">
                                 <div class="notification-title d-flex justify-content-between">
                                     <strong>${notification.title}</strong>
-                                    <span class="notification-time small text-muted">${notification.time}</span>
+                                    <span class="notification-time small text-muted">${formatTimeAgo(notification.createdAt)}</span>
                                 </div>
                                 <div class="notification-message">${notification.message}</div>
                                 <div class="mt-1">
-                                    <span class="notification-type badge ${getNotificationTypeBadgeClass(notification.type)}">${notification.type}</span>
+                                    <span class="notification-type badge ${getNotificationTypeBadgeClass(notification.notificationType)}">${notification.notificationType}</span>
                                     ${notification.isImportant ? '<span class="badge bg-danger ms-1">Important</span>' : ''}
                                 </div>
                             </div>
@@ -712,24 +693,83 @@
                     // Show mark all as read button if there are unread notifications
                     markAllAsRead.style.display = unreadCount > 0 ? 'block' : 'none';
                 }
-            }, 1500);
+            })
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+            });
         }
 
         // Function to mark all notifications as read
         function markAllNotificationsAsRead() {
-            // Simulate API call
-            setTimeout(() => {
-                // Update all notifications to appear as read
-                document.querySelectorAll('.notification-item').forEach(item => {
-                    item.classList.remove('unread');
-                });
+            fetch('@Url.Action("MarkAllNotificationsAsRead", "Guard")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update all notifications to appear as read
+                    document.querySelectorAll('.notification-item').forEach(item => {
+                        item.classList.remove('unread');
+                    });
 
-                // Hide notification count and mark all as read button
-                document.getElementById('notificationCount').style.display = 'none';
-                document.getElementById('markAllAsRead').style.display = 'none';
+                    // Hide notification count and mark all as read button
+                    document.getElementById('notificationCount').style.display = 'none';
+                    document.getElementById('markAllAsRead').style.display = 'none';
 
-                showSuccess('All notifications marked as read');
-            }, 500);
+                    showSuccess('All notifications marked as read');
+                } else {
+                    showError('Failed to mark notifications as read');
+                }
+            })
+            .catch(error => {
+                console.error('Error marking notifications as read:', error);
+                showError('Error marking notifications as read');
+            });
+        }
+
+        // Function to create a notification
+        function createNotification(title, message, type) {
+            fetch('@Url.Action("CreateNotification", "Guard")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    message: message,
+                    notificationType: type
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload notifications
+                    loadNotifications();
+                }
+            })
+            .catch(error => {
+                console.error('Error creating notification:', error);
+            });
+        }
+
+        // Helper function to format time ago
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) {
+                return 'Just now';
+            } else if (diffInSeconds < 3600) {
+                return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+            } else if (diffInSeconds < 86400) {
+                return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+            } else {
+                return `${Math.floor(diffInSeconds / 86400)} days ago`;
+            }
         }
 
         // Helper function to get status badge class
@@ -749,6 +789,8 @@
                 case 'Shift': return 'bg-info';
                 case 'System': return 'bg-secondary';
                 case 'Security': return 'bg-warning';
+                case 'Checkin': return 'bg-success';
+                case 'Report': return 'bg-primary';
                 default: return 'bg-secondary';
             }
         }

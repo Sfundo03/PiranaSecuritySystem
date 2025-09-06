@@ -172,6 +172,19 @@ namespace PiranaSecuritySystem.Controllers
             return View(model);
         }
 
+        // GET: Admin/ManageGuards
+        public ActionResult ManageGuards()
+        {
+            // Check for success message from registration
+            if (TempData["SuccessMessage"] != null)
+            {
+                ViewBag.SuccessMessage = TempData["SuccessMessage"];
+            }
+
+            var guards = db.Guards.OrderBy(g => g.Guard_FName + " " + g.Guard_LName).ToList();
+            return View(guards);
+        }
+
         // GET: Admin/RegisterInstructor
         public ActionResult RegisterInstructor()
         {
@@ -274,16 +287,15 @@ namespace PiranaSecuritySystem.Controllers
             return View(model);
         }
 
-        // GET: Admin/ManageGuards
-        public ActionResult ManageGuards()
-        {
-            var guards = db.Guards.OrderBy(g => g.Guard_FName + " " + g.Guard_LName).ToList();
-            return View(guards);
-        }
-
         // GET: Admin/ManageInstructors
         public ActionResult ManageInstructors()
         {
+            // Check for success message from registration
+            if (TempData["SuccessMessage"] != null)
+            {
+                ViewBag.SuccessMessage = TempData["SuccessMessage"];
+            }
+
             var instructors = db.Instructors.OrderBy(i => i.FullName).ToList();
             return View(instructors);
         }
