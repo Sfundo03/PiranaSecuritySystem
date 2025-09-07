@@ -91,6 +91,9 @@ namespace PiranaSecuritySystem.Controllers
                 db.Payrolls.Add(payroll);
                 db.SaveChanges();
 
+                // Notify director about payroll creation
+                NotifyDirectorAboutPayroll(payroll.PayrollId, payroll.Guard.FullName);
+
                 return RedirectToAction("Details", new { id = payroll.PayrollId });
             }
             catch (Exception ex)
@@ -287,6 +290,78 @@ namespace PiranaSecuritySystem.Controllers
             }
 
             return View(taxConfig);
+        }
+
+        // Method to notify director about payroll creation
+        private void NotifyDirectorAboutPayroll(int payrollId, string guardName)
+        {
+            try
+            {
+                // Create a notification for the director
+                var notification = new Notification
+                {
+                    UserId = "Director", // This will be set to the actual director ID
+                    UserType = "Director",
+                    Title = "Payroll Created",
+                    Message = $"Payroll has been created for guard {guardName}",
+                    NotificationType = "Report",
+                    CreatedAt = DateTime.Now,
+                    IsImportant = true,
+                    RelatedUrl = Url.Action("Details", "Payroll", new { id = payrollId })
+                };
+
+                // Find all directors to notify them
+                var directors = db.Directors.ToList();
+                foreach (var director in directors)
+                {
+                    notification.UserId = director.DirectorId.ToString();
+                    db.Notifications.Add(notification);
+
+                    // Create a new instance for each director
+                    notification = new Notification
+                    {
+                        UserId = director.DirectorId.ToString(),
+                        UserType = "Director",
+                        Title = "Payroll Created",
+                        Message = $"Payroll has been created for guard {guardName}",
+                        NotificationType = "Report",
+                        CreatedAt = DateTime.Now,
+                        IsImportant = true,
+                        RelatedUrl = Url.Action("Details", "Payroll", new { id = payrollId })
+                    };
+                }
+
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't break the payroll generation process
+                System.Diagnostics.Debug.WriteLine("Error creating payroll notification: " + ex.Message);
+            }
+        }
+
+        // Alternative method using the DirectorController's notification system
+        private void NotifyDirectorUsingController(int payrollId, string guardName)
+        {
+            try
+            {
+                // Create an instance of DirectorController
+                var directorController = new DirectorController();
+
+                // Set the controller context to allow URL generation
+                directorController.ControllerContext = new ControllerContext(
+                    this.ControllerContext.RequestContext,
+                    directorController
+                );
+
+                // Call the notification method
+                directorController.NotifyPayrollCreated(payrollId, guardName);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't break the payroll generation process
+                System.Diagnostics.Debug.WriteLine("Error notifying director: " + ex.Message);
+            }
         }
 
         protected override void Dispose(bool disposing)

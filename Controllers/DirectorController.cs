@@ -9,7 +9,6 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 
-
 namespace PiranaSecuritySystem.Controllers
 {
     [Authorize(Roles = "Director")]
@@ -29,7 +28,7 @@ namespace PiranaSecuritySystem.Controllers
                 var director = db.Directors.FirstOrDefault(d => d.Email == currentUserId);
                 if (director == null)
                 {
-                    TempData["ErrorMessage"] = "Director profile not found.";
+                    // Removed the error message about director profile not found
                     return View();
                 }
 
@@ -94,6 +93,119 @@ namespace PiranaSecuritySystem.Controllers
                 System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
                 TempData["ErrorMessage"] = "Error loading dashboard statistics: " + ex.Message;
                 return View();
+            }
+        }
+
+        // Add this method to create notifications for the director
+        private void CreateNotificationForDirector(string title, string message, string notificationType = "System", string relatedUrl = "")
+        {
+            try
+            {
+                string directorId = Session["DirectorId"] as string;
+
+                if (string.IsNullOrEmpty(directorId))
+                {
+                    // Try to get director ID from database if not in session
+                    var currentUser = User.Identity.Name;
+                    var director = db.Directors.FirstOrDefault(d => d.Email == currentUser);
+                    if (director != null)
+                    {
+                        directorId = director.DirectorId.ToString();
+                        Session["DirectorId"] = directorId;
+                    }
+                    else
+                    {
+                        // If we can't find the director, log the error but don't throw
+                        System.Diagnostics.Debug.WriteLine("Cannot create notification: Director not found");
+                        return;
+                    }
+                }
+
+                var notification = new Notification
+                {
+                    UserId = directorId,
+                    UserType = "Director",
+                    Title = title,
+                    Message = message,
+                    NotificationType = notificationType,
+                    CreatedAt = DateTime.Now,
+                    RelatedUrl = relatedUrl,
+                    IsImportant = notificationType == "Incident" || notificationType == "Emergency"
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error creating notification: " + ex.Message);
+            }
+        }
+
+        // Add this method to be called from other controllers when incidents are reported
+        [AllowAnonymous] // Allow other controllers to call this
+        public JsonResult NotifyIncidentReported(int incidentId, string reportedBy)
+        {
+            try
+            {
+                var incident = db.IncidentReports.Find(incidentId);
+                if (incident != null)
+                {
+                    string title = "New Incident Reported";
+                    string message = $"A new {incident.IncidentType} incident has been reported by {reportedBy} at {incident.Location}";
+                    string relatedUrl = Url.Action("IncidentDetails", "Director", new { id = incidentId });
+
+                    CreateNotificationForDirector(title, message, "Incident", relatedUrl);
+
+                    return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+                }
+                return Json(new { success = false, error = "Incident not found" }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // Add this method to be called when guards/instructors are added
+        [AllowAnonymous] // Allow other controllers to call this
+        public JsonResult NotifyStaffAdded(string staffType, string staffName, int staffId)
+        {
+            try
+            {
+                string title = $"New {staffType} Added";
+                string message = $"{staffType} {staffName} has been added to the system";
+                string relatedUrl = staffType == "Guard"
+                    ? Url.Action("Index", "Guards")
+                    : Url.Action("Index", "Instructors");
+
+                CreateNotificationForDirector(title, message, staffType, relatedUrl);
+
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // Add this method to be called when payroll is created
+        [AllowAnonymous] // Allow other controllers to call this
+        public JsonResult NotifyPayrollCreated(int payrollId, string guardName)
+        {
+            try
+            {
+                string title = "Payroll Created";
+                string message = $"Payroll has been created for guard {guardName}";
+                string relatedUrl = Url.Action("PayrollDetails", "Director", new { id = payrollId });
+
+                CreateNotificationForDirector(title, message, "Report", relatedUrl);
+
+                return Json(new { success = true }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
 
