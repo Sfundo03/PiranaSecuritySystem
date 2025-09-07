@@ -428,7 +428,7 @@
                                     </button>
 
                                     <!-- Report Incident Button -->
-                                    <a href="@Url.Action("Create", "IncidentReports")" class="btn btn-danger btn-lg mb-3" id="reportIncidentBtn">
+                                    <a href="@Url.Action("Create", "Guard")" class="btn btn-danger btn-lg mb-3" id="reportIncidentBtn">
                                         <i class="fas fa-exclamation-circle me-2"></i>Report Incident
                                     </a>
 
@@ -737,10 +737,10 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    title: title,
-                    message: message,
-                    notificationType: type
+                body: JSON.stringify({ 
+                    title: title, 
+                    message: message, 
+                    notificationType: type 
                 })
             })
             .then(response => response.json())
@@ -760,7 +760,7 @@
             const date = new Date(dateString);
             const now = new Date();
             const diffInSeconds = Math.floor((now - date) / 1000);
-
+            
             if (diffInSeconds < 60) {
                 return 'Just now';
             } else if (diffInSeconds < 3600) {

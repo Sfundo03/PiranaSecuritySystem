@@ -1,73 +1,477 @@
 ﻿@model IEnumerable<PiranaSecuritySystem.Models.IncidentReport>
 
-@{
-    ViewBag.Title = "My Incidents";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Incidents - PIRANA GUARDING</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
 
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-            <h2>My Incidents</h2>
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Roboto', sans-serif;
+            color: var(--dark-text);
+            padding: 20px;
+        }
 
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Type</th>
-                            <th>Location</th>
-                            <th>Date Reported</th>
-                            <th>Status</th>
-                            <th>Priority</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var incident in Model)
-                        {
-                            <tr>
-                                <td>INC-@incident.IncidentReportId.ToString("D4")</td>
-                                <td>@incident.IncidentType</td>
-                                <td>@incident.Location</td>
-                                <td>@incident.ReportDate.ToString("MM/dd/yyyy")</td>
-                                <td>
-                                    @if (incident.Status == "Resolved")
-                                    {
-                                        <span class="badge badge-success">@incident.Status</span>
-                                    }
-                                    else if (incident.Status == "In Progress")
-                                    {
-                                        <span class="badge badge-primary">@incident.Status</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-warning">@incident.Status</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (incident.Priority == "High")
-                                    {
-                                        <span class="badge badge-danger">@incident.Priority</span>
-                                    }
-                                    else if (incident.Priority == "Medium")
-                                    {
-                                        <span class="badge badge-warning">@incident.Priority</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-info">@incident.Priority</span>
-                                    }
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-info">View Details</button>
-                                    <button class="btn btn-sm btn-success">Update</button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        .card-header {
+            background: white;
+            color: var(--primary-blue);
+            padding: 20px;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--primary-blue);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--light-text);
+            font-weight: 400;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            padding: 25px;
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+            .btn-primary:hover {
+                background: var(--secondary-blue);
+            }
+
+        .btn-info {
+            background: #17a2b8;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+
+        .btn-success {
+            background: #28a745;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 13px;
+            margin-left: 5px;
+        }
+
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+            .table th {
+                background-color: var(--primary-blue);
+                color: white;
+                font-weight: 500;
+                padding: 12px 15px;
+                text-align: left;
+            }
+
+            .table td {
+                padding: 12px 15px;
+                border-bottom: 1px solid var(--border-color);
+                vertical-align: middle;
+            }
+
+            .table tr:nth-child(even) {
+                background-color: #f8fbff;
+            }
+
+            .table tr:hover {
+                background-color: #e8f4ff;
+            }
+
+        .badge {
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        .badge-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-primary {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .badge-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+            .back-link:hover {
+                color: var(--secondary-blue);
+                text-decoration: underline;
+            }
+
+        .page-title {
+            color: var(--primary-blue);
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .security-icon {
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--primary-blue);
+        }
+
+            .security-icon i {
+                font-size: 24px;
+                background: #e8f4ff;
+                padding: 15px;
+                border-radius: 50%;
+            }
+
+        .actions-header {
+            text-align: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--light-text);
+        }
+
+            .empty-state i {
+                font-size: 48px;
+                margin-bottom: 15px;
+                color: #ced4da;
+            }
+
+        .filter-section {
+            background-color: #f8fbff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-control {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+            .stat-card h3 {
+                font-size: 24px;
+                font-weight: 600;
+                margin: 0;
+                color: var(--primary-blue);
+            }
+
+            .stat-card p {
+                margin: 5px 0 0;
+                color: var(--light-text);
+                font-size: 14px;
+            }
+
+        @@media (max-width: 768px) {
+            .table-responsive {
+                overflow-x: auto;
+            }
+
+            .table th,
+            .table td {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+
+            .btn-info,
+            .btn-success {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+
+            .stats-cards {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="@Url.Action("Dashboard", "Guard")" class="back-link">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+
+        <div class="header-card">
+            <div class="card-header">
+                <div class="logo">PIRANA GUARDING</div>
+                <p class="subtitle mb-0">Incident Management System</p>
             </div>
         </div>
+
+        <div class="content-card">
+            <div class="security-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <h2 class="page-title text-center">My Incidents</h2>
+
+            <!-- Stats Cards -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <h3>@Model.Count()</h3>
+                    <p>Total Incidents</p>
+                </div>
+                <div class="stat-card">
+                    <h3>@Model.Count(i => i.Status == "Resolved")</h3>
+                    <p>Resolved</p>
+                </div>
+                <div class="stat-card">
+                    <h3>@Model.Count(i => i.Status == "In Progress")</h3>
+                    <p>In Progress</p>
+                </div>
+                <div class="stat-card">
+                    <h3>@Model.Count(i => i.Priority == "High")</h3>
+                    <p>High Priority</p>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <select class="form-control" id="statusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <select class="form-control" id="priorityFilter">
+                            <option value="">All Priorities</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search incidents...">
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <button class="btn btn-primary w-100" id="applyFilters">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <h4>No incidents found</h4>
+                    <p>You haven't reported any incidents yet.</p>
+                    <a href="@Url.Action("Create", "Guard")" class="btn btn-primary mt-2">
+                        <i class="fas fa-plus me-2"></i>Report New Incident
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                                <th>Date Reported</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th class="actions-header">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var incident in Model)
+                            {
+                                <tr>
+                                    <td>INC-@incident.IncidentReportId.ToString("D4")</td>
+                                    <td>@incident.IncidentType</td>
+                                    <td>@incident.Location</td>
+                                    <td>@incident.ReportDate.ToString("MM/dd/yyyy")</td>
+                                    <td>
+                                        @if (incident.Status == "Resolved")
+                                        {
+                                            <span class="badge badge-success">@incident.Status</span>
+                                        }
+                                        else if (incident.Status == "In Progress")
+                                        {
+                                            <span class="badge badge-primary">@incident.Status</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-warning">@incident.Status</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (incident.Priority == "High")
+                                        {
+                                            <span class="badge badge-danger">@incident.Priority</span>
+                                        }
+                                        else if (incident.Priority == "Medium")
+                                        {
+                                            <span class="badge badge-warning">@incident.Priority</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-info">@incident.Priority</span>
+                                        }
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <button class="btn btn-info">
+                                            <i class="fas fa-eye me-1"></i>Details
+                                        </button>
+                                        <button class="btn btn-success">
+                                            <i class="fas fa-edit me-1"></i>Update
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     </div>
-</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Simple filtering functionality
+            document.getElementById('applyFilters').addEventListener('click', function () {
+                const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+                const priorityFilter = document.getElementById('priorityFilter').value.toLowerCase();
+                const searchText = document.getElementById('searchInput').value.toLowerCase();
+
+                const rows = document.querySelectorAll('tbody tr');
+
+                rows.forEach(row => {
+                    const status = row.cells[4].textContent.toLowerCase();
+                    const priority = row.cells[5].textContent.toLowerCase();
+                    const incidentType = row.cells[1].textContent.toLowerCase();
+                    const location = row.cells[2].textContent.toLowerCase();
+
+                    const statusMatch = !statusFilter || status.includes(statusFilter);
+                    const priorityMatch = !priorityFilter || priority.includes(priorityFilter);
+                    const searchMatch = !searchText ||
+                                        incidentType.includes(searchText) ||
+                                        location.includes(searchText);
+
+                    if (statusMatch && priorityMatch && searchMatch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+
+            // Reset filters when filter values are changed
+            const filterInputs = document.querySelectorAll('#statusFilter, #priorityFilter, #searchInput');
+            filterInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    document.getElementById('applyFilters').click();
+                });
+            });
+
+            // Trigger search when typing in search box
+            document.getElementById('searchInput').addEventListener('keyup', function() {
+                document.getElementById('applyFilters').click();
+            });
+        });
+    </script>
+</body>
+</html>

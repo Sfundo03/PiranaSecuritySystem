@@ -36,5 +36,7 @@ namespace PiranaSecuritySystem.Models
 
         // Navigation property
         public virtual Resident Resident { get; set; }
+        public string CreatedBy { get; internal set; }
+        public DateTime CreatedDate { get; internal set; }
     }
 }

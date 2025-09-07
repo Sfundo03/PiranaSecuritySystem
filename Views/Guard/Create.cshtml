@@ -1,0 +1,356 @@
+﻿@model PiranaSecuritySystem.Models.IncidentReport
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Incident - PIRANA GUARDING</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Roboto', sans-serif;
+            color: var(--dark-text);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-container {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            background: white;
+            color: var(--primary-blue);
+            text-align: center;
+            padding: 25px 20px;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--primary-blue);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--light-text);
+            font-weight: 400;
+        }
+
+        .form-control {
+            padding: 12px 15px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+
+            .form-control:focus {
+                border-color: var(--primary-blue);
+                box-shadow: 0 0 0 0.2rem rgba(0, 105, 170, 0.15);
+            }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+
+            .btn-primary:hover {
+                background: var(--secondary-blue);
+            }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+            .btn-secondary:hover {
+                background: var(--primary-blue);
+                color: white;
+            }
+
+        .floating-label {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+            .floating-label label {
+                position: absolute;
+                top: 12px;
+                left: 15px;
+                font-size: 14px;
+                color: var(--light-text);
+                pointer-events: none;
+                transition: 0.2s ease all;
+                font-weight: 400;
+                background: white;
+                padding: 0 5px;
+            }
+
+            .floating-label select:focus ~ label,
+            .floating-label select:not([value=""]):valid ~ label,
+            .floating-label textarea:focus ~ label,
+            .floating-label textarea:not(:placeholder-shown) ~ label,
+            .floating-label input:focus ~ label,
+            .floating-label input:not(:placeholder-shown) ~ label {
+                top: -10px;
+                left: 10px;
+                font-size: 12px;
+                color: var(--primary-blue);
+                font-weight: 500;
+            }
+
+            .floating-label select,
+            .floating-label textarea,
+            .floating-label input {
+                padding-top: 18px;
+                padding-bottom: 12px;
+            }
+
+        .welcome-text {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--light-text);
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        .alert {
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .security-icon {
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--primary-blue);
+        }
+
+            .security-icon i {
+                font-size: 24px;
+                background: #e8f4ff;
+                padding: 15px;
+                border-radius: 50%;
+            }
+
+        .form-check-input:checked {
+            background-color: var(--primary-blue);
+            border-color: var(--primary-blue);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+            .back-link:hover {
+                color: var(--secondary-blue);
+                text-decoration: underline;
+            }
+
+        .field-validation-error {
+            color: #dc3545;
+            font-size: 14px;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .input-validation-error {
+            border-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <a href="@Url.Action("Dashboard", "Guard")" class="back-link">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+
+        <div class="login-card">
+            <div class="card-header">
+                <div class="logo">PIRANA GUARDING</div>
+                <p class="subtitle mb-0">Incident Reporting System</p>
+            </div>
+            <div class="card-body">
+                <div class="security-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <h4 class="text-center mb-3" style="color: var(--primary-blue); font-weight: 600;">Report Incident</h4>
+                <p class="welcome-text">Fill out the form below to report a security incident</p>
+
+                <!-- Display error/success messages -->
+                @if (ViewBag.ErrorMessage != null)
+                {
+                    <div class="alert alert-danger">
+                        @ViewBag.ErrorMessage
+                    </div>
+                }
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success">
+                        @TempData["SuccessMessage"]
+                    </div>
+                }
+
+                @using (Html.BeginForm("Create", "Guard", FormMethod.Post, new { @id = "incidentForm" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+
+                    <div class="floating-label">
+                        @Html.DropDownListFor(model => model.IncidentType, ViewBag.IncidentTypes as List<SelectListItem>, "Select Incident Type", new { @class = "form-control" })
+                        <label for="IncidentType">Incident Type</label>
+                        @Html.ValidationMessageFor(model => model.IncidentType)
+                    </div>
+
+                    <div class="floating-label">
+                        @Html.DropDownListFor(model => model.Location, ViewBag.Locations as List<SelectListItem>, "Select Location", new { @class = "form-control" })
+                        <label for="Location">Location</label>
+                        @Html.ValidationMessageFor(model => model.Location)
+                    </div>
+
+                    <div class="floating-label">
+                        @Html.DropDownListFor(model => model.Priority, ViewBag.PriorityLevels as List<SelectListItem>, "Select Priority", new { @class = "form-control" })
+                        <label for="Priority">Priority Level</label>
+                        @Html.ValidationMessageFor(model => model.Priority)
+                    </div>
+
+                    <div class="floating-label">
+                        @Html.TextAreaFor(model => model.Description, new { @class = "form-control", placeholder = " ", rows = "4" })
+                        <label for="Description">Incident Description</label>
+                        @Html.ValidationMessageFor(model => model.Description)
+                    </div>
+
+                    <!-- Optional fields section -->
+                    <div class="optional-fields mt-4">
+                        <h5 class="mb-3" style="color: var(--primary-blue);">Additional Information (Optional)</h5>
+
+                        <!-- If you have other optional fields, add them here -->
+                        <div class="floating-label">
+                            <textarea class="form-control" placeholder=" " rows="3" name="AdditionalNotes" id="AdditionalNotes"></textarea>
+                            <label for="AdditionalNotes">Additional Notes</label>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <a href="@Url.Action("Dashboard", "Guard")" class="btn btn-secondary w-100">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Report
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const incidentForm = document.getElementById('incidentForm');
+
+            // Form validation
+            incidentForm.addEventListener('submit', function (e) {
+                const incidentType = document.getElementById('IncidentType').value;
+                const location = document.getElementById('Location').value;
+                const priority = document.getElementById('Priority').value;
+                const description = document.getElementById('Description').value;
+
+                if (!incidentType || !location || !priority || !description) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields');
+                    return;
+                }
+            });
+
+            // Initialize floating labels for selects and textareas
+            const formElements = document.querySelectorAll('select, textarea, input[type="text"]');
+            formElements.forEach(element => {
+                element.addEventListener('change', function () {
+                    if (this.value) {
+                        this.classList.add('has-value');
+                    } else {
+                        this.classList.remove('has-value');
+                    }
+                });
+
+                element.addEventListener('blur', function () {
+                    if (this.value) {
+                        this.classList.add('has-value');
+                    } else {
+                        this.classList.remove('has-value');
+                    }
+                });
+
+                // Trigger change event on load to set initial state
+                if (element.value) {
+                    element.classList.add('has-value');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -287,9 +287,8 @@
     <Content Include="Views\Director\IncidentDetails.cshtml" />
     <Content Include="Views\Director\Incidents.cshtml" />
     <Content Include="Views\Director\Statistics.cshtml" />
-    <Content Include="Views\IncidentReports\Create.cshtml" />
+    <Content Include="Views\Guard\Create.cshtml" />
     <Content Include="Views\Guard\Dashboard.cshtml" />
-    <Content Include="Views\Guard\MyAttendance.cshtml" />
     <Content Include="Views\Guard\MyIncidentReports.cshtml" />
     <Content Include="Views\IncidentReports\Details.cshtml" />
     <Content Include="Views\IncidentReports\Index.cshtml" />
