@@ -1,0 +1,57 @@
+﻿@model PiranaSecuritySystem.Models.RosterViewModel
+
+@{
+    ViewBag.Title = "Create Shift Roster";
+}
+
+<h2>Create Shift Roster</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.RosterDate, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.RosterDate, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.RosterDate, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.SelectedGuardIds, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.ListBoxFor(model => model.SelectedGuardIds, ViewBag.Guards as MultiSelectList, new { @class = "form-control", size = "15" })
+                @Html.ValidationMessageFor(model => model.SelectedGuardIds, "", new { @class = "text-danger" })
+                <small class="text-muted">Hold CTRL to select multiple guards. Must select exactly 12 guards.</small>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Generate Roster" class="btn btn-primary" />
+                @Html.ActionLink("Cancel", "Index", null, new { @class = "btn btn-default" })
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Validate that exactly 12 guards are selected
+            $('form').submit(function (e) {
+                var selectedCount = $('#SelectedGuardIds option:selected').length;
+                if (selectedCount !== 12) {
+                    e.preventDefault();
+                    alert('Please select exactly 12 guards. Currently selected: ' + selectedCount);
+                    return false;
+                }
+            });
+        });
+    </script>
+}

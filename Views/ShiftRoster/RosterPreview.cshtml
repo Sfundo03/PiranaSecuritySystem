@@ -1,0 +1,53 @@
+﻿@model PiranaSecuritySystem.Models.RosterViewModel
+
+@{
+    ViewBag.Title = "Roster Preview";
+}
+
+<h2>Roster Preview for @Model.RosterDate.ToString("yyyy-MM-dd")</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <h3>Day Shift (4 guards)</h3>
+        <ul class="list-group">
+            @foreach (var guard in Model.DayShiftGuards)
+            {
+                <li class="list-group-item">@guard.FullName</li>
+            }
+        </ul>
+    </div>
+
+    <div class="col-md-4">
+        <h3>Night Shift (4 guards)</h3>
+        <ul class="list-group">
+            @foreach (var guard in Model.NightShiftGuards)
+            {
+                <li class="list-group-item">@guard.FullName</li>
+            }
+        </ul>
+    </div>
+
+    <div class="col-md-4">
+        <h3>Off Duty (4 guards)</h3>
+        <ul class="list-group">
+            @foreach (var guard in Model.OffDutyGuards)
+            {
+                <li class="list-group-item">@guard.FullName</li>
+            }
+        </ul>
+    </div>
+</div>
+
+<div class="row" style="margin-top: 20px;">
+    <div class="col-md-12">
+        @using (Html.BeginForm("ConfirmCreate", "ShiftRoster"))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(model => model.RosterDate)
+            @Html.HiddenFor(model => model.SelectedGuardIds)
+
+            <button type="submit" class="btn btn-success">Confirm and Save</button>
+            @Html.ActionLink("Go Back", "Create", null, new { @class = "btn btn-default" })
+        }
+    </div>
+</div>

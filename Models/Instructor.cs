@@ -55,6 +55,6 @@ namespace PiranaSecuritySystem.Models
         public virtual ApplicationUser User { get; set; }
 
         // Navigation property for Duty Rosters
-        public virtual ICollection<Shift> Shifts { get; set; }
+        public virtual ICollection<ShiftRoster> ShiftRosters { get; set; }
     }
 }

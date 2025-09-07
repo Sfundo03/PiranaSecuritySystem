@@ -1,0 +1,53 @@
+﻿@model IEnumerable<PiranaSecuritySystem.Models.RosterDisplayViewModel>
+
+@{
+    ViewBag.Title = "Shift Rosters";
+}
+
+<h2>Shift Rosters</h2>
+
+<p>
+    @Html.ActionLink("Create New Roster", "Create", null, new { @class = "btn btn-primary" })
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Day Shift (4 guards)</th>
+            <th>Night Shift (4 guards)</th>
+            <th>Off Duty (4 guards)</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.RosterDate.ToString("yyyy-MM-dd")</td>
+                <td>
+                    @foreach (var guard in item.DayShiftGuards)
+                    {
+                        <span class="badge badge-primary">@guard.FullName</span><br />
+                    }
+                </td>
+                <td>
+                    @foreach (var guard in item.NightShiftGuards)
+                    {
+                        <span class="badge badge-secondary">@guard.FullName</span><br />
+                    }
+                </td>
+                <td>
+                    @foreach (var guard in item.OffDutyGuards)
+                    {
+                        <span class="badge badge-light">@guard.FullName</span><br />
+                    }
+                </td>
+                <td>
+                    @Html.ActionLink("Edit", "Edit", new { date = item.RosterDate.ToString("yyyy-MM-dd") }, new { @class = "btn btn-warning btn-sm" })
+                    @Html.ActionLink("Delete", "Delete", new { date = item.RosterDate.ToString("yyyy-MM-dd") }, new { @class = "btn btn-danger btn-sm" })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

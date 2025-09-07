@@ -31,7 +31,7 @@ namespace PiranaSecuritySystem.Models
         // Add your DbSets here
         public DbSet<IncidentReport> IncidentReports { get; set; }
         public DbSet<TrainingSession> TrainingSessions { get; set; }
-        
+        public DbSet<ShiftRoster> ShiftRosters { get; set; }
 
         public DbSet<Instructor> Instructors { get; set; }
         public DbSet<Payroll> Payrolls { get; set; }
@@ -41,7 +41,7 @@ namespace PiranaSecuritySystem.Models
 
         public DbSet<Resident> Residents { get; set; }
         public DbSet<Guard> Guards { get; set; }
-        public DbSet<Shift> Shifts { get; set; }
+        
         public List<int> SelectedGuardIDs { get; set; }
         public List<string> SelectedSpecializations { get; set; }
         public DbSet<GuardCheckIn> GuardCheckIns { get; set; }

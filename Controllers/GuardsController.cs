@@ -38,7 +38,7 @@ namespace PiranaSecuritySystem.Controllers
                 ViewBag.TotalIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId);
                 ViewBag.PendingIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId && r.Status == "Pending Review");
                 ViewBag.ResolvedIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId && r.Status == "Resolved");
-                ViewBag.UpcomingShifts = db.Shifts.Count(s => s.GuardId == guard.GuardId && s.ShiftDate >= DateTime.Today);
+                ViewBag.UpcomingShifts = db.ShiftRosters.Count(s => s.GuardId == guard.GuardId && s.RosterDate >= DateTime.Today);
 
                 // Get recent incidents for dashboard
                 var recentIncidents = db.IncidentReports
@@ -254,9 +254,9 @@ namespace PiranaSecuritySystem.Controllers
                 DateTime sevenDaysAgo = today.AddDays(-7);
 
                 // Get upcoming shifts - use calculated date variable
-                var shifts = db.Shifts
-                    .Where(s => s.GuardId == guard.GuardId && s.ShiftDate >= today)
-                    .OrderBy(s => s.ShiftDate)
+                var shifts = db.ShiftRosters
+                    .Where(s => s.GuardId == guard.GuardId && s.RosterDate >= today)
+                    .OrderBy(s => s.RosterDate)
                     .ToList();
 
                 // Get check-ins for these shifts - use calculated date variable
@@ -272,20 +272,20 @@ namespace PiranaSecuritySystem.Controllers
                     GuardName = guard.Guard_FName + " " + guard.Guard_LName,
                     Shifts = shifts.Select(s => new CalendarShift
                     {
-                        ShiftId = s.ShiftId,
-                        ShiftDate = s.ShiftDate,
+                        ShiftId = s.RosterId,
+                        ShiftDate = s.RosterDate,
                         ShiftType = s.ShiftType,
                         StartTime = GetShiftStartTime(s.ShiftType),
                         EndTime = GetShiftEndTime(s.ShiftType),
                         Location = s.Location ?? "Main Gate",
                         Status = s.Status ?? "Scheduled",
                         HasCheckIn = checkIns.Any(c => c.GuardId == guard.GuardId &&
-                                                     c.CheckInTime.Date == s.ShiftDate.Date &&
+                                                     c.CheckInTime.Date == s.RosterDate.Date &&
                                                      c.Status == "Present"),
                         HasCheckOut = checkIns.Any(c => c.GuardId == guard.GuardId &&
-                                                      c.CheckInTime.Date == s.ShiftDate.Date &&
+                                                      c.CheckInTime.Date == s.RosterDate.Date &&
                                                       c.Status == "Checked Out"),
-                        IsToday = s.ShiftDate.Date == today
+                        IsToday = s.RosterDate.Date == today
                     }).ToList(),
                     CheckIns = checkIns
                 };
@@ -304,7 +304,7 @@ namespace PiranaSecuritySystem.Controllers
 
         // POST: Guard/CheckIn
         [HttpPost]
-        public JsonResult CheckIn(int shiftId)
+        public JsonResult CheckIn(int RosterId)
         {
             try
             {
@@ -316,7 +316,7 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Guard not found" });
                 }
 
-                var shift = db.Shifts.FirstOrDefault(s => s.ShiftId == shiftId && s.GuardId == guard.GuardId);
+                var shift = db.ShiftRosters.FirstOrDefault(s => s.RosterId == RosterId && s.GuardId == guard.GuardId);
 
                 if (shift == null)
                 {
@@ -366,7 +366,7 @@ namespace PiranaSecuritySystem.Controllers
 
         // POST: Guard/CheckOut
         [HttpPost]
-        public JsonResult CheckOut(int shiftId)
+        public JsonResult CheckOut(int RosterId)
         {
             try
             {
@@ -378,7 +378,7 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Guard not found" });
                 }
 
-                var shift = db.Shifts.FirstOrDefault(s => s.ShiftId == shiftId && s.GuardId == guard.GuardId);
+                var shift = db.ShiftRosters.FirstOrDefault(s => s.RosterId == RosterId && s.GuardId == guard.GuardId);
 
                 if (shift == null)
                 {

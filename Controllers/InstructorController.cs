@@ -85,7 +85,7 @@ namespace PiranaSecuritySystem.Controllers
                     var start = startDate ?? DateTime.Today;
                     var end = endDate ?? DateTime.Today.AddDays(7);
 
-                    var roster = new Shift
+                    var roster = new ShiftRoster
                     {
                         InstructorName = instructor.FullName,
                         GeneratedDate = DateTime.Now,
@@ -96,11 +96,11 @@ namespace PiranaSecuritySystem.Controllers
                         TrainingType = trainingType
                     };
 
-                    db.Shifts.Add(roster);
+                    db.ShiftRosters.Add(roster);
                     db.SaveChanges();
 
                     TempData["SuccessMessage"] = "Training roster generated successfully!";
-                    return RedirectToAction("ViewRoster", new { id = roster.ShiftId });
+                    return RedirectToAction("ViewRoster", new { id = roster.RosterId });
                 }
                 else
                 {
@@ -119,7 +119,7 @@ namespace PiranaSecuritySystem.Controllers
         // GET: Instructor/ViewRoster
         public ActionResult ViewRoster(int id)
         {
-            var roster = db.Shifts.Find(id);
+            var roster = db.ShiftRosters.Find(id);
             if (roster == null)
             {
                 TempData["ErrorMessage"] = "Roster not found.";
@@ -206,7 +206,7 @@ Notes:
                     return RedirectToAction("Dashboard");
                 }
 
-                var trainings = db.Shifts
+                var trainings = db.ShiftRosters
                     .Where(s => s.InstructorName == instructor.FullName)
                     .OrderByDescending(s => s.GeneratedDate)
                     .ToList();

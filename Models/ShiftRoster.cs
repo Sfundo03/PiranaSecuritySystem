@@ -1,0 +1,71 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace PiranaSecuritySystem.Models
+{
+    public class ShiftRoster
+    {
+        [Key]
+        [Display(Name = "Roster ID")]
+        public int RosterId { get; set; }
+
+        [Required]
+        [Display(Name = "Roster Date")]
+        [DataType(DataType.Date)]
+        public DateTime RosterDate { get; set; }
+
+        [Required]
+        [Display(Name = "Shift Type")]
+        public string ShiftType { get; set; } // "Day", "Night", "Off"
+
+        [Required]
+        [Display(Name = "Guard")]
+        public int GuardId { get; set; }
+
+        [ForeignKey("GuardId")]
+        public virtual Guard Guard { get; set; }
+
+        [Display(Name = "Created Date")]
+        public DateTime CreatedDate { get; set; }
+
+        [Display(Name = "Modified Date")]
+        public DateTime? ModifiedDate { get; set; }
+        public string Location { get; internal set; }
+        public string Status { get; internal set; }
+        public string InstructorName { get; internal set; }
+        public object GeneratedDate { get; internal set; }
+        public string Specialization { get; internal set; }
+        public string RosterData { get; internal set; }
+        public DateTime StartDate { get; internal set; }
+        public string TrainingType { get; internal set; }
+        public DateTime EndDate { get; internal set; }
+    }
+
+    public class RosterViewModel
+    {
+        [Required]
+        [Display(Name = "Roster Date")]
+        [DataType(DataType.Date)]
+        public DateTime RosterDate { get; set; }
+
+        [Required(ErrorMessage = "Please select exactly 12 guards")]
+        [Display(Name = "Selected Guards")]
+        public List<int> SelectedGuardIds { get; set; } = new List<int>();
+
+        // These will be auto-generated
+        public List<Guard> DayShiftGuards { get; set; } = new List<Guard>();
+        public List<Guard> NightShiftGuards { get; set; } = new List<Guard>();
+        public List<Guard> OffDutyGuards { get; set; } = new List<Guard>();
+    }
+
+    public class RosterDisplayViewModel
+    {
+        public DateTime RosterDate { get; set; }
+        public List<Guard> DayShiftGuards { get; set; }
+        public List<Guard> NightShiftGuards { get; set; }
+        public List<Guard> OffDutyGuards { get; set; }
+        public int RosterId { get; set; }
+    }
+}
