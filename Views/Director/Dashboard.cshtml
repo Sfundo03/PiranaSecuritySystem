@@ -1,12 +1,12 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Director Dashboard - PIRANA GUARDING</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
         :root {
             --primary-blue: #0069aa;
@@ -22,7 +22,8 @@
             background-color: var(--light-bg);
             font-family: 'Roboto', sans-serif;
             color: var(--dark-text);
-            padding-top: 20px;
+            padding: 20px;
+            min-height: 100vh;
         }
 
         .card {
@@ -35,39 +36,107 @@
         .card-header {
             background: white;
             color: var(--primary-blue);
-            border-bottom: 2px solid var(--primary-blue);
+            border-bottom: 3px solid var(--primary-blue);
             font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 0.02em;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--primary-blue);
+            font-weight: 700;
         }
 
         .btn-primary {
             background: var(--primary-blue);
             border: none;
+            font-weight: 600;
         }
 
             .btn-primary:hover {
                 background: var(--secondary-blue);
+                box-shadow: 0 0 8px var(--secondary-blue);
             }
+
+        .btn-outline-primary, .btn-outline-info, .btn-outline-success {
+            font-weight: 600;
+        }
 
         .alert {
             border-radius: 6px;
-            border-left: 3px solid;
+            border-left: 4px solid;
+            font-size: 0.95rem;
         }
 
         .alert-success {
             border-left-color: #28a745;
+            background-color: #e9f8ee;
+            color: #185c2b;
         }
 
         .alert-info {
             border-left-color: var(--primary-blue);
+            background-color: #e9eff7;
+            color: var(--primary-blue);
         }
 
         .alert-danger {
             border-left-color: #dc3545;
+            background-color: #f9e6e9;
+            color: #781b22;
         }
 
         .badge {
-            font-weight: 500;
+            font-weight: 600;
             padding: 0.5em 0.8em;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+            .badge.bg-success {
+                background-color: #1cc88a;
+            }
+
+            .badge.bg-primary {
+                background-color: #4e73df;
+            }
+
+            .badge.bg-warning {
+                background-color: #f6c23e;
+                color: #212529;
+            }
+
+            .badge.bg-secondary {
+                background-color: #858796;
+            }
+
+            .badge.bg-danger {
+                background-color: #e74a3b;
+            }
+
+            .badge.bg-info {
+                background-color: #36b9cc;
+            }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1.2rem;
+            height: 1.2rem;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+            vertical-align: text-bottom;
+        }
+
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .notification-bell {
@@ -76,28 +145,28 @@
 
         .notification-dropdown {
             position: absolute;
-            top: 100%;
+            top: 110%;
             right: 0;
-            width: 400px;
+            width: 420px;
             max-height: 500px;
             overflow-y: auto;
             background: white;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            z-index: 1050;
+            border-radius: 8px;
+            box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.18);
+            z-index: 1100;
             display: none;
         }
 
         .notification-item {
-            padding: 1rem;
+            padding: 1rem 1rem 0.8rem 1rem;
             border-bottom: 1px solid #e9ecef;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.2s ease;
         }
 
             .notification-item.unread {
-                background-color: #f8f9fa;
+                background-color: #f5f9ff;
                 border-left: 4px solid var(--primary-blue);
             }
 
@@ -105,340 +174,262 @@
                 background-color: #e3f2fd;
             }
 
-        .border-left-primary {
-            border-left: 4px solid #4e73df !important;
-        }
-
-        .border-left-success {
-            border-left: 4px solid #1cc88a !important;
-        }
-
-        .border-left-info {
-            border-left: 4px solid #36b9cc !important;
-        }
-
-        .border-left-warning {
-            border-left: 4px solid #f6c23e !important;
-        }
-
-        .border-left-danger {
-            border-left: 4px solid #e74a3b !important;
-        }
-
-        .border-left-secondary {
-            border-left: 4px solid #858796 !important;
-        }
-
-        .border-left-dark {
-            border-left: 4px solid #5a5c69 !important;
-        }
-
-        .bg-purple {
-            background-color: #6f42c1 !important;
-        }
-
-        .bg-teal {
-            background-color: #20c9a6 !important;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            color: var(--primary-blue);
+        .notification-header, .notification-footer {
+            background-color: #f7fafd;
             font-weight: 600;
         }
 
-        .table th {
+        .notification-title strong {
+            font-size: 0.95rem;
+        }
+
+        .notification-time {
+            font-size: 0.75rem;
+            color: var(--light-text);
+        }
+
+        .notification-message {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+            color: var(--dark-text);
+        }
+
+        .notification-type.badge {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .d-flex.align-items-center > i.fa-user-shield {
             color: var(--primary-blue);
-            font-weight: 500;
         }
 
-        .loading-spinner {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .btn-sm {
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 4px;
         }
 
-        @@keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .text-muted {
+            font-size: 0.9rem;
+        }
+
+        .table thead th {
+            color: var(--primary-blue);
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .table tbody tr:hover {
+            background-color: #f5f9ff;
         }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-12">
-                <!-- Login Success Notification at the top -->
+            <div class="col-12 px-md-5">
+                <!-- Login Success Notification -->
                 <div class="alert alert-success alert-dismissible fade show mb-4" role="alert" style="display: none;">
                     <i class="fas fa-check-circle me-2"></i>
                     <strong id="successMessage"></strong>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-
                 <!-- Page Header with Notification Bell -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <header class="d-flex justify-content-between align-items-center mb-4 pt-3 border-bottom">
                     <div>
                         <h1 class="h3 mb-1">Director Dashboard</h1>
-                        <p class="text-muted">Welcome to the security management system</p>
+                        <p class="text-muted mb-0">Overview and management of all security operations</p>
                     </div>
-
-                    <!-- Notification Bell -->
-                    <div class="notification-bell">
-                        <a href="#" id="directorNotificationBell" class="btn btn-outline-primary position-relative">
+                    <div class="notification-bell" aria-label="Notifications">
+                        <a href="#" id="directorNotificationBell" class="btn btn-outline-primary position-relative" aria-expanded="false" aria-controls="directorNotificationDropdown" role="button" title="Notifications">
                             <i class="fas fa-bell"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationCount" style="display: none;">
                                 0
                                 <span class="visually-hidden">unread notifications</span>
                             </span>
                         </a>
-                        <div class="notification-dropdown" id="directorNotificationDropdown">
+                        <div class="notification-dropdown" id="directorNotificationDropdown" aria-live="polite" aria-label="Notifications List" role="region" tabindex="-1">
                             <div class="notification-header p-3 border-bottom d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">All Notifications</span>
-                                <a href="#" class="mark-all-read small" id="markAllAsRead" style="display: none;">Mark all as read</a>
+                                <span>All Notifications</span>
+                                <a href="#" class="mark-all-read small text-decoration-none" id="markAllAsRead" style="display: none;">Mark all as read</a>
                             </div>
-                            <div id="directorNotificationList">
-                                <div class="notification-item text-center py-3">
-                                    <i class="fas fa-bell-slash text-muted me-2"></i>
-                                    No notifications
+                            <div id="directorNotificationList" tabindex="0" style="outline:none;">
+                                <div class="notification-item text-center py-3 text-muted">
+                                    <i class="fas fa-bell-slash me-2"></i>No notifications
                                 </div>
                             </div>
                             <div class="notification-footer text-center p-2 border-top">
-                                <a href="@Url.Action("Notifications", "Director")" class="text-primary small">View all notifications</a>
+                                <a href="@Url.Action("Notifications", "Director")" class="text-primary small fw-semibold">View all notifications</a>
                             </div>
                         </div>
                     </div>
-                </div>
-
+                </header>
                 <!-- Error/Success Messages -->
                 <div class="alert alert-danger alert-dismissible fade show mb-4" id="errorAlert" style="display: none;">
                     <i class="fas fa-exclamation-circle me-2"></i>
                     <span id="errorMessage"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-
                 <div class="alert alert-success alert-dismissible fade show mb-4" id="successAlert" style="display: none;">
                     <i class="fas fa-check-circle me-2"></i>
                     <span id="successMessageAlt"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-
                 <!-- Welcome Message -->
-                <div class="alert alert-info mb-4">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-user-shield me-3 fa-2x"></i>
-                        <div>
-                            <h4 class="alert-heading mb-1">Welcome, Director!</h4>
-                            <p class="mb-0">You have successfully logged in to the Pirana Security System director panel.</p>
-                        </div>
+                <section class="alert alert-info mb-4 d-flex align-items-center gap-3">
+                    <i class="fas fa-user-shield fa-2x"></i>
+                    <div>
+                        <h4 class="alert-heading mb-1">Welcome, Director!</h4>
+                        <p class="mb-0 fs-6">You have successfully logged in to the Pirana Security System director panel.</p>
                     </div>
-                </div>
-
-                <!-- Quick Access Cards -->
-                <div class="row mb-4">
-                    <div class="col-xl-3 col-md-6 mb-4">
+                </section>
+                <!-- Quick Access Cards for Incident Summary -->
+                <section class="row mb-4 g-3">
+                    <div class="col-xl-3 col-md-6">
                         <div class="card border-left-primary h-100">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            Incident Reports
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalIncidents">
-                                            <span class="loading-spinner"></span>
-                                        </div>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-primary fw-semibold text-uppercase">Incident Reports</small>
+                                        <h3 class="mb-0 fw-bold" id="totalIncidents"><span class="loading-spinner"></span></h3>
                                     </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                                    </div>
+                                    <i class="fas fa-clipboard-list fa-3x text-muted"></i>
                                 </div>
-                                <div class="mt-2">
-                                    <a href="@Url.Action("Incidents", "Director")" class="btn btn-sm btn-primary">Manage Incidents</a>
+                                <div class="mt-3">
+                                    <a href="@Url.Action("Incidents", "Director")" class="btn btn-sm btn-primary w-100" aria-label="Manage Incident Reports">Manage Incidents</a>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="col-xl-3 col-md-6">
                         <div class="card border-left-success h-100">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                            Resolved Incidents
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="resolvedIncidents">
-                                            <span class="loading-spinner"></span>
-                                        </div>
-                                        <div class="mt-1">
-                                            <small class="text-success"><span id="resolvedPercentage">0</span>% resolved rate</small>
-                                        </div>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-success fw-semibold text-uppercase">Resolved Incidents</small>
+                                        <h3 class="mb-0 fw-bold" id="resolvedIncidents"><span class="loading-spinner"></span></h3>
+                                        <small class="text-success"><span id="resolvedPercentage">0</span>% resolved rate</small>
                                     </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                                    </div>
+                                    <i class="fas fa-check-circle fa-3x text-muted"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="col-xl-3 col-md-6">
                         <div class="card border-left-warning h-100">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                            This Month Incidents
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="thisMonthIncidents">
-                                            <span class="loading-spinner"></span>
-                                        </div>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-warning fw-semibold text-uppercase">This Month Incidents</small>
+                                        <h3 class="mb-0 fw-bold" id="thisMonthIncidents"><span class="loading-spinner"></span></h3>
                                     </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
-                                    </div>
+                                    <i class="fas fa-calendar fa-3x text-muted"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="col-xl-3 col-md-6">
                         <div class="card border-left-danger h-100">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                            Urgent Incidents
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="urgentIncidents">
-                                            <span class="loading-spinner"></span>
-                                        </div>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-danger fw-semibold text-uppercase">Urgent Incidents</small>
+                                        <h3 class="mb-0 fw-bold" id="urgentIncidents"><span class="loading-spinner"></span></h3>
                                     </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                                    </div>
+                                    <i class="fas fa-exclamation-triangle fa-3x text-muted"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Guard Statistics Row -->
-                <div class="row mb-4">
-                    <div class="col-xl-4 col-md-6 mb-4">
+                </section>
+                <!-- Guard Activity Summary -->
+                <section class="row mb-4 g-3">
+                    <div class="col-xl-4 col-md-6">
                         <div class="card border-left-info h-100">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                            Total Check-ins
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalCheckIns">
-                                            <span class="loading-spinner"></span>
-                                        </div>
-                                        <div class="mt-1">
-                                            <small class="text-muted">All guard activities</small>
-                                        </div>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-info fw-semibold text-uppercase">Total Check-ins</small>
+                                        <h3 class="mb-0 fw-bold" id="totalCheckIns"><span class="loading-spinner"></span></h3>
+                                        <small class="text-muted">All guard activities</small>
                                     </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-history fa-2x text-gray-300"></i>
-                                    </div>
+                                    <i class="fas fa-history fa-3x text-muted"></i>
                                 </div>
-                                <div class="mt-2">
-                                    <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-sm btn-info">View Logs</a>
+                                <div class="mt-3">
+                                    <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-sm btn-info w-100" aria-label="View Guard Logs">View Logs</a>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="col-xl-4 col-md-6">
                         <div class="card border-left-secondary h-100">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                            Today's Check-ins
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="todayCheckIns">
-                                            <span class="loading-spinner"></span>
-                                        </div>
-                                        <div class="mt-1">
-                                            <small class="text-muted">Today's activities</small>
-                                        </div>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-secondary fw-semibold text-uppercase">Today's Check-ins</small>
+                                        <h3 class="mb-0 fw-bold" id="todayCheckIns"><span class="loading-spinner"></span></h3>
+                                        <small class="text-muted">Today's activities</small>
                                     </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-clock fa-2x text-gray-300"></i>
-                                    </div>
+                                    <i class="fas fa-clock fa-3x text-muted"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="col-xl-4 col-md-6">
                         <div class="card border-left-dark h-100">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
-                                            Currently On Duty
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="currentOnDuty">
-                                            <span class="loading-spinner"></span>
-                                        </div>
-                                        <div class="mt-1">
-                                            <small class="text-muted">Active guards</small>
-                                        </div>
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-dark fw-semibold text-uppercase">Currently On Duty</small>
+                                        <h3 class="mb-0 fw-bold" id="currentOnDuty"><span class="loading-spinner"></span></h3>
+                                        <small class="text-muted">Active guards</small>
                                     </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-user-shield fa-2x text-gray-300"></i>
-                                    </div>
+                                    <i class="fas fa-user-shield fa-3x text-muted"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Recent Activity Section -->
-                <div class="row">
+                </section>
+                <!-- Recent Incident Activity -->
+                <section class="row mb-4">
                     <div class="col-12">
-                        <div class="card">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="m-0 font-weight-bold">Recent Incident Activity</h6>
-                                <a href="@Url.Action("Incidents", "Director")" class="btn btn-sm btn-primary">View All</a>
+                        <div class="card shadow-sm">
+                            <div class="card-header d-flex justify-content-between align-items-center px-4 py-3">
+                                <h6 class="m-0 fw-bold">Recent Incident Activity</h6>
+                                <a href="@Url.Action("IncidentDetails", "Director")" class="btn btn-sm btn-primary">View All</a>
                             </div>
-                            <div class="card-body" id="recentIncidentsContainer">
-                                <div class="alert alert-info text-center py-4">
+                            <div class="card-body px-4" id="recentIncidentsContainer">
+                                <div class="alert alert-info text-center py-5 mb-0">
                                     <i class="fas fa-info-circle me-2"></i>
                                     Loading recent incidents...
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Additional Quick Actions -->
-                <div class="row">
+                </section>
+                <!-- Quick Actions -->
+                <section class="row">
                     <div class="col-12">
-                        <div class="card">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold">Quick Actions</h6>
+                        <div class="card shadow-sm">
+                            <div class="card-header py-3 px-4">
+                                <h6 class="m-0 fw-bold">Quick Actions</h6>
                             </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-4 mb-3">
-                                        <a href="@Url.Action("Reports", "Director")" class="btn btn-outline-primary w-100">
+                            <div class="card-body px-4">
+                                <div class="row g-3">
+                                    <div class="col-md-4 d-grid">
+                                        <a href="@Url.Action("Incidents", "Director")" class="btn btn-outline-primary">
                                             <i class="fas fa-chart-bar me-2"></i>View Reports
                                         </a>
                                     </div>
-                                    <div class="col-md-4 mb-3">
-                                        <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-outline-info w-100">
+                                    <div class="col-md-4 d-grid">
+                                        <a href="@Url.Action("GuardLogs", "Director")" class="btn btn-outline-info">
                                             <i class="fas fa-clipboard-list me-2"></i>Guard Logs
                                         </a>
                                     </div>
-                                    <div class="col-md-4 mb-3">
-                                        <a href="@Url.Action("Reports", "Director")" class="btn btn-outline-success w-100">
+                                    <div class="col-md-4 d-grid">
+                                        <a href="@Url.Action("Statistics", "Director")" class="btn btn-outline-success">
                                             <i class="fas fa-chart-pie me-2"></i>Statistics
                                         </a>
                                     </div>
@@ -446,231 +437,223 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     </div>
-
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Load dashboard statistics
             loadDashboardStats();
-
-            // Load recent incidents
             loadRecentIncidents();
-
-            // Load notifications
             loadNotifications();
 
-            // Notification bell functionality
             const notificationBell = document.getElementById('directorNotificationBell');
             const notificationDropdown = document.getElementById('directorNotificationDropdown');
 
             notificationBell.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function (e) {
-                if (!e.target.closest('.notification-bell')) {
-                    notificationDropdown.style.display = 'none';
+                const visible = notificationDropdown.style.display === 'block';
+                notificationDropdown.style.display = visible ? 'none' : 'block';
+                notificationBell.setAttribute('aria-expanded', !visible);
+                if (!visible) {
+                    notificationDropdown.focus();
                 }
             });
 
-            // Mark all as read functionality
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('.notification-bell')) {
+                    notificationDropdown.style.display = 'none';
+                    notificationBell.setAttribute('aria-expanded', 'false');
+                }
+            });
+
             document.getElementById('markAllAsRead').addEventListener('click', function(e) {
                 e.preventDefault();
                 markAllNotificationsAsRead();
             });
 
-            // Check for login success message
+            // Show messages from TempData (use server rendering here)
             if ('@TempData["LoginSuccess"]' !== '') {
                 document.querySelector('.alert-success').style.display = 'block';
                 document.getElementById('successMessage').textContent = '@TempData["LoginSuccess"]';
             }
 
-            // Check for error message
             if ('@TempData["ErrorMessage"]' !== '') {
                 document.getElementById('errorAlert').style.display = 'block';
                 document.getElementById('errorMessage').textContent = '@TempData["ErrorMessage"]';
             }
         });
 
-        // Function to load dashboard statistics
         function loadDashboardStats() {
             fetch('@Url.Action("GetDashboardStats", "Director")')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        // Update incident statistics
-                        document.getElementById('totalIncidents').textContent = data.totalIncidents;
-                        document.getElementById('resolvedIncidents').textContent = data.resolvedIncidents;
-                        document.getElementById('thisMonthIncidents').textContent = data.thisMonthIncidents;
-                        document.getElementById('urgentIncidents').textContent = data.highPriorityIncidents + data.criticalPriorityIncidents;
+                    if (data.Success) {
+                        document.getElementById('totalIncidents').innerHTML = data.TotalIncidents.toLocaleString();
+                        document.getElementById('resolvedIncidents').innerHTML = data.ResolvedIncidents.toLocaleString();
+                        document.getElementById('thisMonthIncidents').innerHTML = data.ThisMonthIncidents.toLocaleString();
 
-                        // Calculate and update resolved percentage
-                        const resolvedPercentage = data.totalIncidents > 0
-                            ? Math.round((data.resolvedIncidents / data.totalIncidents) * 100)
+                        const urgentIncidents = data.HighPriorityIncidents + data.CriticalPriorityIncidents;
+                        document.getElementById('urgentIncidents').innerHTML = urgentIncidents.toLocaleString();
+
+                        document.getElementById('totalCheckIns').innerHTML = data.TotalGuardCheckIns.toLocaleString();
+                        document.getElementById('todayCheckIns').innerHTML = data.TodayCheckIns.toLocaleString();
+                        document.getElementById('currentOnDuty').innerHTML = data.CurrentOnDuty.toLocaleString();
+
+                        // Calculate resolved percentage
+                        const resolvedPercentage = data.TotalIncidents > 0
+                            ? Math.round((data.ResolvedIncidents / data.TotalIncidents) * 100)
                             : 0;
                         document.getElementById('resolvedPercentage').textContent = resolvedPercentage;
-
-                        // Update guard statistics
-                        document.getElementById('totalCheckIns').textContent = data.totalGuardCheckIns;
-                        document.getElementById('todayCheckIns').textContent = data.todayCheckIns;
-                        document.getElementById('currentOnDuty').textContent = data.currentOnDuty;
                     } else {
-                        showError('Failed to load dashboard statistics');
+                        showError('Failed to load dashboard statistics: ' + data.Error);
                     }
                 })
                 .catch(error => {
                     console.error('Error loading dashboard stats:', error);
-                    showError('Error loading dashboard statistics');
+                    showError('Failed to load dashboard statistics');
                 });
         }
 
-        // Function to load recent incidents
         function loadRecentIncidents() {
             fetch('@Url.Action("GetRecentIncidents", "Director")')
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('recentIncidentsContainer');
 
-                    if (data.success && data.incidents.length > 0) {
-                        let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Status</th><th>Priority</th></tr></thead><tbody>';
+                    if (data.Success && data.Incidents && data.Incidents.length > 0) {
+                        let html = '<div class="table-responsive"><table class="table table-hover">';
+                        html += '<thead><tr><th>Type</th><th>Location</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>';
+                        html += '<tbody>';
 
-                        data.incidents.forEach(incident => {
+                        data.Incidents.forEach(incident => {
+                            const priorityClass = getPriorityClass(incident.Priority);
+                            const statusClass = getStatusClass(incident.Status);
+                            const date = new Date(incident.ReportDate).toLocaleDateString();
+
                             html += `<tr>
-                                <td>${new Date(incident.reportDate).toLocaleDateString()}</td>
-                                <td>${incident.incidentType}</td>
-                                <td>${incident.location}</td>
-                                <td><span class="badge ${getStatusBadgeClass(incident.status)}">${incident.status}</span></td>
-                                <td><span class="badge ${getPriorityBadgeClass(incident.priority)}">${incident.priority}</span></td>
+                                <td>${incident.IncidentType}</td>
+                                <td>${incident.Location}</td>
+                                <td><span class="badge ${priorityClass}">${incident.Priority}</span></td>
+                                <td><span class="badge ${statusClass}">${incident.Status}</span></td>
+                                <td>${date}</td>
                             </tr>`;
                         });
 
                         html += '</tbody></table></div>';
                         container.innerHTML = html;
                     } else {
-                        container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No recent incidents found.</div>';
+                        container.innerHTML = '<div class="alert alert-info text-center py-5 mb-0"><i class="fas fa-info-circle me-2"></i>No recent incidents found</div>';
                     }
                 })
                 .catch(error => {
                     console.error('Error loading recent incidents:', error);
                     document.getElementById('recentIncidentsContainer').innerHTML =
-                        '<div class="alert alert-danger text-center py-4"><i class="fas fa-exclamation-circle me-2"></i>Error loading recent incidents.</div>';
+                        '<div class="alert alert-danger text-center py-5 mb-0"><i class="fas fa-exclamation-circle me-2"></i>Failed to load recent incidents</div>';
                 });
         }
 
-        // Function to load notifications
         function loadNotifications() {
             fetch('@Url.Action("GetNotifications", "Director")')
                 .then(response => response.json())
                 .then(data => {
+                    if (data.error) {
+                        console.error('Error loading notifications:', data.error);
+                        return;
+                    }
+
                     const notificationList = document.getElementById('directorNotificationList');
                     const notificationCount = document.getElementById('notificationCount');
                     const markAllAsRead = document.getElementById('markAllAsRead');
 
-                    if (data.error) {
-                        notificationList.innerHTML = '<div class="notification-item text-center py-3"><i class="fas fa-exclamation-triangle text-muted me-2"></i>Error loading notifications</div>';
-                        return;
-                    }
-
                     if (data.notifications && data.notifications.length > 0) {
                         let html = '';
-                        let unreadCount = 0;
+                        let hasUnread = false;
 
                         data.notifications.forEach(notification => {
-                            if (!notification.isRead) unreadCount++;
+                            const isUnread = !notification.IsRead;
+                            if (isUnread) hasUnread = true;
 
-                            html += `<div class="notification-item ${notification.isRead ? '' : 'unread'}" data-id="${notification.notificationId}">
-                                <div class="notification-content">
-                                    <div class="notification-title d-flex justify-content-between">
-                                        <strong>${notification.title}</strong>
-                                        <span class="notification-time small text-muted">${formatNotificationTime(notification.createdAt)}</span>
+                            const timeAgo = getTimeAgo(new Date(notification.CreatedAt));
+                            const typeClass = getNotificationTypeClass(notification.NotificationType);
+
+                            html += `<div class="notification-item ${isUnread ? 'unread' : ''}" data-id="${notification.NotificationId}">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="notification-title">
+                                        <strong>${notification.Title}</strong>
                                     </div>
-                                    <div class="notification-message">${notification.message}</div>
-                                    <div class="mt-1">
-                                        <span class="notification-type badge ${getNotificationTypeBadgeClass(notification.notificationType)}">${notification.notificationType}</span>
-                                        ${notification.isImportant ? '<span class="badge bg-danger ms-1">Important</span>' : ''}
-                                    </div>
+                                    <span class="notification-type badge ${typeClass}">${notification.NotificationType}</span>
+                                </div>
+                                <div class="notification-message">${notification.Message}</div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="notification-time">${timeAgo}</small>
+                                    ${isUnread ? '<span class="badge bg-primary">New</span>' : ''}
                                 </div>
                             </div>`;
                         });
 
                         notificationList.innerHTML = html;
+                        notificationCount.textContent = data.unreadCount;
+                        notificationCount.style.display = data.unreadCount > 0 ? 'block' : 'none';
+                        markAllAsRead.style.display = data.unreadCount > 0 ? 'block' : 'none';
 
-                        // Update notification count
-                        if (unreadCount > 0) {
-                            notificationCount.style.display = 'block';
-                            notificationCount.textContent = unreadCount;
-                        } else {
-                            notificationCount.style.display = 'none';
-                        }
-
-                        // Show mark all as read button if there are unread notifications
-                        markAllAsRead.style.display = unreadCount > 0 ? 'block' : 'none';
-
-                        // Add click handlers to notifications
+                        // Add click handlers to mark notifications as read
                         document.querySelectorAll('.notification-item').forEach(item => {
                             item.addEventListener('click', function() {
                                 const notificationId = this.getAttribute('data-id');
                                 markNotificationAsRead(notificationId);
-
-                                // Check if there's a related URL to navigate to
-                                const notification = data.notifications.find(n => n.notificationId == notificationId);
-                                if (notification && notification.relatedUrl) {
-                                    window.location.href = notification.relatedUrl;
-                                }
                             });
                         });
                     } else {
-                        notificationList.innerHTML = '<div class="notification-item text-center py-3"><i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>';
+                        notificationList.innerHTML = '<div class="notification-item text-center py-3 text-muted"><i class="fas fa-bell-slash me-2"></i>No notifications</div>';
                         notificationCount.style.display = 'none';
                         markAllAsRead.style.display = 'none';
                     }
                 })
                 .catch(error => {
                     console.error('Error loading notifications:', error);
-                    document.getElementById('directorNotificationList').innerHTML =
-                        '<div class="notification-item text-center py-3"><i class="fas fa-exclamation-triangle text-muted me-2"></i>Error loading notifications</div>';
                 });
         }
 
-        // Function to mark a notification as read
-        function markNotificationAsRead(notificationId) {
+        function markNotificationAsRead(id) {
             fetch('@Url.Action("MarkNotificationAsRead", "Director")', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ id: notificationId })
+                body: JSON.stringify({ id: parseInt(id) })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update UI to reflect read status
-                    const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                    // Update UI
+                    const notificationItem = document.querySelector(`.notification-item[data-id="${id}"]`);
                     if (notificationItem) {
                         notificationItem.classList.remove('unread');
-                    }
+                        notificationItem.querySelector('.badge.bg-primary')?.remove();
 
-                    // Update notification count
-                    const currentCount = parseInt(document.getElementById('notificationCount').textContent);
-                    if (currentCount > 1) {
-                        document.getElementById('notificationCount').textContent = currentCount - 1;
-                    } else {
-                        document.getElementById('notificationCount').style.display = 'none';
-                        document.getElementById('markAllAsRead').style.display = 'none';
+                        // Update count
+                        const currentCount = parseInt(document.getElementById('notificationCount').textContent);
+                        const newCount = currentCount - 1;
+                        document.getElementById('notificationCount').textContent = newCount;
+
+                        if (newCount <= 0) {
+                            document.getElementById('notificationCount').style.display = 'none';
+                            document.getElementById('markAllAsRead').style.display = 'none';
+                        }
                     }
+                } else {
+                    console.error('Failed to mark notification as read:', data.error);
                 }
             })
-            .catch(error => console.error('Error marking notification as read:', error));
+            .catch(error => {
+                console.error('Error marking notification as read:', error);
+            });
         }
 
-        // Function to mark all notifications as read
         function markAllNotificationsAsRead() {
             fetch('@Url.Action("MarkAllNotificationsAsRead", "Director")', {
                 method: 'POST',
@@ -681,83 +664,103 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update all notifications to appear as read
-                    document.querySelectorAll('.notification-item').forEach(item => {
+                    // Update UI
+                    document.querySelectorAll('.notification-item.unread').forEach(item => {
                         item.classList.remove('unread');
+                        item.querySelector('.badge.bg-primary')?.remove();
                     });
 
-                    // Hide notification count and mark all as read button
                     document.getElementById('notificationCount').style.display = 'none';
                     document.getElementById('markAllAsRead').style.display = 'none';
+                    document.getElementById('notificationCount').textContent = '0';
 
                     showSuccess(`${data.markedCount} notifications marked as read`);
+                } else {
+                    console.error('Failed to mark all notifications as read:', data.error);
+                    showError('Failed to mark all notifications as read');
                 }
             })
             .catch(error => {
                 console.error('Error marking all notifications as read:', error);
-                showError('Error marking notifications as read');
+                showError('Failed to mark all notifications as read');
             });
         }
 
-        // Helper function to format notification time
-        function formatNotificationTime(dateString) {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
+        function getPriorityClass(priority) {
+            switch (priority.toLowerCase()) {
+                case 'high': return 'bg-warning';
+                case 'critical': return 'bg-danger';
+                case 'medium': return 'bg-info';
+                case 'low': return 'bg-secondary';
+                default: return 'bg-secondary';
+            }
+        }
 
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins} min ago`;
-            if (diffHours < 24) return `${diffHours} hr ago`;
-            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'resolved': return 'bg-success';
+                case 'in progress': return 'bg-primary';
+                case 'pending': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getNotificationTypeClass(type) {
+            switch (type.toLowerCase()) {
+                case 'alert': return 'bg-danger';
+                case 'warning': return 'bg-warning';
+                case 'info': return 'bg-info';
+                case 'success': return 'bg-success';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) {
+                return 'Just now';
+            }
+
+            const diffInMinutes = Math.floor(diffInSeconds / 60);
+            if (diffInMinutes < 60) {
+                return `${diffInMinutes} min ago`;
+            }
+
+            const diffInHours = Math.floor(diffInMinutes / 60);
+            if (diffInHours < 24) {
+                return `${diffInHours} hr ago`;
+            }
+
+            const diffInDays = Math.floor(diffInHours / 24);
+            if (diffInDays < 30) {
+                return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
+            }
 
             return date.toLocaleDateString();
         }
 
-        // Helper function to get status badge class
-        function getStatusBadgeClass(status) {
-            switch (status) {
-                case 'Resolved': return 'bg-success';
-                case 'In Progress': return 'bg-primary';
-                case 'Pending': return 'bg-warning';
-                default: return 'bg-secondary';
-            }
-        }
-
-        // Helper function to get priority badge class
-        function getPriorityBadgeClass(priority) {
-            switch (priority) {
-                case 'Critical': return 'bg-danger';
-                case 'High': return 'bg-warning';
-                case 'Medium': return 'bg-info';
-                case 'Low': return 'bg-secondary';
-                default: return 'bg-secondary';
-            }
-        }
-
-        // Helper function to get notification type badge class
-        function getNotificationTypeBadgeClass(type) {
-            switch (type) {
-                case 'Incident': return 'bg-danger';
-                case 'Report': return 'bg-info';
-                case 'System': return 'bg-secondary';
-                case 'Security': return 'bg-warning';
-                default: return 'bg-secondary';
-            }
-        }
-
-        // Helper function to show error message
         function showError(message) {
-            document.getElementById('errorAlert').style.display = 'block';
+            const alert = document.getElementById('errorAlert');
             document.getElementById('errorMessage').textContent = message;
+            alert.style.display = 'block';
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
         }
 
-        // Helper function to show success message
         function showSuccess(message) {
-            document.getElementById('successAlert').style.display = 'block';
+            const alert = document.getElementById('successAlert');
             document.getElementById('successMessageAlt').textContent = message;
+            alert.style.display = 'block';
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
         }
     </script>
 </body>

@@ -1,11 +1,14 @@
 ﻿using PiranaSecuritySystem.Models;
+using PiranaSecuritySystem.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Data.Entity;
+using System.Data.Entity.Core.Objects;
 using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
-using System.Collections.Generic;
+
 
 namespace PiranaSecuritySystem.Controllers
 {
@@ -19,40 +22,58 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                // Get notifications for this director - FIXED
-                if (Session["DirectorId"] != null)
+                // Get current user's ID from Identity instead of session
+                var currentUserId = User.Identity.Name; // This gets the username/email
+
+                // Find director by email
+                var director = db.Directors.FirstOrDefault(d => d.Email == currentUserId);
+                if (director == null)
                 {
-                    var directorId = Session["DirectorId"].ToString(); // Get as string
-                    var notifications = db.Notifications
-                        .Where(n => n.UserId == directorId && n.UserType == "Director") // Use string comparison
-                        .OrderByDescending(n => n.CreatedAt)
-                        .ToList();
-
-                    ViewBag.Notifications = notifications;
-                    ViewBag.UnreadNotificationCount = notifications.Count(n => !n.IsRead);
-
-                    // Check if we should show login success message
-                    var loginNotification = notifications.FirstOrDefault(n => n.Message.Contains("logged in successfully"));
-                    if (loginNotification != null && !loginNotification.IsRead)
-                    {
-                        TempData["LoginSuccess"] = "You have successfully logged in!";
-                        loginNotification.IsRead = true;
-                        db.SaveChanges();
-                    }
+                    TempData["ErrorMessage"] = "Director profile not found.";
+                    return View();
                 }
 
-                // Calculate statistics directly
+                // Set session for future use
+                Session["DirectorId"] = director.DirectorId.ToString();
+
+                // Get notifications for this director
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == director.DirectorId.ToString() && n.UserType == "Director")
+                    .OrderByDescending(n => n.CreatedAt)
+                    .ToList();
+
+                ViewBag.Notifications = notifications;
+                ViewBag.UnreadNotificationCount = notifications.Count(n => !n.IsRead);
+
+                // Check if we should show login success message
+                var loginNotification = notifications.FirstOrDefault(n => n.Message.Contains("logged in successfully"));
+                if (loginNotification != null && !loginNotification.IsRead)
+                {
+                    TempData["LoginSuccess"] = "You have successfully logged in!";
+                    loginNotification.IsRead = true;
+                    db.SaveChanges();
+                }
+
+                // Calculate statistics with null checks
                 ViewBag.TotalIncidents = db.IncidentReports.Count();
                 ViewBag.ResolvedIncidents = db.IncidentReports.Count(i => i.Status == "Resolved");
                 ViewBag.PendingIncidents = db.IncidentReports.Count(i => i.Status == "Pending");
                 ViewBag.InProgressIncidents = db.IncidentReports.Count(i => i.Status == "In Progress");
                 ViewBag.HighPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "High");
                 ViewBag.CriticalPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "Critical");
-                ViewBag.ThisMonthIncidents = db.IncidentReports.Count(i => i.ReportDate.Month == DateTime.Now.Month && i.ReportDate.Year == DateTime.Now.Year);
 
-                // Guard statistics
+                // Fix for month comparison - use DbFunctions for database compatibility
+                var now = DateTime.Now;
+                ViewBag.ThisMonthIncidents = db.IncidentReports
+                    .Count(i => i.ReportDate.Month == now.Month && i.ReportDate.Year == now.Year);
+
+                // Guard statistics with null checks
                 ViewBag.TotalGuardCheckIns = db.GuardCheckIns.Count();
-                ViewBag.TodayCheckIns = db.GuardCheckIns.Count(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now));
+
+                // Updated: Replaced EntityFunctions with DbFunctions
+                ViewBag.TodayCheckIns = db.GuardCheckIns
+                    .Count(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now));
+
                 ViewBag.CurrentOnDuty = db.GuardCheckIns
                     .Where(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now) &&
                                g.Status == "Present")
@@ -70,6 +91,7 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Dashboard error: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
                 TempData["ErrorMessage"] = "Error loading dashboard statistics: " + ex.Message;
                 return View();
             }
@@ -81,15 +103,19 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
+                var now = DateTime.Now;
                 var stats = new
                 {
                     TotalIncidents = db.IncidentReports.Count(),
                     ResolvedIncidents = db.IncidentReports.Count(i => i.Status == "Resolved"),
-                    ThisMonthIncidents = db.IncidentReports.Count(i => i.ReportDate.Month == DateTime.Now.Month && i.ReportDate.Year == DateTime.Now.Year),
+                    ThisMonthIncidents = db.IncidentReports
+                        .Count(i => i.ReportDate.Month == now.Month && i.ReportDate.Year == now.Year),
                     HighPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "High"),
                     CriticalPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "Critical"),
                     TotalGuardCheckIns = db.GuardCheckIns.Count(),
-                    TodayCheckIns = db.GuardCheckIns.Count(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now)),
+                    // Updated: Replaced EntityFunctions with DbFunctions
+                    TodayCheckIns = db.GuardCheckIns
+                        .Count(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now)),
                     CurrentOnDuty = db.GuardCheckIns
                         .Where(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now) &&
                                    g.Status == "Present")
@@ -97,11 +123,11 @@ namespace PiranaSecuritySystem.Controllers
                         .Count(),
                     Success = true
                 };
-
                 return Json(stats, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("GetDashboardStats error: " + ex.Message);
                 return Json(new { Success = false, Error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
@@ -130,6 +156,7 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("GetRecentIncidents error: " + ex.Message);
                 return Json(new { Success = false, Error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
@@ -139,13 +166,24 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                if (Session["DirectorId"] == null)
+                // Get director ID from session or identity
+                string directorId = Session["DirectorId"] as string;
+                if (string.IsNullOrEmpty(directorId))
                 {
-                    TempData["ErrorMessage"] = "Please log in to view notifications.";
-                    return RedirectToAction("Login", "Account");
+                    var currentUser = User.Identity.Name;
+                    var director = db.Directors.FirstOrDefault(d => d.Email == currentUser);
+                    if (director != null)
+                    {
+                        directorId = director.DirectorId.ToString();
+                        Session["DirectorId"] = directorId;
+                    }
+                    else
+                    {
+                        TempData["ErrorMessage"] = "Please log in to view notifications.";
+                        return RedirectToAction("Login", "Account");
+                    }
                 }
 
-                var directorId = Session["DirectorId"].ToString();
                 var query = db.Notifications
                     .Where(n => n.UserId == directorId && n.UserType == "Director")
                     .AsQueryable();
@@ -171,14 +209,19 @@ namespace PiranaSecuritySystem.Controllers
                 // Order by creation date (newest first)
                 query = query.OrderByDescending(n => n.CreatedAt);
 
-                // For now, just get all notifications - you can implement pagination later
-                var notifications = query.ToList();
+                // Implement pagination
+                var totalCount = query.Count();
+                var notifications = query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
 
                 ViewBag.TypeFilter = typeFilter;
                 ViewBag.StatusFilter = statusFilter;
                 ViewBag.CurrentPage = page;
                 ViewBag.PageSize = pageSize;
-                ViewBag.TotalCount = query.Count();
+                ViewBag.TotalCount = totalCount;
+                ViewBag.TotalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
                 return View(notifications);
             }
@@ -196,12 +239,23 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                if (Session["DirectorId"] == null)
+                // Get director ID from session or identity
+                string directorId = Session["DirectorId"] as string;
+                if (string.IsNullOrEmpty(directorId))
                 {
-                    return Json(new { error = "Not authenticated" }, JsonRequestBehavior.AllowGet);
+                    var currentUser = User.Identity.Name;
+                    var director = db.Directors.FirstOrDefault(d => d.Email == currentUser);
+                    if (director != null)
+                    {
+                        directorId = director.DirectorId.ToString();
+                        Session["DirectorId"] = directorId;
+                    }
+                    else
+                    {
+                        return Json(new { error = "Not authenticated" }, JsonRequestBehavior.AllowGet);
+                    }
                 }
 
-                var directorId = Session["DirectorId"].ToString();
                 var notifications = db.Notifications
                     .Where(n => n.UserId == directorId && n.UserType == "Director")
                     .OrderByDescending(n => n.CreatedAt)
@@ -229,6 +283,7 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("GetNotifications error: " + ex.Message);
                 return Json(new { error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
@@ -239,13 +294,14 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                if (Session["DirectorId"] == null)
+                string directorId = Session["DirectorId"] as string;
+                if (string.IsNullOrEmpty(directorId))
                 {
                     return Json(new { success = false, error = "Not authenticated" });
                 }
 
                 var notification = db.Notifications.Find(id);
-                if (notification != null && notification.UserId == Session["DirectorId"].ToString() && notification.UserType == "Director")
+                if (notification != null && notification.UserId == directorId && notification.UserType == "Director")
                 {
                     notification.IsRead = true;
                     db.SaveChanges();
@@ -256,6 +312,7 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("MarkNotificationAsRead error: " + ex.Message);
                 return Json(new { success = false, error = ex.Message });
             }
         }
@@ -266,12 +323,12 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                if (Session["DirectorId"] == null)
+                string directorId = Session["DirectorId"] as string;
+                if (string.IsNullOrEmpty(directorId))
                 {
                     return Json(new { success = false, error = "Not authenticated" });
                 }
 
-                var directorId = Session["DirectorId"].ToString();
                 var notifications = db.Notifications
                     .Where(n => n.UserId == directorId && n.UserType == "Director" && !n.IsRead)
                     .ToList();
@@ -282,10 +339,12 @@ namespace PiranaSecuritySystem.Controllers
                 }
 
                 db.SaveChanges();
+
                 return Json(new { success = true, markedCount = notifications.Count });
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("MarkAllNotificationsAsRead error: " + ex.Message);
                 return Json(new { success = false, error = ex.Message });
             }
         }
@@ -296,13 +355,14 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                if (Session["DirectorId"] == null)
+                string directorId = Session["DirectorId"] as string;
+                if (string.IsNullOrEmpty(directorId))
                 {
                     return Json(new { success = false, error = "Not authenticated" });
                 }
 
                 var notification = db.Notifications.Find(id);
-                if (notification != null && notification.UserId == Session["DirectorId"].ToString() && notification.UserType == "Director")
+                if (notification != null && notification.UserId == directorId && notification.UserType == "Director")
                 {
                     db.Notifications.Remove(notification);
                     db.SaveChanges();
@@ -313,6 +373,7 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("DeleteNotification error: " + ex.Message);
                 return Json(new { success = false, error = ex.Message });
             }
         }
@@ -323,12 +384,12 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                if (Session["DirectorId"] == null)
+                string directorId = Session["DirectorId"] as string;
+                if (string.IsNullOrEmpty(directorId))
                 {
                     return Json(new { success = false, error = "Not authenticated" });
                 }
 
-                var directorId = Session["DirectorId"].ToString();
                 var notifications = db.Notifications
                     .Where(n => n.UserId == directorId && n.UserType == "Director" && ids.Contains(n.NotificationId))
                     .ToList();
@@ -340,6 +401,7 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("DeleteMultipleNotifications error: " + ex.Message);
                 return Json(new { success = false, error = ex.Message });
             }
         }
@@ -348,12 +410,12 @@ namespace PiranaSecuritySystem.Controllers
         [ChildActionOnly]
         public ActionResult NotificationBellPartial()
         {
-            if (Session["DirectorId"] == null)
+            string directorId = Session["DirectorId"] as string;
+            if (string.IsNullOrEmpty(directorId))
             {
                 return PartialView("_NotificationBell", new List<Notification>());
             }
 
-            var directorId = Session["DirectorId"].ToString();
             var notifications = db.Notifications
                 .Where(n => n.UserId == directorId && n.UserType == "Director")
                 .OrderByDescending(n => n.CreatedAt)
@@ -371,7 +433,6 @@ namespace PiranaSecuritySystem.Controllers
                 // Set default date range to current month if not specified
                 if (!startDate.HasValue)
                     startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-
                 if (!endDate.HasValue)
                     endDate = DateTime.Now.Date.AddDays(1).AddSeconds(-1); // End of today
 
@@ -415,7 +476,6 @@ namespace PiranaSecuritySystem.Controllers
                 // Set default date range to current month if not specified
                 if (!startDate.HasValue)
                     startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-
                 if (!endDate.HasValue)
                     endDate = DateTime.Now.Date.AddDays(1).AddSeconds(-1); // End of today
 
@@ -657,21 +717,18 @@ namespace PiranaSecuritySystem.Controllers
                         .Select(g => new { Month = g.Key, Count = g.Count() })
                         .OrderBy(x => x.Month)
                         .ToList(),
-
                     IncidentByType = db.IncidentReports
                         .GroupBy(i => i.IncidentType)
                         .Select(g => new { Type = g.Key, Count = g.Count() })
                         .OrderByDescending(x => x.Count)
                         .ToList(),
-
                     IncidentByStatus = db.IncidentReports
                         .GroupBy(i => i.Status)
                         .Select(g => new { Status = g.Key, Count = g.Count() })
                         .ToList(),
-
                     AverageResolutionTime = db.IncidentReports
-                        .Where(i => i.Status == "Resolved")
-                        .Average(i => (DateTime.Now - i.ReportDate).TotalDays)
+                        .Where(i => i.Status == "Resolved" && i.FeedbackDate != null)
+                        .Average(i => (i.FeedbackDate.Value - i.ReportDate).TotalDays)
                 };
 
                 return View(reportData);
@@ -680,6 +737,48 @@ namespace PiranaSecuritySystem.Controllers
             {
                 System.Diagnostics.Debug.WriteLine("Reports error: " + ex.Message);
                 TempData["ErrorMessage"] = "Error generating reports.";
+                return View();
+            }
+        }
+
+        // GET: Director/Statistics
+        public ActionResult Statistics()
+        {
+            try
+            {
+                // Get incident statistics
+                var incidentStats = new
+                {
+                    TotalIncidents = db.IncidentReports.Count(),
+                    ResolvedIncidents = db.IncidentReports.Count(i => i.Status == "Resolved"),
+                    PendingIncidents = db.IncidentReports.Count(i => i.Status == "Pending"),
+                    InProgressIncidents = db.IncidentReports.Count(i => i.Status == "In Progress"),
+                    HighPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "High"),
+                    CriticalPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "Critical"),
+                    ThisMonthIncidents = db.IncidentReports.Count(i => i.ReportDate.Month == DateTime.Now.Month && i.ReportDate.Year == DateTime.Now.Year)
+                };
+
+                // Get guard statistics
+                var guardStats = new
+                {
+                    TotalGuards = db.Guards.Count(g => g.IsActive),
+                    TotalCheckIns = db.GuardCheckIns.Count(),
+                    TodayCheckIns = db.GuardCheckIns.Count(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now)),
+                    CurrentOnDuty = db.GuardCheckIns
+                        .Where(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now) && g.Status == "Present")
+                        .GroupBy(g => g.GuardId)
+                        .Count()
+                };
+
+                ViewBag.IncidentStats = incidentStats;
+                ViewBag.GuardStats = guardStats;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Statistics error: " + ex.Message);
+                TempData["ErrorMessage"] = "Error loading statistics.";
                 return View();
             }
         }
@@ -722,6 +821,7 @@ namespace PiranaSecuritySystem.Controllers
                     badgeClass = "badge badge-secondary";
                     break;
             }
+
             return new HtmlString($"<span class='{badgeClass}'>{status}</span>");
         }
 

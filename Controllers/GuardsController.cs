@@ -519,6 +519,8 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+
+
         // API: Mark all notifications as read
         [HttpPost]
         public JsonResult MarkAllNotificationsAsRead()

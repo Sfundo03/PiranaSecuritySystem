@@ -1,249 +1,126 @@
-﻿@model PiranaSecuritySystem.Models.IncidentReport
+﻿@model IEnumerable<PiranaSecuritySystem.Models.GuardCheckIn>
 @{
-    ViewBag.Title = "Incident Details";
+    ViewBag.Title = "Guard Logs";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Incident Details</h1>
+        <h1 class="h3 mb-0 text-gray-800">Guard Check-in Logs</h1>
         <div>
-            <a href="@Url.Action("Incidents", "Director")" class="btn btn-secondary btn-sm">
-                <i class="fas fa-arrow-left"></i> Back to Incidents
+            <a href="@Url.Action("Dashboard", "Director")" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <a href="@Url.Action("GuardLogsExport", "Director", new { startDate = ViewBag.StartDate, endDate = ViewBag.EndDate, guardId = ViewBag.GuardId })"
+               class="btn btn-success btn-sm">
+                <i class="fas fa-download"></i> Export to CSV
             </a>
         </div>
     </div>
 
-    <!-- Incident Details Card -->
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Incident Information</h6>
-                    <span>ID: INC-@Model.IncidentReportId.ToString("D4")</span>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold">Incident Type:</label>
-                                <p class="form-control-plaintext">@Model.IncidentType</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold">Priority:</label>
-                                <p>@GetPriorityBadge(Model.Priority)</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold">Current Status:</label>
-                                <p>@GetStatusBadge(Model.Status)</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold">Report Date:</label>
-                                <p class="form-control-plaintext">@Model.ReportDate.ToString("MM/dd/yyyy HH:mm")</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Location:</label>
-                        <p class="form-control-plaintext">@Model.Location</p>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Description:</label>
-                        <div class="border rounded p-3 bg-light">
-                            @Model.Description
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+    <!-- Filter Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filter Logs</h6>
         </div>
-
-        <div class="col-lg-4">
-            <!-- Resident Information -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Resident Information</h6>
+        <div class="card-body">
+            @using (Html.BeginForm("GuardLogs", "Director", FormMethod.Get))
+            {
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" name="startDate" class="form-control" value="@ViewBag.StartDate" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" name="endDate" class="form-control" value="@ViewBag.EndDate" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Guard</label>
+                            @Html.DropDownList("guardId", ViewBag.GuardsList as SelectList, "All Guards", new { @class = "form-control" })
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    @if (Model.Resident != null)
-                    {
-                        <div class="form-group">
-                            <label class="font-weight-bold">Name:</label>
-                            <p class="form-control-plaintext">@Model.Resident.FullName</p>
-                        </div>
-                        <div class="form-group">
-                            <label class="font-weight-bold">Unit Number:</label>
-                            <p class="form-control-plaintext">@Model.Resident.UnitNumber</p>
-                        </div>
-                        <div class="form-group">
-                            <label class="font-weight-bold">Contact:</label>
-                            <p class="form-control-plaintext">@Model.Resident.PhoneNumber</p>
-                        </div>
-                        <div class="form-group">
-                            <label class="font-weight-bold">Email:</label>
-                            <p class="form-control-plaintext">@Model.Resident.Email</p>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="text-muted">No resident information available</p>
-                    }
-                </div>
-            </div>
-
-            <!-- Status Update Section -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Update Status</h6>
-                </div>
-                <div class="card-body">
-                    @using (Html.BeginForm("UpdateIncidentStatus", "Director", FormMethod.Post, new { id = "statusForm", enctype = "multipart/form-data" }))
-                    {
-                        @Html.AntiForgeryToken()
-                        @Html.Hidden("incidentId", Model.IncidentReportId)
-
-                        <div class="form-group">
-                            <label class="font-weight-bold">New Status:</label>
-                            @Html.DropDownList("status", ViewBag.StatusOptions as SelectList, new { @class = "form-control", required = "required" })
-                        </div>
-
-                        <div class="form-group">
-                            <label class="font-weight-bold">Feedback/Resolution Notes (PDF):</label>
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="pdfFile" name="pdfFile" accept=".pdf">
-                                <label class="custom-file-label" for="pdfFile">Choose PDF file</label>
-                            </div>
-                            <small class="form-text text-muted">Max 5MB - PDF files only</small>
-                        </div>
-
-                        if (!string.IsNullOrEmpty(Model.FeedbackAttachment))
-                        {
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="removeFile" name="removeFile" value="true">
-                                    <label class="form-check-label" for="removeFile">
-                                        Remove current feedback file
-                                    </label>
-                                </div>
-                            </div>
-                        }
-
-                        <button type="submit" class="btn btn-primary btn-block">
-                            <i class="fas fa-save"></i> Update Status
-                        </button>
-                    }
-
-                    <!-- Current Feedback Section -->
-                    @if (!string.IsNullOrEmpty(Model.FeedbackAttachment))
-                    {
-                        <hr>
-                        <div class="mt-3">
-                            <label class="font-weight-bold">Current Feedback:</label>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span>@Model.Feedback</span>
-                                <a href="@Url.Action("DownloadFeedback", "Director", new { id = Model.IncidentReportId })"
-                                   class="btn btn-sm btn-outline-primary" target="_blank">
-                                    <i class="fas fa-download"></i> Download
-                                </a>
-                            </div>
-                            @if (Model.FeedbackDate.HasValue)
-                            {
-                                <small class="text-muted">Updated: @Model.FeedbackDate.Value.ToString("MM/dd/yyyy HH:mm")</small>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
+            }
         </div>
     </div>
 
-    <!-- Incident Timeline -->
+    <!-- Logs Table -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Incident Timeline</h6>
+            <h6 class="m-0 font-weight-bold text-primary">Guard Check-in Records</h6>
         </div>
         <div class="card-body">
-            <div class="timeline">
-                <div class="timeline-item">
-                    <div class="timeline-marker bg-primary"></div>
-                    <div class="timeline-content">
-                        <h6 class="font-weight-bold">Incident Reported</h6>
-                        <p class="text-muted">@Model.ReportDate.ToString("MM/dd/yyyy HH:mm")</p>
-                        <p>Incident was initially reported by resident.</p>
-                    </div>
-                </div>
-
-                @if (Model.FeedbackDate.HasValue)
-                {
-                    <div class="timeline-item">
-                        <div class="timeline-marker bg-success"></div>
-                        <div class="timeline-content">
-                            <h6 class="font-weight-bold">Status Updated</h6>
-                            <p class="text-muted">@Model.FeedbackDate.Value.ToString("MM/dd/yyyy HH:mm")</p>
-                            <p>Status was changed to <span class="badge badge-success">@Model.Status</span></p>
-                            @if (!string.IsNullOrEmpty(Model.Feedback))
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Guard Name</th>
+                                <th>Status</th>
+                                <th>Location</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in Model)
                             {
-                                <p>Feedback provided: @Model.Feedback</p>
+                                <tr>
+                                    <td>@log.CheckInTime.ToString("MM/dd/yyyy")</td>
+                                    <td>@log.CheckInTime.ToString("HH:mm:ss")</td>
+                                    <td>@(log.Guard?.FullName ?? "Unknown Guard")</td>
+                                    <td>@GetStatusBadge(log.Status)</td>
+                                    
+                                </tr>
                             }
-                        </div>
-                    </div>
-                }
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No guard check-in records found for the selected filters.
+                </div>
+            }
         </div>
     </div>
 </div>
 
-<!-- Helper functions for badges -->
 @functions {
-    private IHtmlString GetPriorityBadge(string priority)
-    {
-        string badgeClass;
-        switch (priority?.ToLower())
-        {
-            case "critical":
-                badgeClass = "badge badge-danger";
-                break;
-            case "high":
-                badgeClass = "badge badge-warning";
-                break;
-            case "medium":
-                badgeClass = "badge badge-info";
-                break;
-            case "low":
-                badgeClass = "badge badge-success";
-                break;
-            default:
-                badgeClass = "badge badge-secondary";
-                break;
-        }
-        return new HtmlString($"<span class='{badgeClass}'>{priority}</span>");
-    }
-
     private IHtmlString GetStatusBadge(string status)
     {
         string badgeClass;
         switch (status?.ToLower())
         {
-            case "resolved":
+            case "present":
                 badgeClass = "badge badge-success";
                 break;
-            case "in progress":
-                badgeClass = "badge badge-primary";
-                break;
-            case "pending":
+            case "late":
                 badgeClass = "badge badge-warning";
+                break;
+            case "absent":
+                badgeClass = "badge badge-danger";
+                break;
+            case "break":
+                badgeClass = "badge badge-info";
                 break;
             default:
                 badgeClass = "badge badge-secondary";
@@ -256,240 +133,18 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // File input label update
-            $('#pdfFile').on('change', function () {
-                var fileName = $(this).val().split('\\').pop();
-                $(this).next('.custom-file-label').html(fileName || 'Choose PDF file');
+            // Initialize DataTable
+            $('#dataTable').DataTable({
+                "order": [[0, "desc"], [1, "desc"]],
+                "pageLength": 25,
+                "language": {
+                    "search": "Search logs:",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                    "infoEmpty": "Showing 0 to 0 of 0 entries",
+                    "infoFiltered": "(filtered from _MAX_ total entries)"
+                }
             });
-
-            // Form submission with AJAX
-            $('#statusForm').on('submit', function (e) {
-                e.preventDefault();
-
-                var formData = new FormData(this);
-
-                $.ajax({
-                    url: $(this).attr('action'),
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function (response) {
-                        if (response.success) {
-                            showNotification('success', response.message);
-
-                            // Update status badge
-                            $('#statusBadge').html(response.statusBadge);
-
-                            // Update feedback section
-                            if (response.hasFeedback) {
-                                if (response.isPdf) {
-                                    $('#feedbackSection').html(`
-                                        <hr>
-                                        <div class="mt-3">
-                                            <label class="font-weight-bold">Current Feedback:</label>
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span>${response.feedback}</span>
-                                                <a href="@Url.Action("DownloadFeedback", "Director", new { id = Model.IncidentReportId })"
-                                                   class="btn btn-sm btn-outline-primary" target="_blank">
-                                                    <i class="fas fa-download"></i> Download
-                                                </a>
-                                            </div>
-                                            <small class="text-muted">Updated: Just now</small>
-                                        </div>
-                                    `);
-                                }
-                            } else {
-                                $('#feedbackSection').html('');
-                            }
-
-                            // Reset form
-                            $('#statusForm')[0].reset();
-                            $('.custom-file-label').html('Choose PDF file');
-                            $('#removeFile').prop('checked', false);
-
-                        } else {
-                            showNotification('error', response.message);
-                        }
-                    },
-                    error: function () {
-                        showNotification('error', 'An error occurred while updating the status.');
-                    }
-                });
-            });
-
-            function showNotification(type, message) {
-                // You can use Toastr or any other notification library here
-                alert(type.toUpperCase() + ': ' + message);
-            }
         });
-
-        $(document).ready(function () {
-            console.log("Director dashboard loaded");
-
-            // Notification bell functionality
-            $('#directorNotificationBell').click(function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                $('#directorNotificationDropdown').toggle();
-                loadDirectorNotifications();
-            });
-
-            // Close dropdown when clicking outside
-            $(document).click(function (e) {
-                if (!$(e.target).closest('.notification-bell').length) {
-                    $('#directorNotificationDropdown').hide();
-                }
-            });
-
-            // Mark notification as read and navigate when clicked
-            $(document).on('click', '.notification-item', function (e) {
-                e.preventDefault();
-                var notificationId = $(this).data('id');
-                var url = $(this).data('url');
-
-                if (notificationId) {
-                    markNotificationAsRead(notificationId);
-                    $(this).removeClass('unread');
-
-                    // Navigate to related URL if available
-                    if (url) {
-                        window.location.href = url;
-                    }
-                }
-            });
-
-            // Mark all as read
-            $('#markAllAsRead').click(function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                markAllNotificationsAsRead();
-            });
-
-            // Auto-refresh notifications every 30 seconds
-            setInterval(loadDirectorNotifications, 30000);
-
-            // Load notifications function
-            function loadDirectorNotifications() {
-                $.get('@Url.Action("GetNotifications", "Director")', function (data) {
-                    if (data.error) {
-                        console.error('Error loading notifications:', data.error);
-                        return;
-                    }
-
-                    updateNotificationUI(data);
-                }).fail(function(xhr, status, error) {
-                    console.error('Failed to load notifications:', error);
-                });
-            }
-
-            function updateNotificationUI(data) {
-                var notificationList = $('#directorNotificationList');
-                notificationList.empty();
-
-                if (data.notifications && data.notifications.length > 0) {
-                    $.each(data.notifications, function (index, notification) {
-                        var item = $('<div>').addClass('notification-item ' + (notification.IsRead ? '' : 'unread'))
-                            .attr('data-id', notification.NotificationId)
-                            .attr('data-url', notification.RelatedUrl || '#')
-                            .html('<div class="notification-content">' +
-                                  '<div class="notification-message">' + notification.Message + '</div>' +
-                                  '<div class="notification-time">' +
-                                  new Date(notification.CreatedAt).toLocaleString() + '</div>' +
-                                  (notification.NotificationType ?
-                                  '<span class="notification-type badge ' + getNotificationTypeClass(notification.NotificationType) + '">' +
-                                  notification.NotificationType + '</span>' : '') +
-                                  '</div>');
-
-                        notificationList.append(item);
-                    });
-                } else {
-                    notificationList.append('<div class="notification-item text-center py-3">' +
-                        '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
-                }
-
-                // Update notification count
-                updateNotificationCount(data.unreadCount || 0);
-            }
-
-            function getNotificationTypeClass(type) {
-                switch (type.toLowerCase()) {
-                    case 'login': return 'bg-success';
-                    case 'incident': return 'bg-danger';
-                    case 'system': return 'bg-info';
-                    case 'security': return 'bg-warning';
-                    default: return 'bg-secondary';
-                }
-            }
-
-            function updateNotificationCount(count) {
-                var badge = $('#directorNotificationBell .badge');
-                if (count > 0) {
-                    badge.text(count).show();
-                    $('#markAllAsRead').show();
-                } else {
-                    badge.hide();
-                    $('#markAllAsRead').hide();
-                }
-            }
-
-            function markNotificationAsRead(notificationId) {
-                $.post('@Url.Action("MarkNotificationAsRead", "Director")', { id: notificationId })
-                    .fail(function() {
-                        console.error('Failed to mark notification as read');
-                    });
-            }
-
-            function markAllNotificationsAsRead() {
-                $.post('@Url.Action("MarkAllNotificationsAsRead", "Director")')
-                    .done(function(response) {
-                        if (response.success) {
-                            $('.notification-item').removeClass('unread');
-                            updateNotificationCount(0);
-                        }
-                    })
-                    .fail(function() {
-                        console.error('Failed to mark all notifications as read');
-                    });
-            }
-
-            // Initial load of notifications
-            loadDirectorNotifications();
-        });
-
     </script>
 }
-
-<style>
-    .timeline {
-        position: relative;
-        padding-left: 30px;
-    }
-
-    .timeline-item {
-        position: relative;
-        margin-bottom: 20px;
-    }
-
-    .timeline-marker {
-        position: absolute;
-        left: -30px;
-        top: 0;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        text-align: center;
-        line-height: 20px;
-        color: white;
-    }
-
-    .timeline-content {
-        margin-left: 10px;
-    }
-
-    .form-control-plaintext {
-        background-color: #f8f9fa;
-        padding: 0.375rem 0.75rem;
-        border-radius: 0.25rem;
-    }
-</style>
