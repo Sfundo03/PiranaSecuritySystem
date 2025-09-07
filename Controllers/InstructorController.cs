@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNet.Identity;
-using PiranaSecuritSystem.Models;
+
 using PiranaSecuritySystem.Models;
 using System;
 using System.Linq;
@@ -100,7 +100,7 @@ namespace PiranaSecuritySystem.Controllers
                     db.SaveChanges();
 
                     TempData["SuccessMessage"] = "Training roster generated successfully!";
-                    return RedirectToAction("ViewRoster", new { id = roster.ShiftID });
+                    return RedirectToAction("ViewRoster", new { id = roster.ShiftId });
                 }
                 else
                 {

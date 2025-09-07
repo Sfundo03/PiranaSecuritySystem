@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
-using PiranaSecuritSystem.Models;
+
 using PiranaSecuritySystem.ViewModels;
 using System.Collections.Generic;
 using System.Data.Entity;

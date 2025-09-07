@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNet.Identity;
 using PiranaSecuritySystem.Models;
+using PiranaSecuritySystem.ViewModels;
 using System;
 using System.Linq;
 using System.Web.Mvc;
@@ -37,7 +38,7 @@ namespace PiranaSecuritySystem.Controllers
                 ViewBag.TotalIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId);
                 ViewBag.PendingIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId && r.Status == "Pending Review");
                 ViewBag.ResolvedIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId && r.Status == "Resolved");
-                ViewBag.UpcomingShifts = db.Shifts.Count(s => s.GuardId == guard.GuardId && s.StartDate >= DateTime.Today);
+                ViewBag.UpcomingShifts = db.Shifts.Count(s => s.GuardId == guard.GuardId && s.ShiftDate >= DateTime.Today);
 
                 // Get recent incidents for dashboard
                 var recentIncidents = db.IncidentReports
@@ -226,8 +227,9 @@ namespace PiranaSecuritySystem.Controllers
             return Redirect("~/Content/Guard/Index.html");
         }
 
-        // GET: Guard/Calender
-        public ActionResult Calender()
+        // GET: Guard/Calendar
+        // GET: Guard/Calendar
+        public ActionResult Calendar()
         {
             try
             {
@@ -247,19 +249,180 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("ProfileNotFound", "Error");
                 }
 
+                // Calculate dates outside the LINQ query
+                DateTime today = DateTime.Today;
+                DateTime sevenDaysAgo = today.AddDays(-7);
+
+                // Get upcoming shifts - use calculated date variable
                 var shifts = db.Shifts
-                    .Where(s => s.GuardId == guard.GuardId && s.StartDate >= DateTime.Today)
-                    .OrderBy(s => s.StartDate)
+                    .Where(s => s.GuardId == guard.GuardId && s.ShiftDate >= today)
+                    .OrderBy(s => s.ShiftDate)
                     .ToList();
 
-                // Check if the view exists, if not return a simple message
-                return View("~/Views/Guard/Calender.cshtml", shifts);
+                // Get check-ins for these shifts - use calculated date variable
+                var checkIns = db.GuardCheckIns
+                    .Where(c => c.GuardId == guard.GuardId && c.CheckInTime >= sevenDaysAgo)
+                    .OrderByDescending(c => c.CheckInTime)
+                    .ToList();
+
+                // Create view model
+                var viewModel = new GuardCalendarViewModel
+                {
+                    GuardId = guard.GuardId,
+                    GuardName = guard.Guard_FName + " " + guard.Guard_LName,
+                    Shifts = shifts.Select(s => new CalendarShift
+                    {
+                        ShiftId = s.ShiftId,
+                        ShiftDate = s.ShiftDate,
+                        ShiftType = s.ShiftType,
+                        StartTime = GetShiftStartTime(s.ShiftType),
+                        EndTime = GetShiftEndTime(s.ShiftType),
+                        Location = s.Location ?? "Main Gate",
+                        Status = s.Status ?? "Scheduled",
+                        HasCheckIn = checkIns.Any(c => c.GuardId == guard.GuardId &&
+                                                     c.CheckInTime.Date == s.ShiftDate.Date &&
+                                                     c.Status == "Present"),
+                        HasCheckOut = checkIns.Any(c => c.GuardId == guard.GuardId &&
+                                                      c.CheckInTime.Date == s.ShiftDate.Date &&
+                                                      c.Status == "Checked Out"),
+                        IsToday = s.ShiftDate.Date == today
+                    }).ToList(),
+                    CheckIns = checkIns
+                };
+
+                return View("~/Views/Guard/Calendar.cshtml", viewModel);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in Calender: {ex.Message}");
-                TempData["ErrorMessage"] = "An error occurred while loading the calendar.";
+                System.Diagnostics.Debug.WriteLine($"ERROR in Calendar: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
+
+                TempData["ErrorMessage"] = $"An error occurred while loading the calendar. Please try again.";
                 return RedirectToAction("Dashboard");
+            }
+        }
+
+        // POST: Guard/CheckIn
+        [HttpPost]
+        public JsonResult CheckIn(int shiftId)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" });
+                }
+
+                var shift = db.Shifts.FirstOrDefault(s => s.ShiftId == shiftId && s.GuardId == guard.GuardId);
+
+                if (shift == null)
+                {
+                    return Json(new { success = false, message = "Shift not found" });
+                }
+
+                // Create check-in record
+                var checkIn = new GuardCheckIn
+                {
+                    GuardId = guard.GuardId,
+                    CheckInTime = DateTime.Now,
+                    Status = "Present",
+                    CreatedDate = DateTime.Now
+                };
+
+                db.GuardCheckIns.Add(checkIn);
+
+                // Update shift status
+                shift.Status = "In Progress";
+                db.SaveChanges();
+
+                // Create notification
+                var notification = new Notification
+                {
+                    GuardId = guard.GuardId,
+                    UserId = currentUserId,
+                    UserType = "Guard",
+                    Title = "Check-In Successful",
+                    Message = $"You have checked in for your {shift.ShiftType} shift at {shift.Location}",
+                    NotificationType = "CheckIn",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    IsImportant = true
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Check-in successful!" });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in CheckIn: {ex.Message}");
+                return Json(new { success = false, message = "Error during check-in" });
+            }
+        }
+
+        // POST: Guard/CheckOut
+        [HttpPost]
+        public JsonResult CheckOut(int shiftId)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" });
+                }
+
+                var shift = db.Shifts.FirstOrDefault(s => s.ShiftId == shiftId && s.GuardId == guard.GuardId);
+
+                if (shift == null)
+                {
+                    return Json(new { success = false, message = "Shift not found" });
+                }
+
+                // Create check-out record
+                var checkOut = new GuardCheckIn
+                {
+                    GuardId = guard.GuardId,
+                    CheckInTime = DateTime.Now,
+                    Status = "Checked Out",
+                    CreatedDate = DateTime.Now
+                };
+
+                db.GuardCheckIns.Add(checkOut);
+
+                // Update shift status
+                shift.Status = "Completed";
+                db.SaveChanges();
+
+                // Create notification
+                var notification = new Notification
+                {
+                    GuardId = guard.GuardId,
+                    UserId = currentUserId,
+                    UserType = "Guard",
+                    Title = "Check-Out Successful",
+                    Message = $"You have successfully checked out from your {shift.ShiftType} shift at {shift.Location}",
+                    NotificationType = "CheckOut",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    IsImportant = false
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Check-out successful!" });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in CheckOut: {ex.Message}");
+                return Json(new { success = false, message = "Error during check-out" });
             }
         }
 
@@ -542,6 +705,27 @@ namespace PiranaSecuritySystem.Controllers
             {
                 System.Diagnostics.Debug.WriteLine($"Error in SaveCheckIn: {ex.Message}");
                 return Json(new { success = false, message = "An error occurred while saving check-in" });
+            }
+        }
+
+        // Helper methods for shift times
+        private string GetShiftStartTime(string shiftType)
+        {
+            switch (shiftType)
+            {
+                case "Night": return "18:00";
+                case "Day": return "06:00";
+                default: return "00:00";
+            }
+        }
+
+        private string GetShiftEndTime(string shiftType)
+        {
+            switch (shiftType)
+            {
+                case "Night": return "06:00";
+                case "Day": return "18:00";
+                default: return "00:00";
             }
         }
 

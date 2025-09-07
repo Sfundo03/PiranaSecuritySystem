@@ -311,7 +311,7 @@
     <Content Include="Views\Payroll\CreateRate.cshtml" />
     <Content Include="Views\Payroll\TaxConfig.cshtml" />
     <Content Include="Views\Director\Notifications.cshtml" />
-    <Content Include="Views\Guard\Calender.cshtml" />
+    <Content Include="Views\Guard\Calendar.cshtml" />
     <Content Include="Views\Admin\EditGuard.cshtml" />
     <Content Include="Views\Admin\DeleteGuard.cshtml" />
     <Content Include="Views\TrainingSessions\Index.cshtml" />

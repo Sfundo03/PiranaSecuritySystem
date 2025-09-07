@@ -1,5 +1,5 @@
 ﻿// Models/Instructor.cs
-using PiranaSecuritSystem.Models;
+using PiranaSecuritySystem.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

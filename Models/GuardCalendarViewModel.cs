@@ -1,4 +1,4 @@
-﻿// Create a new file: GuardCalendarViewModel.cs
+﻿using PiranaSecuritySystem.Models;
 using System;
 using System.Collections.Generic;
 
@@ -8,18 +8,23 @@ namespace PiranaSecuritySystem.ViewModels
     {
         public int GuardId { get; set; }
         public string GuardName { get; set; }
-        public int Year { get; set; }
-        public int Month { get; set; }
-        public List<CalendarDay> Days { get; set; }
+        public List<CalendarShift> Shifts { get; set; }
+        public List<GuardCheckIn> CheckIns { get; set; }
     }
 
-    public class CalendarDay
+    public class CalendarShift
     {
-        public DateTime Date { get; set; }
-        public string DayOfWeek { get; set; }
-        public string ShiftType { get; set; }
-        public string Status { get; set; } // "CheckedIn", "NotCheckedIn", "OffDuty", "Normal"
+        public int ShiftId { get; set; }
+        public DateTime ShiftDate { get; set; }
+        public string ShiftType { get; set; } // "Night", "Day", "Off"
+        public string StartTime { get; set; }
+        public string EndTime { get; set; }
+        public string Location { get; set; }
+        public string Status { get; set; } // "Scheduled", "Completed", "Missed"
         public bool HasCheckIn { get; set; }
+        public bool HasCheckOut { get; set; }
+        public DateTime? CheckInTime { get; set; }
+        public DateTime? CheckOutTime { get; set; }
         public bool IsToday { get; set; }
     }
 }
