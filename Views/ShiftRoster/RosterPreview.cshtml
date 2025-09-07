@@ -1,53 +1,170 @@
 ﻿@model PiranaSecuritySystem.Models.RosterViewModel
-
 @{
     ViewBag.Title = "Roster Preview";
 }
 
-<h2>Roster Preview for @Model.RosterDate.ToString("yyyy-MM-dd")</h2>
-
-<div class="row">
-    <div class="col-md-4">
-        <h3>Day Shift (4 guards)</h3>
-        <ul class="list-group">
-            @foreach (var guard in Model.DayShiftGuards)
-            {
-                <li class="list-group-item">@guard.FullName</li>
-            }
-        </ul>
-    </div>
-
-    <div class="col-md-4">
-        <h3>Night Shift (4 guards)</h3>
-        <ul class="list-group">
-            @foreach (var guard in Model.NightShiftGuards)
-            {
-                <li class="list-group-item">@guard.FullName</li>
-            }
-        </ul>
-    </div>
-
-    <div class="col-md-4">
-        <h3>Off Duty (4 guards)</h3>
-        <ul class="list-group">
-            @foreach (var guard in Model.OffDutyGuards)
-            {
-                <li class="list-group-item">@guard.FullName</li>
-            }
-        </ul>
-    </div>
-</div>
-
-<div class="row" style="margin-top: 20px;">
-    <div class="col-md-12">
-        @using (Html.BeginForm("ConfirmCreate", "ShiftRoster"))
-        {
-            @Html.AntiForgeryToken()
-            @Html.HiddenFor(model => model.RosterDate)
-            @Html.HiddenFor(model => model.SelectedGuardIds)
-
-            <button type="submit" class="btn btn-success">Confirm and Save</button>
-            @Html.ActionLink("Go Back", "Create", null, new { @class = "btn btn-default" })
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roster Preview - PIRANA GUARDING</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
         }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Roboto', sans-serif;
+            color: var(--dark-text);
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .page-header {
+            border-bottom: 2px solid var(--primary-blue);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 0;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--light-text);
+            font-weight: 400;
+        }
+
+        h2, h3 {
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .btn-success {
+            background: #28a745;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+            .btn-success:hover {
+                background: #218838;
+            }
+
+        .btn-default {
+            background: transparent;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 9px 19px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+            .btn-default:hover {
+                background: var(--primary-blue);
+                color: white;
+            }
+
+        .list-group-item {
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            font-size: 15px;
+        }
+
+            .list-group-item:first-child {
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+
+            .list-group-item:last-child {
+                border-bottom-left-radius: 4px;
+                border-bottom-right-radius: 4px;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row page-header">
+            <div class="col-md-6">
+                <h2 class="logo">PIRANA GUARDING</h2>
+                <p class="subtitle">Secure Access Management System</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <h2>Roster Preview for @Model.RosterDate.ToString("yyyy-MM-dd")</h2>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <h3>Day Shift (4 guards)</h3>
+                <ul class="list-group">
+                    @foreach (var guard in Model.DayShiftGuards)
+                    {
+                        <li class="list-group-item">@guard.FullName</li>
+                    }
+                </ul>
+            </div>
+
+            <div class="col-md-4">
+                <h3>Night Shift (4 guards)</h3>
+                <ul class="list-group">
+                    @foreach (var guard in Model.NightShiftGuards)
+                    {
+                        <li class="list-group-item">@guard.FullName</li>
+                    }
+                </ul>
+            </div>
+
+            <div class="col-md-4">
+                <h3>Off Duty (4 guards)</h3>
+                <ul class="list-group">
+                    @foreach (var guard in Model.OffDutyGuards)
+                    {
+                        <li class="list-group-item">@guard.FullName</li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="row" style="margin-top: 20px;">
+            <div class="col-md-12 text-center">
+                @using (Html.BeginForm("ConfirmCreate", "ShiftRoster"))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.HiddenFor(model => model.RosterDate)
+                    @Html.HiddenFor(model => model.SelectedGuardIds)
+
+                    <button type="submit" class="btn btn-success">Confirm and Save</button>
+                    @Html.ActionLink("Go Back", "Create", null, new { @class = "btn btn-default" })
+                }
+            </div>
+        </div>
     </div>
-</div>
+</body>
+</html>

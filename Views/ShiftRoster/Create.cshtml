@@ -1,46 +1,176 @@
 ﻿@model PiranaSecuritySystem.Models.RosterViewModel
-
 @{
     ViewBag.Title = "Create Shift Roster";
 }
 
-<h2>Create Shift Roster</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Shift Roster - PIRANA GUARDING</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --accent-orange: #f26522;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --light-text: #6c757d;
+            --border-color: #dee2e6;
+        }
 
-@using (Html.BeginForm())
-{
-    @Html.AntiForgeryToken()
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Roboto', sans-serif;
+            color: var(--dark-text);
+            padding: 20px;
+        }
 
-    <div class="form-horizontal">
-        <hr />
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+        }
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.RosterDate, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.RosterDate, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.RosterDate, "", new { @class = "text-danger" })
+        .page-header {
+            border-bottom: 2px solid var(--primary-blue);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 0;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--light-text);
+            font-weight: 400;
+        }
+
+        h2 {
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .form-control {
+            padding: 12px 15px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+
+            .form-control:focus {
+                border-color: var(--primary-blue);
+                box-shadow: 0 0 0 0.2rem rgba(0, 105, 170, 0.15);
+            }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+            .btn-primary:hover {
+                background: var(--secondary-blue);
+            }
+
+        .btn-default {
+            background: transparent;
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 9px 19px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+            .btn-default:hover {
+                background: var(--primary-blue);
+                color: white;
+            }
+
+        .text-danger {
+            color: #dc3545 !important;
+            font-size: 14px;
+        }
+
+        .text-muted {
+            color: var(--light-text) !important;
+            font-size: 13px;
+        }
+
+        .control-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row page-header">
+            <div class="col-md-6">
+                <h2 class="logo">PIRANA GUARDING</h2>
+                <p class="subtitle">Secure Access Management System</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <h2>Create Shift Roster</h2>
             </div>
         </div>
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.SelectedGuardIds, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.ListBoxFor(model => model.SelectedGuardIds, ViewBag.Guards as MultiSelectList, new { @class = "form-control", size = "15" })
-                @Html.ValidationMessageFor(model => model.SelectedGuardIds, "", new { @class = "text-danger" })
-                <small class="text-muted">Hold CTRL to select multiple guards. Must select exactly 12 guards.</small>
-            </div>
-        </div>
+        @using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
 
-        <div class="form-group">
-            <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Generate Roster" class="btn btn-primary" />
-                @Html.ActionLink("Cancel", "Index", null, new { @class = "btn btn-default" })
+            <div class="form-horizontal">
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                <div class="form-group row">
+                    @Html.LabelFor(model => model.RosterDate, htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.EditorFor(model => model.RosterDate, new { htmlAttributes = new { @class = "form-control" } })
+                        @Html.ValidationMessageFor(model => model.RosterDate, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    @Html.LabelFor(model => model.SelectedGuardIds, htmlAttributes: new { @class = "control-label col-md-2" })
+                    <div class="col-md-10">
+                        @Html.ListBoxFor(model => model.SelectedGuardIds, ViewBag.Guards as MultiSelectList, new { @class = "form-control", size = "15" })
+                        @Html.ValidationMessageFor(model => model.SelectedGuardIds, "", new { @class = "text-danger" })
+                        <small class="text-muted">Hold CTRL to select multiple guards. Must select exactly 12 guards.</small>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-md-offset-2 col-md-10">
+                        <input type="submit" value="Generate Roster" class="btn btn-primary" />
+                        @Html.ActionLink("Cancel", "Index", null, new { @class = "btn btn-default" })
+                    </div>
+                </div>
             </div>
-        </div>
+        }
     </div>
-}
 
-@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function () {
             // Validate that exactly 12 guards are selected
@@ -54,4 +184,5 @@
             });
         });
     </script>
-}
+</body>
+</html>
