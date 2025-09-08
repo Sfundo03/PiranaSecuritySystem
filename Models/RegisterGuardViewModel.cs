@@ -1,4 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Web.Mvc;
 
 namespace PiranaSecuritySystem.ViewModels
 {
@@ -55,7 +59,14 @@ namespace PiranaSecuritySystem.ViewModels
         public string City { get; set; }
         public string PostalCode { get; set; }
 
+        [Required(ErrorMessage = "Please select a site for the guard")]
+        [Display(Name = "Assigned Site")]
+        public string Site { get; set; }
 
+        [NotMapped]
+        public List<SelectListItem> SiteOptions { get; set; }
+
+       
         [Required(ErrorMessage = "Password is required")]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 6)]
         [DataType(DataType.Password)]
@@ -65,8 +76,10 @@ namespace PiranaSecuritySystem.ViewModels
         [Required(ErrorMessage = "Please confirm your password")]
         [DataType(DataType.Password)]
         [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
 
+        [Display(Name = "Username")]
+        public string SiteUsername { get; set; }
     }
 }

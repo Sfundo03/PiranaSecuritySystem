@@ -354,7 +354,26 @@
                     </div>
                 </div>
 
-                <div class="form-section text-center">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-icon select-floating">
+                            <i class="fas fa-map-marker-alt"></i>
+                            @Html.DropDownListFor(m => m.Site, Model.SiteOptions, "Select Site", new { @class = "form-control", required = "required", id = "siteSelect" })
+                            <label for="Site">Assigned Site</label>
+                            @Html.ValidationMessageFor(m => m.Site, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-icon floating-label">
+                            <i class="fas fa-id-badge"></i>
+                            @Html.HiddenFor(m => m.SiteUsername, new { @class = "form-control", @readonly = "readonly", placeholder = " ", id = "usernameDisplay" })
+                            <label for="SiteUsername">Generated Username</label>
+                        </div>
+                    </div>
+                </div>
+
+
+               <div class="form-section text-center">
                     <button type="submit" class="btn btn-custom me-2">
                         <i class="fas fa-user-plus me-2"></i>Register Guard
                     </button>
@@ -368,6 +387,28 @@
         @Scripts.Render("~/bundles/jqueryval")
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.7/jquery.inputmask.min.js"></script>
         <script>
+            // Update your JavaScript to show a preview but not set the form value
+            $(document).ready(function () {
+                // When site selection changes, update the username preview
+                $('#siteSelect').change(function () {
+                    var selectedSite = $(this).val();
+                    if (selectedSite) {
+                        var sitePrefix = '';
+                        switch (selectedSite) {
+                            case 'Site A': sitePrefix = 'GA'; break;
+                            case 'Site B': sitePrefix = 'GB'; break;
+                            case 'Site C': sitePrefix = 'GC'; break;
+                            default: sitePrefix = 'GX'; break;
+                        }
+
+                        // Show preview (will be generated on server)
+                        $('#usernameDisplay').val('Will be generated as: ' + sitePrefix + 'XXX');
+                    } else {
+                        $('#usernameDisplay').val('');
+                    }
+                });
+            });
+
             $(document).ready(function () {
                 // Check for success message in TempData
                 var successMessage = '@(TempData["SuccessMessage"] ?? "")';

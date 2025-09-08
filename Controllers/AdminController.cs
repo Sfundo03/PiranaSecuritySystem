@@ -3,13 +3,14 @@ using Microsoft.AspNet.Identity.EntityFramework;
 using PiranaSecuritySystem.Models;
 using PiranaSecuritySystem.ViewModels;
 using System;
+using System.Collections.Generic;
+using System.Configuration;
 using System.Data.Entity.Validation;
 using System.Linq;
-using System.Net.Mail;
 using System.Net;
+using System.Net.Mail;
 using System.Threading.Tasks;
 using System.Web.Mvc;
-using System.Configuration;
 
 namespace PiranaSecuritySystem.Controllers
 {
@@ -64,7 +65,17 @@ namespace PiranaSecuritySystem.Controllers
         // GET: Admin/RegisterGuard
         public ActionResult RegisterGuard()
         {
-            return View();
+            var model = new RegisterGuardViewModel
+            {
+                // Initialize site options
+                SiteOptions = new List<SelectListItem>
+        {
+            new SelectListItem { Value = "Site A", Text = "Site A" },
+            new SelectListItem { Value = "Site B", Text = "Site B" },
+            new SelectListItem { Value = "Site C", Text = "Site C" }
+        }
+            };
+            return View(model);
         }
 
         // POST: Admin/RegisterGuard
@@ -72,6 +83,14 @@ namespace PiranaSecuritySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterGuard(RegisterGuardViewModel model)
         {
+            // Ensure site options are populated if we need to return the view
+            model.SiteOptions = new List<SelectListItem>
+    {
+        new SelectListItem { Value = "Site A", Text = "Site A" },
+        new SelectListItem { Value = "Site B", Text = "Site B" },
+        new SelectListItem { Value = "Site C", Text = "Site C" }
+    };
+
             if (ModelState.IsValid)
             {
                 EnsureRolesExist();
@@ -81,6 +100,16 @@ namespace PiranaSecuritySystem.Controllers
                     ModelState.AddModelError("", "Email address is already registered.");
                     return View(model);
                 }
+
+                string sitePrefix = GetSitePrefix(model.Site);
+                string siteUsername = GenerateSiteUsername(sitePrefix);
+
+                if (db.Guards.Any(g => g.SiteUsername == siteUsername))
+                {
+                    ModelState.AddModelError("", "Username generation error. Please try again.");
+                    return View(model);
+                }
+
 
                 if (db.Guards.Any(g => g.PSIRAnumber == model.PSIRAnumber))
                 {
@@ -128,7 +157,9 @@ namespace PiranaSecuritySystem.Controllers
                         Street = model.Street,
                         HouseNumber = model.HouseNumber,
                         City = model.City,
-                        PostalCode = model.PostalCode
+                        PostalCode = model.PostalCode,
+                        Site = model.Site, // Save the site
+                        SiteUsername = siteUsername // Save the site-specific username
                     };
 
                     db.Guards.Add(guard);
@@ -172,6 +203,55 @@ namespace PiranaSecuritySystem.Controllers
             return View(model);
         }
 
+        private string GetSitePrefix(string site)
+        {
+            switch (site)
+            {
+                case "Site A": return "GA";
+                case "Site B": return "GB";
+                case "Site C": return "GC";
+                default: return "GX";
+            }
+        }
+
+        
+
+        // Helper method to generate site username
+        private string GenerateSiteUsername(string sitePrefix)
+        {
+            // Get all existing usernames for this site
+            var existingUsernames = db.Guards
+                .Where(g => g.SiteUsername.StartsWith(sitePrefix))
+                .Select(g => g.SiteUsername)
+                .ToList();
+
+            int nextNumber = 1;
+
+            if (existingUsernames.Any())
+            {
+                // Extract the number part from all existing usernames and find the maximum
+                var numbers = existingUsernames
+                    .Select(username =>
+                    {
+                        string numberPart = username.Substring(sitePrefix.Length);
+                        if (int.TryParse(numberPart, out int number))
+                        {
+                            return number;
+                        }
+                        return 0;
+                    })
+                    .Where(n => n > 0)
+                    .ToList();
+
+                if (numbers.Any())
+                {
+                    nextNumber = numbers.Max() + 1;
+                }
+            }
+
+            // Format with leading zeros (001, 002, etc.)
+            return $"{sitePrefix}{nextNumber:D3}";
+        }
         // GET: Admin/ManageGuards
         public ActionResult ManageGuards()
         {
