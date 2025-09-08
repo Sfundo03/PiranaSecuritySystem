@@ -62,6 +62,13 @@ namespace PiranaSecuritySystem.Models
 
         [Display(Name = "Date Registered")]
         public DateTime DateRegistered { get; set; }
+        
+        [Display(Name = "Assigned Site")]
+        public string Site { get; set; }
+
+        
+        [Display(Name = "Username")]
+        public string SiteUsername { get; set; }
 
         [NotMapped]
         public List<GuardAttendance> MonthlyAttendance { get; set; } = new List<GuardAttendance>();
