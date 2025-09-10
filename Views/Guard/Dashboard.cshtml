@@ -205,6 +205,34 @@
             font-weight: bold;
             cursor: pointer;
         }
+
+        /* Site badge styles */
+        .site-badge {
+            display: inline-block;
+            padding: 0.35em 0.65em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.375rem;
+        }
+
+        .site-a {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .site-b {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .site-c {
+            background-color: #6f42c1;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -279,6 +307,12 @@
                         <div>
                             <h4 class="alert-heading mb-1">Welcome, @Model.Guard_FName @Model.Guard_LName!</h4>
                             <p class="mb-0">You have successfully logged in to the Pirana Security System guard panel.</p>
+                            <!-- Site Information Display -->
+                            <div class="mt-2">
+                                <span class="site-badge @GetSiteBadgeClass(Model.Site)">
+                                    <i class="fas fa-map-marker-alt me-1"></i>@(Model.Site ?? "Not Assigned")
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -383,6 +417,18 @@
                                     <tr>
                                         <th>Full Name:</th>
                                         <td>@Model.Guard_FName @Model.Guard_LName</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Username:</th>
+                                        <td>@Model.SiteUsername</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Assigned Site:</th>
+                                        <td>
+                                            <span class="site-badge @GetSiteBadgeClass(Model.Site)">
+                                                <i class="fas fa-map-marker-alt me-1"></i>@(Model.Site ?? "Not Assigned")
+                                            </span>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <th>Email:</th>
@@ -737,10 +783,10 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
-                    title: title, 
-                    message: message, 
-                    notificationType: type 
+                body: JSON.stringify({
+                    title: title,
+                    message: message,
+                    notificationType: type
                 })
             })
             .then(response => response.json())
@@ -760,7 +806,7 @@
             const date = new Date(dateString);
             const now = new Date();
             const diffInSeconds = Math.floor((now - date) / 1000);
-            
+
             if (diffInSeconds < 60) {
                 return 'Just now';
             } else if (diffInSeconds < 3600) {
@@ -819,3 +865,20 @@
     </script>
 </body>
 </html>
+
+@functions {
+    public string GetSiteBadgeClass(string site)
+    {
+        switch (site?.ToLower())
+        {
+            case "site a":
+                return "site-a";
+            case "site b":
+                return "site-b";
+            case "site c":
+                return "site-c";
+            default:
+                return "bg-secondary";
+        }
+    }
+}

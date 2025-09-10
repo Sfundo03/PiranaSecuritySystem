@@ -265,6 +265,139 @@ namespace PiranaSecuritySystem.Controllers
             return View(guards);
         }
 
+        // GET: Admin/UpdateGuardStatus/5
+        public ActionResult UpdateGuardStatus(int id)
+        {
+            var guard = db.Guards.Find(id);
+            if (guard == null)
+            {
+                return HttpNotFound();
+            }
+            return View(guard);
+        }
+
+        // POST: Admin/UpdateGuardStatus/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateGuardStatus(int id, bool isActive, string statusReason = null)
+        {
+            try
+            {
+                var guard = db.Guards.Find(id);
+                if (guard == null)
+                {
+                    return HttpNotFound();
+                }
+
+                // Store old status for notification
+                var oldStatus = guard.IsActive;
+                guard.IsActive = isActive;
+
+                // Update the user account status as well if needed
+                var user = db.Users.FirstOrDefault(u => u.Id == guard.UserId);
+                if (user != null)
+                {
+                    // Check if ApplicationUser has IsActive property using reflection
+                    var isActiveProperty = user.GetType().GetProperty("IsActive");
+                    if (isActiveProperty != null && isActiveProperty.CanWrite)
+                    {
+                        isActiveProperty.SetValue(user, isActive);
+                    }
+                    // If not, we'll just update the guard status without affecting the user
+                }
+
+                db.SaveChanges();
+
+                // Create notification about status change
+                if (oldStatus != isActive)
+                {
+                    var notification = new Notification
+                    {
+                        Title = "Guard Status Updated",
+                        Message = $"Guard {guard.Guard_FName} {guard.Guard_LName} status changed to {(isActive ? "Active" : "Inactive")}. Reason: {statusReason ?? "Not specified"}",
+                        NotificationType = "Guard",
+                        CreatedAt = DateTime.Now,
+                        IsRead = false,
+                        UserId = "Admin" 
+                    };
+                    db.Notifications.Add(notification);
+                    db.SaveChanges();
+                }
+
+                TempData["SuccessMessage"] = $"Guard status updated successfully to {(isActive ? "Active" : "Inactive")}.";
+                return RedirectToAction("ManageGuards");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error updating guard status: " + ex.Message;
+                return RedirectToAction("UpdateGuardStatus", new { id = id });
+            }
+        }
+
+        // GET: Admin/EditGuard/5
+        public ActionResult EditGuard(int id)
+        {
+            var guard = db.Guards.Find(id);
+            if (guard == null)
+            {
+                return HttpNotFound();
+            }
+            return View(guard);
+        }
+
+        // POST: Admin/EditGuard/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult EditGuard(Guard model)
+        {
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    var guard = db.Guards.Find(model.GuardId);
+                    if (guard == null)
+                    {
+                        return HttpNotFound();
+                    }
+
+                    // Update guard properties
+                    guard.Guard_FName = model.Guard_FName;
+                    guard.Guard_LName = model.Guard_LName;
+                    guard.IdentityNumber = model.IdentityNumber;
+                    guard.Gender = model.Gender;
+                    guard.Email = model.Email;
+                    guard.PhoneNumber = model.PhoneNumber;
+                    guard.Emergency_CellNo = model.Emergency_CellNo;
+                    guard.Address = model.Address;
+                    guard.Street = model.Street;
+                    guard.City = model.City;
+                    guard.PostalCode = model.PostalCode;
+                    guard.IsActive = model.IsActive;
+
+                    // Also update the associated user's email if it exists
+                    var user = db.Users.FirstOrDefault(u => u.Id == guard.UserId);
+                    if (user != null && user.Email != model.Email)
+                    {
+                        user.Email = model.Email;
+                        user.UserName = model.Email;
+                    }
+
+                    db.SaveChanges();
+
+                    TempData["SuccessMessage"] = $"Guard {model.Guard_FName} {model.Guard_LName} updated successfully!";
+                    return RedirectToAction("ManageGuards");
+                }
+
+                
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error updating guard: " + ex.Message;
+                return View(model);
+            }
+        }
+
         // GET: Admin/RegisterInstructor
         public ActionResult RegisterInstructor()
         {

@@ -224,6 +224,10 @@
     <Compile Include="Migrations\202509081313370_AddSiteAndUsernameToGuard.Designer.cs">
       <DependentUpon>202509081313370_AddSiteAndUsernameToGuard.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202509101733175_AddIsActiveToApplicationUser.cs" />
+    <Compile Include="Migrations\202509101733175_AddIsActiveToApplicationUser.Designer.cs">
+      <DependentUpon>202509101733175_AddIsActiveToApplicationUser.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\DashboardStats.cs" />
@@ -360,6 +364,7 @@
     <Content Include="Views\ShiftRoster\Index.cshtml" />
     <Content Include="Views\ShiftRoster\Create.cshtml" />
     <Content Include="Views\ShiftRoster\RosterPreview.cshtml" />
+    <Content Include="Views\Admin\UpdateGuardStatus.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -397,6 +402,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202509081313370_AddSiteAndUsernameToGuard.resx">
       <DependentUpon>202509081313370_AddSiteAndUsernameToGuard.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202509101733175_AddIsActiveToApplicationUser.resx">
+      <DependentUpon>202509101733175_AddIsActiveToApplicationUser.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
