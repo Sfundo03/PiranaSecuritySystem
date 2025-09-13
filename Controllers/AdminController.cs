@@ -155,7 +155,6 @@ namespace PiranaSecuritySystem.Controllers
                         Emergency_CellNo = model.Emergency_CellNo,
                         Address = model.Address,
                         Street = model.Street,
-                        HouseNumber = model.HouseNumber,
                         City = model.City,
                         PostalCode = model.PostalCode,
                         Site = model.Site, // Save the site
@@ -401,6 +400,16 @@ namespace PiranaSecuritySystem.Controllers
         // GET: Admin/RegisterInstructor
         public ActionResult RegisterInstructor()
         {
+            var model = new RegisterInstructorViewModel
+            {
+                // Initialize site options
+                SiteOptions = new List<SelectListItem>
+        {
+            new SelectListItem { Value = "Site A", Text = "Site A" },
+            new SelectListItem { Value = "Site B", Text = "Site B" },
+            new SelectListItem { Value = "Site C", Text = "Site C" }
+        }
+            };
             return View();
         }
 
@@ -409,6 +418,14 @@ namespace PiranaSecuritySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterInstructor(RegisterInstructorViewModel model)
         {
+            // Ensure site options are populated if we need to return the view
+            model.SiteOptions = new List<SelectListItem>
+    {
+        new SelectListItem { Value = "Site A", Text = "Site A" },
+        new SelectListItem { Value = "Site B", Text = "Site B" },
+        new SelectListItem { Value = "Site C", Text = "Site C" }
+    };
+
             if (ModelState.IsValid)
             {
                 EnsureRolesExist();
@@ -422,6 +439,14 @@ namespace PiranaSecuritySystem.Controllers
                 if (db.Instructors.Any(i => i.EmployeeId == model.EmployeeId))
                 {
                     ModelState.AddModelError("", "Employee ID is already registered.");
+                    return View(model);
+                }
+
+                string sitePrefix = GetInstructorSitePrefix(model.Site);
+                string siteUsername = GenerateInstructorSiteUsername(sitePrefix);
+                if (db.Instructors.Any(i => i.SiteUsername == siteUsername))
+                {
+                    ModelState.AddModelError("", "Username generation error. Please try again.");
                     return View(model);
                 }
 
@@ -457,7 +482,9 @@ namespace PiranaSecuritySystem.Controllers
                         Specialization = model.Specialization,
                         DateRegistered = DateTime.Now,
                         IsActive = true,
-                        UserId = user.Id
+                        UserId = user.Id,
+                        Site = model.Site, // Save the site
+                        SiteUsername = siteUsername // Save the site-specific user
                     };
 
                     db.Instructors.Add(instructor);
@@ -499,6 +526,54 @@ namespace PiranaSecuritySystem.Controllers
 
             return View(model);
         }
+
+        // Add these helper methods for instructors
+        private string GetInstructorSitePrefix(string site)
+        {
+            switch (site)
+            {
+                case "Site A": return "IA";
+                case "Site B": return "IB";
+                case "Site C": return "IC";
+                default: return "IX";
+            }
+        }
+
+        private string GenerateInstructorSiteUsername(string sitePrefix)
+        {
+            // Get all existing usernames for this site
+            var existingUsernames = db.Instructors
+                .Where(i => i.SiteUsername.StartsWith(sitePrefix))
+                .Select(i => i.SiteUsername)
+                .ToList();
+
+            int nextNumber = 1;
+            if (existingUsernames.Any())
+            {
+                // Extract the number part from all existing usernames and find the maximum
+                var numbers = existingUsernames
+                    .Select(username =>
+                    {
+                        string numberPart = username.Substring(sitePrefix.Length);
+                        if (int.TryParse(numberPart, out int number))
+                        {
+                            return number;
+                        }
+                        return 0;
+                    })
+                    .Where(n => n > 0)
+                    .ToList();
+                if (numbers.Any())
+                {
+                    nextNumber = numbers.Max() + 1;
+                }
+            }
+            // Format with leading zeros (001, 002, etc.)
+            return $"{sitePrefix}{nextNumber:D3}";
+        }
+
+
+
 
         // GET: Admin/ManageInstructors
         public ActionResult ManageInstructors()

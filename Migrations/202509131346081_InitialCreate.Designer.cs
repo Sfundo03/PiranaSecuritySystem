@@ -7,13 +7,13 @@ namespace PiranaSecuritySystem.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.5.1")]
-    public sealed partial class AddSiteAndUsernameToGuard : IMigrationMetadata
+    public sealed partial class InitialCreate : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(AddSiteAndUsernameToGuard));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(InitialCreate));
         
         string IMigrationMetadata.Id
         {
-            get { return "202509081313370_AddSiteAndUsernameToGuard"; }
+            get { return "202509131346081_InitialCreate"; }
         }
         
         string IMigrationMetadata.Source

@@ -24,11 +24,11 @@ namespace PiranaSecuritySystem.ViewModels
         [Required(ErrorMessage = "ID number has 13 Digits")]
         [StringLength(13, MinimumLength = 13, ErrorMessage = "ID number must be exactly 13 digits")]
         [Display(Name = "ID Number")]
-        public string IdentityNumber { get; set; }  // Changed from ID_number
+        public string IdentityNumber { get; set; }  
 
         [Required(ErrorMessage = "PSIRA Number is required")]
         [Display(Name = "PSIRA Number")]
-        public string PSIRAnumber { get; set; }     // Changed from PsiraNumber
+        public string PSIRAnumber { get; set; }     
 
         [Required]
         [Display(Name = "Emergency Contact")]
@@ -55,7 +55,6 @@ namespace PiranaSecuritySystem.ViewModels
         public string Address { get; set; }
 
         public string Street { get; set; }
-        public string HouseNumber { get; set; }
         public string City { get; set; }
         public string PostalCode { get; set; }
 

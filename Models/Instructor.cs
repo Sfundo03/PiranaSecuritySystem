@@ -43,6 +43,9 @@ namespace PiranaSecuritySystem.Models
         [DataType(DataType.DateTime)]
         public DateTime DateRegistered { get; set; } = DateTime.Now;
 
+        public string Site { get; set; }
+        public string SiteUsername { get; set; }
+
         [Display(Name = "Is Active")]
         public bool IsActive { get; set; } = true;
 

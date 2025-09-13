@@ -1,4 +1,5 @@
 ﻿@model PiranaSecuritySystem.ViewModels.RegisterInstructorViewModel
+@using System.Web.Mvc.Html
 
 @{
     ViewBag.Title = "Register New Instructor";
@@ -245,6 +246,13 @@
                         @Html.ValidationMessageFor(m => m.Group, "", new { @class = "text-danger" })
                     </div>
 
+                    <div class="input-icon select-floating">
+                        <i class="fas fa-map-marker-alt"></i>
+                        @Html.DropDownListFor(m => m.Site, Model.SiteOptions, "Select Site", new { @class = "form-control", required = "required" })
+                        <label for="Site">Site</label>
+                        @Html.ValidationMessageFor(m => m.Site, "", new { @class = "text-danger" })
+                    </div>
+
                     <div class="input-icon floating-label">
                         <i class="fas fa-lock"></i>
                         @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = " ", required = "required" })
@@ -275,30 +283,30 @@
         <script>
             $(document).ready(function () {
                 // Initialize floating labels for all inputs
-                $('.form-control').each(function() {
+                $('.form-control').each(function () {
                     if ($(this).val() !== '') {
                         $(this).addClass('has-value');
                     }
                 });
 
-                $('.form-control').on('focus', function() {
+                $('.form-control').on('focus', function () {
                     $(this).addClass('has-value');
                 });
 
-                $('.form-control').on('blur', function() {
+                $('.form-control').on('blur', function () {
                     if ($(this).val() === '') {
                         $(this).removeClass('has-value');
                     }
                 });
 
                 // Initialize select elements
-                $('select').each(function() {
+                $('select').each(function () {
                     if ($(this).val() !== '') {
                         $(this).addClass('has-value');
                     }
                 });
 
-                $('select').on('change', function() {
+                $('select').on('change', function () {
                     if ($(this).val() !== '') {
                         $(this).addClass('has-value');
                     } else {

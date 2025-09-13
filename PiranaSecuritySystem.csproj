@@ -216,17 +216,9 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="Migrations\202509071646555_AddShiftRoster.cs" />
-    <Compile Include="Migrations\202509071646555_AddShiftRoster.Designer.cs">
-      <DependentUpon>202509071646555_AddShiftRoster.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202509081313370_AddSiteAndUsernameToGuard.cs" />
-    <Compile Include="Migrations\202509081313370_AddSiteAndUsernameToGuard.Designer.cs">
-      <DependentUpon>202509081313370_AddSiteAndUsernameToGuard.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202509101733175_AddIsActiveToApplicationUser.cs" />
-    <Compile Include="Migrations\202509101733175_AddIsActiveToApplicationUser.Designer.cs">
-      <DependentUpon>202509101733175_AddIsActiveToApplicationUser.cs</DependentUpon>
+    <Compile Include="Migrations\202509131346081_InitialCreate.cs" />
+    <Compile Include="Migrations\202509131346081_InitialCreate.Designer.cs">
+      <DependentUpon>202509131346081_InitialCreate.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
@@ -397,14 +389,8 @@
     <Content Include="Scripts\jquery-3.7.0.min.map" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\202509071646555_AddShiftRoster.resx">
-      <DependentUpon>202509071646555_AddShiftRoster.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202509081313370_AddSiteAndUsernameToGuard.resx">
-      <DependentUpon>202509081313370_AddSiteAndUsernameToGuard.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202509101733175_AddIsActiveToApplicationUser.resx">
-      <DependentUpon>202509101733175_AddIsActiveToApplicationUser.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\202509131346081_InitialCreate.resx">
+      <DependentUpon>202509131346081_InitialCreate.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
