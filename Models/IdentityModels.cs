@@ -2,6 +2,7 @@
 using Microsoft.AspNet.Identity.EntityFramework;
 
 using PiranaSecuritySystem.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Security.Claims;
@@ -12,6 +13,10 @@ namespace PiranaSecuritySystem.Models
     // You can add profile data for the user by adding more properties to your ApplicationUser class, please visit https://go.microsoft.com/fwlink/?LinkID=317594 to learn more.
     public class ApplicationUser : IdentityUser
     {
+        public DateTime CreatedAt { get; internal set; }
+        public bool IsActive { get; internal set; }
+        public string FullName { get; internal set; }
+
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager)
         {
             // Note the authenticationType must match the one defined in CookieAuthenticationOptions.AuthenticationType
@@ -39,6 +44,8 @@ namespace PiranaSecuritySystem.Models
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<TaxConfiguration> TaxConfigurations { get; set; }
 
+
+        public DbSet<ResidentInfo> ResidentInfoes { get; set; }
         public DbSet<Resident> Residents { get; set; }
         public DbSet<Guard> Guards { get; set; }
         
@@ -48,6 +55,7 @@ namespace PiranaSecuritySystem.Models
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Director> Directors { get; set; }
         public object TrainingEnrollments { get; internal set; }
+        
 
         public static ApplicationDbContext Create()
         {

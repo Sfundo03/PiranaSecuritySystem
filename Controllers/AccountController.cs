@@ -69,20 +69,28 @@ namespace PiranaSecuritySystem.Controllers
             // If user is already authenticated, redirect to appropriate dashboard
             if (User.Identity.IsAuthenticated)
             {
-                if (User.IsInRole("Admin"))
-                    return RedirectToAction("Dashboard", "Admin");
-                if (User.IsInRole("Director"))
-                    return RedirectToAction("Dashboard", "Director");
-                if (User.IsInRole("Guard"))
-                    return RedirectToAction("Dashboard", "Guard");
-                if (User.IsInRole("Instructor"))
-                    return RedirectToAction("Dashboard", "Instructor");
-
-                return RedirectToLocal(returnUrl);
+                return RedirectToDashboard();
             }
 
             ViewBag.ReturnUrl = returnUrl;
             return View();
+        }
+
+        // Helper method to redirect to appropriate dashboard based on role
+        private ActionResult RedirectToDashboard()
+        {
+            if (User.IsInRole("Admin"))
+                return RedirectToAction("Dashboard", "Admin");
+            if (User.IsInRole("Director"))
+                return RedirectToAction("Dashboard", "Director");
+            if (User.IsInRole("Guard"))
+                return RedirectToAction("Dashboard", "Guard");
+            if (User.IsInRole("Instructor"))
+                return RedirectToAction("Dashboard", "Instructor");
+            if (User.IsInRole("Resident"))
+                return RedirectToAction("Dashboard", "Resident");
+
+            return RedirectToAction("Index", "Home");
         }
 
         // POST: /Account/Login
@@ -178,6 +186,27 @@ namespace PiranaSecuritySystem.Controllers
                                 Session["DirectorId"] = user.Id;
                             }
 
+                            // Check for Resident role to add notification
+                            if (await UserManager.IsInRoleAsync(user.Id, "Resident"))
+                            {
+                                using (var db = new ApplicationDbContext())
+                                {
+                                    var notification = new Notification
+                                    {
+                                        UserId = user.Id,
+                                        UserType = "Resident",
+                                        Message = $"Resident {user.UserName} logged in successfully at {DateTime.Now:MM/dd/yyyy HH:mm}",
+                                        IsRead = false,
+                                        CreatedAt = DateTime.Now,
+                                        RelatedUrl = "/Resident/Dashboard",
+                                        NotificationType = "Login"
+                                    };
+
+                                    db.Notifications.Add(notification);
+                                    await db.SaveChangesAsync();
+                                }
+                            }
+
                             // Redirect based on role
                             if (await UserManager.IsInRoleAsync(user.Id, "Admin"))
                                 return RedirectToAction("Dashboard", "Admin");
@@ -187,6 +216,8 @@ namespace PiranaSecuritySystem.Controllers
                                 return RedirectToAction("Dashboard", "Guard");
                             if (await UserManager.IsInRoleAsync(user.Id, "Instructor"))
                                 return RedirectToAction("Dashboard", "Instructor");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Resident"))
+                                return RedirectToAction("Dashboard", "Resident");
                         }
                         return RedirectToLocal(returnUrl);
 

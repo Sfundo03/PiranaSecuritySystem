@@ -199,6 +199,7 @@
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\IdentityConfig.cs" />
+    <Compile Include="App_Start\RoleInitializer.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\Startup.Auth.cs" />
     <Compile Include="Controllers\AccountController.cs" />
@@ -215,14 +216,6 @@
     <Compile Include="Controllers\TrainingSessionsController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202509071646555_AddShiftRoster.cs" />
-    <Compile Include="Migrations\202509071646555_AddShiftRoster.Designer.cs">
-      <DependentUpon>202509071646555_AddShiftRoster.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202509081313370_AddSiteAndUsernameToGuard.cs" />
-    <Compile Include="Migrations\202509081313370_AddSiteAndUsernameToGuard.Designer.cs">
-      <DependentUpon>202509081313370_AddSiteAndUsernameToGuard.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
@@ -243,6 +236,7 @@
     <Compile Include="Models\RegisterGuardViewModel.cs" />
     <Compile Include="Models\RegisterInstructorViewModel.cs" />
     <Compile Include="Models\Resident.cs" />
+    <Compile Include="Models\ResidentInfo.cs" />
     <Compile Include="Models\ShiftRoster.cs" />
     <Compile Include="Models\TrainingSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -338,7 +332,6 @@
     <Content Include="Views\Notification\_NotificationBell.cshtml" />
     <Content Include="Views\Resident\About.cshtml" />
     <Content Include="Views\Resident\Dashboard.cshtml" />
-    <Content Include="Views\Resident\Index.cshtml" />
     <Content Include="Views\Resident\MyIncidents.cshtml" />
     <Content Include="Views\Resident\Register.cshtml" />
     <Content Include="Views\Resident\ReportIncident.cshtml" />
@@ -390,14 +383,6 @@
     <Content Include="Scripts\bootstrap.bundle.js.map" />
     <Content Include="Scripts\jquery-3.7.0.slim.min.map" />
     <Content Include="Scripts\jquery-3.7.0.min.map" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Migrations\202509071646555_AddShiftRoster.resx">
-      <DependentUpon>202509071646555_AddShiftRoster.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202509081313370_AddSiteAndUsernameToGuard.resx">
-      <DependentUpon>202509081313370_AddSiteAndUsernameToGuard.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

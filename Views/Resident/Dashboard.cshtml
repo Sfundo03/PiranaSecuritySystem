@@ -1,12 +1,12 @@
-﻿@model PiranaSecuritySystem.Models.Resident
+﻿@model PiranaSecuritySystem.Controllers.ResidentDashboardViewModel
 
 @{
     ViewBag.Title = "Resident Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewBag.FullPageLayout = true;
 
-    // Get notifications for this resident
-    var notifications = ViewBag.Notifications as List<PiranaSecuritySystem.Models.Notification> ?? new List<PiranaSecuritySystem.Models.Notification>();
+    // Get notifications from ViewModel
+    var notifications = Model.Notifications ?? new List<PiranaSecuritySystem.Models.Notification>();
     var unreadCount = notifications.Count(n => !n.IsRead);
 }
 
@@ -142,12 +142,81 @@
         font-weight: bold;
         color: #333;
     }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 600px;
+        border-radius: 8px;
+        color: #333;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+
+    .alert-success {
+        color: #3c763d;
+        background-color: #dff0d8;
+        border-color: #d6e9c6;
+    }
+
+    .alert-danger {
+        color: #a94442;
+        background-color: #f2dede;
+        border-color: #ebccd1;
+    }
 </style>
 
 <div class="resident-dashboard">
     <div class="dashboard-container">
         <div class="welcome-header">
-            <h1>Welcome, @Model.FullName!</h1>
+            <h1>Welcome, @Model.Resident.FullName!</h1>
             <p>Resident Security Dashboard</p>
 
             <!-- Notification Bell for Resident -->
@@ -199,7 +268,6 @@
         }
 
         <div class="dashboard-actions">
-            <!-- FIXED: Use proper URL helpers -->
             <div class="action-card" onclick="openModal('detailsModal')">
                 <i class="fas fa-user-circle"></i>
                 <h3>My Details</h3>
@@ -207,7 +275,6 @@
                 <button class="btn-action">View Details</button>
             </div>
 
-            <!-- FIXED: Use proper URL helpers -->
             <div class="action-card" onclick="openModal('reportModal')">
                 <i class="fas fa-exclamation-triangle"></i>
                 <h3>Report Incident</h3>
@@ -215,8 +282,6 @@
                 <button class="btn-action">Report Now</button>
             </div>
 
-
-            <!-- FIXED: Use proper URL for MyIncidents -->
             <div class="action-card" onclick="window.location.href='@Url.Action("MyIncidents", "Resident")'">
                 <i class="fas fa-clipboard-list"></i>
                 <h3>My Reports</h3>
@@ -225,7 +290,6 @@
             </div>
         </div>
 
-        <!-- FIXED: Logout form should point to Resident controller -->
         <div style="text-align: center; margin-top: 30px;">
             @using (Html.BeginForm("Logout", "Resident", FormMethod.Post))
             {
@@ -244,22 +308,27 @@
         @using (Html.BeginForm("UpdateDetails", "Resident", FormMethod.Post))
         {
             @Html.AntiForgeryToken()
-            @Html.HiddenFor(model => model.ResidentId)
+            @Html.Hidden("Id", Model.Resident.Id)
 
             <div class="form-group">
-                @Html.LabelFor(model => model.FullName)
-                @Html.TextBoxFor(model => model.FullName, new { @class = "form-control" })
+                <label for="FullName">Full Name</label>
+                <input type="text" id="FullName" name="FullName" class="form-control" value="@Model.Resident.FullName" />
             </div>
 
             <div class="form-group">
-                @Html.LabelFor(model => model.Email)
-                @Html.TextBoxFor(model => model.Email, new { @class = "form-control", type = "email" })
+                <label for="Email">Email</label>
+                <input type="email" id="Email" name="Email" class="form-control" value="@Model.Resident.Email" />
             </div>
 
             <div class="form-group">
-                @Html.LabelFor(model => model.PhoneNumber)
-                @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control" })
+                <label for="PhoneNumber">Phone Number</label>
+                <input type="text" id="PhoneNumber" name="PhoneNumber" class="form-control" value="@Model.Resident.PhoneNumber" />
             </div>
+
+            
+           
+
+          
 
             <button type="submit" class="btn-action">Update Details</button>
         }
@@ -274,7 +343,7 @@
         @using (Html.BeginForm("ReportIncident", "Resident", FormMethod.Post, new { id = "incidentForm" }))
         {
             @Html.AntiForgeryToken()
-            @Html.Hidden("ResidentId", Model.ResidentId)
+            @Html.Hidden("ResidentId", Model.Resident.Id)
 
             <div class="form-group">
                 <label for="IncidentType">Incident Type</label>
@@ -298,14 +367,11 @@
                 <textarea id="Description" name="Description" class="form-control" rows="4" required placeholder="Please describe the incident in detail"></textarea>
             </div>
 
-            <div class="form-group">
-                <label for="Location">Location</label>
-                <input type="text" id="Location" name="Location" class="form-control" value="@Model.Address, Unit @Model.UnitNumber" readonly>
-            </div>
+           
 
             <div class="form-group">
                 <label for="EmergencyContact">Emergency Contact</label>
-                <input type="text" id="EmergencyContact" name="EmergencyContact" class="form-control" value="@Model.PhoneNumber">
+                <input type="text" id="EmergencyContact" name="EmergencyContact" class="form-control" value="@Model.Resident.PhoneNumber">
             </div>
 
             <button type="submit" class="btn-action">Submit Report</button>
@@ -360,7 +426,7 @@
         });
 
         function loadResidentNotifications() {
-            $.get('@Url.Action("GetResidentNotifications", "Notification")', { residentId: @Model.ResidentId }, function (data) {
+            $.get('@Url.Action("GetResidentNotifications", "Notification")', { residentId: '@Model.Resident.Id' }, function (data) {
                 var notificationList = $('#residentNotificationList');
                 notificationList.empty();
 
