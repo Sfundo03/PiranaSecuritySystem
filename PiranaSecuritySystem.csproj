@@ -220,6 +220,10 @@
     <Compile Include="Migrations\202509131346081_InitialCreate.Designer.cs">
       <DependentUpon>202509131346081_InitialCreate.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202509131609501_UpdateGuardCheckInSystem.cs" />
+    <Compile Include="Migrations\202509131609501_UpdateGuardCheckInSystem.Designer.cs">
+      <DependentUpon>202509131609501_UpdateGuardCheckInSystem.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\DashboardStats.cs" />
@@ -229,12 +233,14 @@
     <Compile Include="Models\GuardAttendance.cs" />
     <Compile Include="Models\GuardCalendarViewModel.cs" />
     <Compile Include="Models\GuardCheckIn.cs" />
+    <Compile Include="Models\GuardCheckInViewModel.cs" />
     <Compile Include="Models\IdentityModels.cs" />
     <Compile Include="Models\IncidentReport.cs" />
     <Compile Include="Models\Instructor.cs" />
     <Compile Include="Models\LoginViewModel.cs" />
     <Compile Include="Models\ManageViewModels.cs" />
     <Compile Include="Models\Notification.cs" />
+    <Compile Include="Models\NotificationViewModel.cs" />
     <Compile Include="Models\PayrollModel.cs" />
     <Compile Include="Models\RegisterGuardViewModel.cs" />
     <Compile Include="Models\RegisterInstructorViewModel.cs" />
@@ -357,6 +363,7 @@
     <Content Include="Views\ShiftRoster\Create.cshtml" />
     <Content Include="Views\ShiftRoster\RosterPreview.cshtml" />
     <Content Include="Views\Admin\UpdateGuardStatus.cshtml" />
+    <Content Include="Views\Guard\Notifications.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -391,6 +398,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Migrations\202509131346081_InitialCreate.resx">
       <DependentUpon>202509131346081_InitialCreate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202509131609501_UpdateGuardCheckInSystem.resx">
+      <DependentUpon>202509131609501_UpdateGuardCheckInSystem.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

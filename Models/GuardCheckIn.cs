@@ -20,16 +20,28 @@ namespace PiranaSecuritySystem.Models
 
         [Required]
         [StringLength(20)]
-        public string Status { get; set; } // "Present" or "Checked Out"
+        public string Status { get; set; } // "Present", "Checked Out", "Late Arrival", "Late Departure"
 
         [Required]
         [Display(Name = "Created Date")]
         public DateTime CreatedDate { get; set; }
 
+        [Display(Name = "Is Late")]
+        public bool IsLate { get; set; }
+
+        [StringLength(10)]
+        [Display(Name = "Expected Time")]
+        public string ExpectedTime { get; set; } // "06:00" or "18:00"
+
+        [StringLength(10)]
+        [Display(Name = "Actual Time")]
+        public string ActualTime { get; set; } // HH:mm format
+
+        [StringLength(50)]
+        [Display(Name = "Site Username")]
+        public string SiteUsername { get; set; }
+
         // Navigation property
         public virtual Guard Guard { get; set; }
-
-
-
     }
 }

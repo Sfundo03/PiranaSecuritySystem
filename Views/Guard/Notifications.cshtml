@@ -1,0 +1,52 @@
+﻿@model IEnumerable<PiranaSecuritySystem.ViewModels.NotificationViewModel>
+@{
+    ViewBag.Title = "My Notifications";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">My Notifications</h1>
+                <a href="@Url.Action("Dashboard", "Guard")" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            @if (Model != null && Model.Any())
+            {
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="list-group">
+                            @foreach (var notification in Model)
+                            {
+                                <div class="list-group-item list-group-item-action flex-column align-items-start @(!notification.IsRead ? "list-group-item-primary" : "")">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">@notification.Title</h5>
+                                        <small class="text-muted">@notification.TimeAgo</small>
+                                    </div>
+                                    <p class="mb-1">@notification.Message</p>
+                                    <small class="text-muted">
+                                        <span class="badge @notification.PriorityClass">@notification.NotificationType</span>
+                                        @if (notification.IsImportant)
+                                        {
+                                            <span class="badge bg-danger ms-1">Important</span>
+                                        }
+                                    </small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You don't have any notifications yet.
+                </div>
+            }
+        </div>
+    </div>
+</div>

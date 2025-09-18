@@ -260,7 +260,7 @@
                         @Html.LabelFor(model => model.TaxThreshold, htmlAttributes: new { @class = "control-label" })
                         <div>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">R</span>
                                 @Html.EditorFor(model => model.TaxThreshold, new { htmlAttributes = new { @class = "form-control", placeholder = "Enter tax threshold amount", id = "taxThreshold" } })
                             </div>
                             @Html.ValidationMessageFor(model => model.TaxThreshold, "", new { @class = "text-danger" })
@@ -269,10 +269,10 @@
 
                     <!-- Tax Preview -->
                     <div class="tax-preview">
-                        <h5><i class="fas fa-calculator me-2"></i>Tax Calculation Preview</h5>
+                        <h5><i class="fas fa-calculator me-2"></i>Tax Calculation Preview (ZAR)</h5>
                         <div class="preview-item">
                             <span>Gross Amount:</span>
-                            <span id="previewGross">$1,000.00</span>
+                            <span id="previewGross">R 1,000.00</span>
                         </div>
                         <div class="preview-item">
                             <span>Tax Rate:</span>
@@ -280,11 +280,11 @@
                         </div>
                         <div class="preview-item">
                             <span>Tax Amount:</span>
-                            <span id="previewTax">$0.00</span>
+                            <span id="previewTax">R 0.00</span>
                         </div>
                         <div class="preview-item">
                             <span>Net Amount:</span>
-                            <span id="previewNet">$1,000.00</span>
+                            <span id="previewNet">R 1,000.00</span>
                         </div>
                     </div>
 
@@ -304,7 +304,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log("Tax configuration page loaded");
 
             // Set current year as default if empty
@@ -339,15 +339,15 @@
                 const taxAmount = (taxableAmount * taxPercentage) / 100;
                 const netAmount = grossAmount - taxAmount;
 
-                // Update preview
+                // Update preview with Rands
                 document.getElementById('previewRate').textContent = taxPercentage + '%';
-                document.getElementById('previewTax').textContent = '$' + taxAmount.toFixed(2);
-                document.getElementById('previewNet').textContent = '$' + netAmount.toFixed(2);
+                document.getElementById('previewTax').textContent = 'R ' + taxAmount.toFixed(2);
+                document.getElementById('previewNet').textContent = 'R ' + netAmount.toFixed(2);
             }
 
             // Form validation
             const form = document.querySelector('form');
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', function (e) {
                 const taxYear = document.getElementById('TaxYear').value;
                 const taxPercentage = document.getElementById('taxPercentage').value;
 

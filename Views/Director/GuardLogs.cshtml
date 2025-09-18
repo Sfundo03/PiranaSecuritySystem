@@ -74,9 +74,11 @@
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Guard Name</th>
+                                <th>Site Username</th>
                                 <th>Status</th>
-                                <th>Location</th>
-                                <th>Notes</th>
+                                <th>Expected Time</th>
+                                <th>Actual Time</th>
+                                <th>Late</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -86,8 +88,20 @@
                                     <td>@log.CheckInTime.ToString("MM/dd/yyyy")</td>
                                     <td>@log.CheckInTime.ToString("HH:mm:ss")</td>
                                     <td>@(log.Guard?.FullName ?? "Unknown Guard")</td>
+                                    <td>@log.SiteUsername</td>
                                     <td>@GetStatusBadge(log.Status)</td>
-                                    
+                                    <td>@log.ExpectedTime</td>
+                                    <td>@log.ActualTime</td>
+                                    <td>
+                                        @if (log.IsLate)
+                                        {
+                                            <span class="badge badge-warning">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-success">No</span>
+                                        }
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -113,14 +127,14 @@
             case "present":
                 badgeClass = "badge badge-success";
                 break;
-            case "late":
+            case "checked out":
+                badgeClass = "badge badge-info";
+                break;
+            case "late arrival":
                 badgeClass = "badge badge-warning";
                 break;
-            case "absent":
+            case "late departure":
                 badgeClass = "badge badge-danger";
-                break;
-            case "break":
-                badgeClass = "badge badge-info";
                 break;
             default:
                 badgeClass = "badge badge-secondary";

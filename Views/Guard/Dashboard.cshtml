@@ -28,15 +28,16 @@
         .card {
             border-radius: 8px;
             box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-            border: 1px solid var(--border-color);
+            border: none; /* Changed from border: 1px solid var(--border-color); */
             margin-bottom: 20px;
         }
 
         .card-header {
             background: white;
             color: var(--primary-blue);
-            border-bottom: 2px solid var(--primary-blue);
+            border-bottom: none; /* Changed from border-bottom: 2px solid var(--primary-blue); */
             font-weight: 600;
+            padding-bottom: 1rem; /* Added to maintain spacing */
         }
 
         .btn-primary {
@@ -51,6 +52,9 @@
         .alert {
             border-radius: 6px;
             border-left: 3px solid;
+            border-top: none; /* Added to remove top border */
+            border-right: none; /* Added to remove right border */
+            border-bottom: none; /* Added to remove bottom border */
         }
 
         .alert-success {
@@ -68,6 +72,7 @@
         .badge {
             font-weight: 500;
             padding: 0.5em 0.8em;
+            text-decoration: none; /* Added to remove any text underline */
         }
 
         .notification-bell {
@@ -91,7 +96,7 @@
 
         .notification-item {
             padding: 1rem;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: none; /* Changed from border-bottom: 1px solid #e9ecef; */
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -144,11 +149,18 @@
         h1, h2, h3, h4, h5, h6 {
             color: var(--primary-blue);
             font-weight: 600;
+            text-decoration: none; /* Added to remove any text underline */
         }
 
         .table th {
             color: var(--primary-blue);
             font-weight: 500;
+            text-decoration: none; /* Added to remove any text underline */
+            border-bottom: none; /* Added to remove table header underline */
+        }
+
+        .table td {
+            border-bottom: none; /* Added to remove table cell underline */
         }
 
         .loading-spinner {
@@ -191,11 +203,12 @@
             background-color: #fefefe;
             margin: 15% auto;
             padding: 20px;
-            border: 1px solid #888;
+            border: none; /* Changed from border: 1px solid #888; */
             width: 80%;
             max-width: 500px;
             border-radius: 8px;
             position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); /* Added to maintain visual hierarchy */
         }
 
         .close-modal {
@@ -204,6 +217,7 @@
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            text-decoration: none; /* Added to remove any text underline */
         }
 
         /* Site badge styles */
@@ -217,6 +231,7 @@
             white-space: nowrap;
             vertical-align: baseline;
             border-radius: 0.375rem;
+            text-decoration: none; /* Added to remove any text underline */
         }
 
         .site-a {
@@ -233,6 +248,28 @@
             background-color: #6f42c1;
             color: white;
         }
+
+        /* Additional styles to remove borders/underlines */
+        .table {
+            border: none; /* Remove table border */
+        }
+
+        .notification-header {
+            border-bottom: none; /* Remove notification header border */
+            padding-bottom: 0.5rem; /* Adjust padding to maintain spacing */
+        }
+
+        .notification-footer {
+            border-top: none; /* Remove notification footer border */
+        }
+
+        a {
+            text-decoration: none; /* Remove underline from all links */
+        }
+
+            a:hover {
+                text-decoration: none; /* Ensure no underline on hover */
+            }
     </style>
 </head>
 <body>
