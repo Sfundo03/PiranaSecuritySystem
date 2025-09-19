@@ -27,6 +27,8 @@ namespace PiranaSecuritySystem.ViewModels
         [Required]
         public string Specialization { get; set; }
 
+        
+
         [Required]
         [Display(Name = "Site")]
         public string Site { get; set; }

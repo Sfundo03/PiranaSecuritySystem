@@ -213,7 +213,7 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        
+
 
         // Helper method to generate site username
         private string GenerateSiteUsername(string sitePrefix)
@@ -317,7 +317,7 @@ namespace PiranaSecuritySystem.Controllers
                         NotificationType = "Guard",
                         CreatedAt = DateTime.Now,
                         IsRead = false,
-                        UserId = "Admin" 
+                        UserId = "Admin"
                     };
                     db.Notifications.Add(notification);
                     db.SaveChanges();
@@ -387,7 +387,7 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("ManageGuards");
                 }
 
-                
+
                 return View(model);
             }
             catch (Exception ex)
@@ -410,7 +410,7 @@ namespace PiranaSecuritySystem.Controllers
             new SelectListItem { Value = "Site C", Text = "Site C" }
         }
             };
-            return View();
+            return View(model); // FIXED: Now passing the model with populated SiteOptions
         }
 
         // POST: Admin/RegisterInstructor
@@ -572,9 +572,6 @@ namespace PiranaSecuritySystem.Controllers
             return $"{sitePrefix}{nextNumber:D3}";
         }
 
-
-
-
         // GET: Admin/ManageInstructors
         public ActionResult ManageInstructors()
         {
@@ -734,7 +731,7 @@ namespace PiranaSecuritySystem.Controllers
         </div>
         <div class='footer'>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy> {DateTime.Now.Year} Pirana Security System. All rights reserved.</p>
+            <p>&copy; {DateTime.Now.Year} Pirana Security System. All rights reserved.</p>
         </div>
     </div>
 </body>

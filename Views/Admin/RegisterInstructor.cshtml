@@ -246,10 +246,12 @@
                         @Html.ValidationMessageFor(m => m.Group, "", new { @class = "text-danger" })
                     </div>
 
+                 
+
                     <div class="input-icon select-floating">
                         <i class="fas fa-map-marker-alt"></i>
-                        @Html.DropDownListFor(m => m.Site, Model.SiteOptions, "Select Site", new { @class = "form-control", required = "required" })
-                        <label for="Site">Site</label>
+                        @Html.DropDownListFor(m => m.Site, Model.SiteOptions, "Select Site", new { @class = "form-control", required = "required", id = "siteSelect" })
+                        <label for="Site">Assigned Site</label>
                         @Html.ValidationMessageFor(m => m.Site, "", new { @class = "text-danger" })
                     </div>
 
