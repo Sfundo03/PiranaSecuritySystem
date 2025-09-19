@@ -199,6 +199,7 @@
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\IdentityConfig.cs" />
+    <Compile Include="App_Start\RoleInitializer.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\Startup.Auth.cs" />
     <Compile Include="Controllers\AccountController.cs" />
@@ -237,6 +238,7 @@
     <Compile Include="Models\RegisterGuardViewModel.cs" />
     <Compile Include="Models\RegisterInstructorViewModel.cs" />
     <Compile Include="Models\Resident.cs" />
+    <Compile Include="Models\ResidentInfo.cs" />
     <Compile Include="Models\ShiftRoster.cs" />
     <Compile Include="Models\TrainingSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -332,7 +334,6 @@
     <Content Include="Views\Notification\_NotificationBell.cshtml" />
     <Content Include="Views\Resident\About.cshtml" />
     <Content Include="Views\Resident\Dashboard.cshtml" />
-    <Content Include="Views\Resident\Index.cshtml" />
     <Content Include="Views\Resident\MyIncidents.cshtml" />
     <Content Include="Views\Resident\Register.cshtml" />
     <Content Include="Views\Resident\ReportIncident.cshtml" />

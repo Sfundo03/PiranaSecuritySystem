@@ -77,6 +77,8 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Dashboard", "Guard");
                 if (User.IsInRole("Instructor"))
                     return RedirectToAction("Dashboard", "Instructor");
+                if (User.IsInRole("Resident"))
+                    return RedirectToAction("Dashboard", "Resident");
 
                 return RedirectToLocal(returnUrl);
             }
@@ -187,6 +189,9 @@ namespace PiranaSecuritySystem.Controllers
                                 return RedirectToAction("Dashboard", "Guard");
                             if (await UserManager.IsInRoleAsync(user.Id, "Instructor"))
                                 return RedirectToAction("Dashboard", "Instructor");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Resident"))
+                                return RedirectToAction("Dashboard", "Resident");
+
                         }
                         return RedirectToLocal(returnUrl);
 

@@ -18,6 +18,8 @@ namespace PiranaSecuritySystem.Models
         public bool IsActive { get; set; } = true; // Add this line
         public DateTime? LastLoginDate { get; set; }
         public DateTime DateCreated { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; internal set; }
+
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager)
         {
             // Note the authenticationType must match the one defined in CookieAuthenticationOptions.AuthenticationType
@@ -36,6 +38,8 @@ namespace PiranaSecuritySystem.Models
 
         // Add your DbSets here
         public DbSet<IncidentReport> IncidentReports { get; set; }
+        
+        public DbSet<ResidentInfo> ResidentInfos { get; set; }
         public DbSet<TrainingSession> TrainingSessions { get; set; }
         public DbSet<ShiftRoster> ShiftRosters { get; set; }
 
