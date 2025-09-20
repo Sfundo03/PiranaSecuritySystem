@@ -8,7 +8,13 @@ namespace PiranaSecuritySystem.Models
         [Key]
         public int IncidentReportId { get; set; }
 
-        public int ResidentId { get; set; }
+        // For resident-reported incidents
+        public int? ResidentId { get; set; }
+        public virtual Resident Resident { get; set; }
+
+        // For guard-reported incidents - ADD THESE
+        public int? GuardId { get; set; }
+        public virtual Guard Guard { get; set; }
 
         [Required]
         public string IncidentType { get; set; }
@@ -32,11 +38,8 @@ namespace PiranaSecuritySystem.Models
 
         public string ReportedBy { get; set; }
 
+        public string CreatedBy { get; set; }
+        public DateTime CreatedDate { get; set; }
 
-
-        // Navigation property
-        public virtual Resident Resident { get; set; }
-        public string CreatedBy { get; internal set; }
-        public DateTime CreatedDate { get; internal set; }
     }
 }

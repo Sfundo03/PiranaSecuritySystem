@@ -67,13 +67,12 @@ namespace PiranaSecuritySystem.Controllers
         {
             var model = new RegisterGuardViewModel
             {
-                // Initialize site options
                 SiteOptions = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "Site A", Text = "Site A" },
-            new SelectListItem { Value = "Site B", Text = "Site B" },
-            new SelectListItem { Value = "Site C", Text = "Site C" }
-        }
+                {
+                    new SelectListItem { Value = "Site A", Text = "Site A" },
+                    new SelectListItem { Value = "Site B", Text = "Site B" },
+                    new SelectListItem { Value = "Site C", Text = "Site C" }
+                }
             };
             return View(model);
         }
@@ -83,13 +82,12 @@ namespace PiranaSecuritySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterGuard(RegisterGuardViewModel model)
         {
-            // Ensure site options are populated if we need to return the view
             model.SiteOptions = new List<SelectListItem>
-    {
-        new SelectListItem { Value = "Site A", Text = "Site A" },
-        new SelectListItem { Value = "Site B", Text = "Site B" },
-        new SelectListItem { Value = "Site C", Text = "Site C" }
-    };
+            {
+                new SelectListItem { Value = "Site A", Text = "Site A" },
+                new SelectListItem { Value = "Site B", Text = "Site B" },
+                new SelectListItem { Value = "Site C", Text = "Site C" }
+            };
 
             if (ModelState.IsValid)
             {
@@ -109,7 +107,6 @@ namespace PiranaSecuritySystem.Controllers
                     ModelState.AddModelError("", "Username generation error. Please try again.");
                     return View(model);
                 }
-
 
                 if (db.Guards.Any(g => g.PSIRAnumber == model.PSIRAnumber))
                 {
@@ -157,8 +154,8 @@ namespace PiranaSecuritySystem.Controllers
                         Street = model.Street,
                         City = model.City,
                         PostalCode = model.PostalCode,
-                        Site = model.Site, // Save the site
-                        SiteUsername = siteUsername // Save the site-specific username
+                        Site = model.Site,
+                        SiteUsername = siteUsername
                     };
 
                     db.Guards.Add(guard);
@@ -185,11 +182,8 @@ namespace PiranaSecuritySystem.Controllers
                         return View(model);
                     }
 
-                    // Send email with credentials
                     string fullName = $"{model.Guard_FName} {model.Guard_LName}";
                     await SendGuardCredentialsEmail(model.Email, model.Password, fullName);
-
-                    // Create notification for director
                     CreateNewStaffNotification("Guard", fullName);
 
                     TempData["SuccessMessage"] = $"Guard {fullName} has been registered successfully! Credentials have been sent to their email.";
@@ -213,12 +207,8 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        
-
-        // Helper method to generate site username
         private string GenerateSiteUsername(string sitePrefix)
         {
-            // Get all existing usernames for this site
             var existingUsernames = db.Guards
                 .Where(g => g.SiteUsername.StartsWith(sitePrefix))
                 .Select(g => g.SiteUsername)
@@ -228,7 +218,6 @@ namespace PiranaSecuritySystem.Controllers
 
             if (existingUsernames.Any())
             {
-                // Extract the number part from all existing usernames and find the maximum
                 var numbers = existingUsernames
                     .Select(username =>
                     {
@@ -248,13 +237,12 @@ namespace PiranaSecuritySystem.Controllers
                 }
             }
 
-            // Format with leading zeros (001, 002, etc.)
             return $"{sitePrefix}{nextNumber:D3}";
         }
+
         // GET: Admin/ManageGuards
         public ActionResult ManageGuards()
         {
-            // Check for success message from registration
             if (TempData["SuccessMessage"] != null)
             {
                 ViewBag.SuccessMessage = TempData["SuccessMessage"];
@@ -288,26 +276,21 @@ namespace PiranaSecuritySystem.Controllers
                     return HttpNotFound();
                 }
 
-                // Store old status for notification
                 var oldStatus = guard.IsActive;
                 guard.IsActive = isActive;
 
-                // Update the user account status as well if needed
                 var user = db.Users.FirstOrDefault(u => u.Id == guard.UserId);
                 if (user != null)
                 {
-                    // Check if ApplicationUser has IsActive property using reflection
                     var isActiveProperty = user.GetType().GetProperty("IsActive");
                     if (isActiveProperty != null && isActiveProperty.CanWrite)
                     {
                         isActiveProperty.SetValue(user, isActive);
                     }
-                    // If not, we'll just update the guard status without affecting the user
                 }
 
                 db.SaveChanges();
 
-                // Create notification about status change
                 if (oldStatus != isActive)
                 {
                     var notification = new Notification
@@ -317,7 +300,7 @@ namespace PiranaSecuritySystem.Controllers
                         NotificationType = "Guard",
                         CreatedAt = DateTime.Now,
                         IsRead = false,
-                        UserId = "Admin" 
+                        UserId = "Admin"
                     };
                     db.Notifications.Add(notification);
                     db.SaveChanges();
@@ -359,7 +342,6 @@ namespace PiranaSecuritySystem.Controllers
                         return HttpNotFound();
                     }
 
-                    // Update guard properties
                     guard.Guard_FName = model.Guard_FName;
                     guard.Guard_LName = model.Guard_LName;
                     guard.IdentityNumber = model.IdentityNumber;
@@ -373,7 +355,6 @@ namespace PiranaSecuritySystem.Controllers
                     guard.PostalCode = model.PostalCode;
                     guard.IsActive = model.IsActive;
 
-                    // Also update the associated user's email if it exists
                     var user = db.Users.FirstOrDefault(u => u.Id == guard.UserId);
                     if (user != null && user.Email != model.Email)
                     {
@@ -387,7 +368,6 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("ManageGuards");
                 }
 
-                
                 return View(model);
             }
             catch (Exception ex)
@@ -400,17 +380,8 @@ namespace PiranaSecuritySystem.Controllers
         // GET: Admin/RegisterInstructor
         public ActionResult RegisterInstructor()
         {
-            var model = new RegisterInstructorViewModel
-            {
-                // Initialize site options
-                SiteOptions = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "Site A", Text = "Site A" },
-            new SelectListItem { Value = "Site B", Text = "Site B" },
-            new SelectListItem { Value = "Site C", Text = "Site C" }
-        }
-            };
-            return View();
+            var model = new RegisterInstructorViewModel();
+            return View(model);
         }
 
         // POST: Admin/RegisterInstructor
@@ -418,13 +389,19 @@ namespace PiranaSecuritySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterInstructor(RegisterInstructorViewModel model)
         {
-            // Ensure site options are populated if we need to return the view
             model.SiteOptions = new List<SelectListItem>
-    {
-        new SelectListItem { Value = "Site A", Text = "Site A" },
-        new SelectListItem { Value = "Site B", Text = "Site B" },
-        new SelectListItem { Value = "Site C", Text = "Site C" }
-    };
+            {
+                new SelectListItem { Value = "Site A", Text = "Site A" },
+                new SelectListItem { Value = "Site B", Text = "Site B" },
+                new SelectListItem { Value = "Site C", Text = "Site C" }
+            };
+
+            model.GroupOptions = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "Group A", Text = "Group A" },
+                new SelectListItem { Value = "Group B", Text = "Group B" },
+                new SelectListItem { Value = "Group C", Text = "Group C" }
+            };
 
             if (ModelState.IsValid)
             {
@@ -436,12 +413,6 @@ namespace PiranaSecuritySystem.Controllers
                     return View(model);
                 }
 
-                if (db.Instructors.Any(i => i.EmployeeId == model.EmployeeId))
-                {
-                    ModelState.AddModelError("", "Employee ID is already registered.");
-                    return View(model);
-                }
-
                 string sitePrefix = GetInstructorSitePrefix(model.Site);
                 string siteUsername = GenerateInstructorSiteUsername(sitePrefix);
                 if (db.Instructors.Any(i => i.SiteUsername == siteUsername))
@@ -449,6 +420,8 @@ namespace PiranaSecuritySystem.Controllers
                     ModelState.AddModelError("", "Username generation error. Please try again.");
                     return View(model);
                 }
+
+                string employeeId = GenerateEmployeeId();
 
                 var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
                 var result = await UserManager.CreateAsync(user, model.Password);
@@ -475,16 +448,17 @@ namespace PiranaSecuritySystem.Controllers
 
                     var instructor = new Instructor
                     {
-                        EmployeeId = model.EmployeeId,
+                        EmployeeId = employeeId,
                         FullName = model.FullName,
+                        Group = model.Group,
                         Email = model.Email,
                         PhoneNumber = model.PhoneNumber,
                         Specialization = model.Specialization,
                         DateRegistered = DateTime.Now,
                         IsActive = true,
                         UserId = user.Id,
-                        Site = model.Site, // Save the site
-                        SiteUsername = siteUsername // Save the site-specific user
+                        Site = model.Site,
+                        SiteUsername = siteUsername
                     };
 
                     db.Instructors.Add(instructor);
@@ -511,13 +485,10 @@ namespace PiranaSecuritySystem.Controllers
                         return View(model);
                     }
 
-                    // Send email with credentials
-                    await SendInstructorCredentialsEmail(model.Email, model.Password, model.FullName);
+                    await SendInstructorCredentialsEmail(model.Email, model.Password, model.FullName, employeeId);
+                    CreateNewStaffNotification("Instructor", model.FullName, employeeId);
 
-                    // Create notification for director
-                    CreateNewStaffNotification("Instructor", model.FullName);
-
-                    TempData["SuccessMessage"] = $"Instructor {model.FullName} has been registered successfully! Credentials have been sent to their email.";
+                    TempData["SuccessMessage"] = $"Instructor {model.FullName} (ID: {employeeId}) has been registered successfully! Credentials have been sent to their email.";
                     return RedirectToAction("ManageInstructors");
                 }
 
@@ -527,7 +498,6 @@ namespace PiranaSecuritySystem.Controllers
             return View(model);
         }
 
-        // Add these helper methods for instructors
         private string GetInstructorSitePrefix(string site)
         {
             switch (site)
@@ -541,7 +511,6 @@ namespace PiranaSecuritySystem.Controllers
 
         private string GenerateInstructorSiteUsername(string sitePrefix)
         {
-            // Get all existing usernames for this site
             var existingUsernames = db.Instructors
                 .Where(i => i.SiteUsername.StartsWith(sitePrefix))
                 .Select(i => i.SiteUsername)
@@ -550,7 +519,6 @@ namespace PiranaSecuritySystem.Controllers
             int nextNumber = 1;
             if (existingUsernames.Any())
             {
-                // Extract the number part from all existing usernames and find the maximum
                 var numbers = existingUsernames
                     .Select(username =>
                     {
@@ -568,25 +536,146 @@ namespace PiranaSecuritySystem.Controllers
                     nextNumber = numbers.Max() + 1;
                 }
             }
-            // Format with leading zeros (001, 002, etc.)
             return $"{sitePrefix}{nextNumber:D3}";
         }
 
-
-
+        private string GenerateEmployeeId()
+        {
+            return $"INST-{DateTime.Now:yyyyMMdd-HHmmss}";
+        }
 
         // GET: Admin/ManageInstructors
         public ActionResult ManageInstructors()
         {
-            // Check for success message from registration
-            if (TempData["SuccessMessage"] != null)
-            {
-                ViewBag.SuccessMessage = TempData["SuccessMessage"];
-            }
-
             var instructors = db.Instructors.OrderBy(i => i.FullName).ToList();
             return View(instructors);
         }
+
+        // GET: Admin/EditInstructor/5
+        public ActionResult EditInstructor(int id)
+        {
+            try
+            {
+                var instructor = db.Instructors.Find(id);
+                if (instructor == null)
+                {
+                    return HttpNotFound();
+                }
+
+                var viewModel = new EditInstructorViewModel
+                {
+                    Id = instructor.Id,
+                    FullName = instructor.FullName,
+                    Group = instructor.Group,
+                    Email = instructor.Email,
+                    PhoneNumber = instructor.PhoneNumber,
+                    Specialization = instructor.Specialization,
+                    Site = instructor.Site,
+                    IsActive = instructor.IsActive
+                };
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error loading instructor: " + ex.Message;
+                return RedirectToAction("ManageInstructors");
+            }
+        }
+
+        // POST: Admin/EditInstructor/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult EditInstructor(EditInstructorViewModel model)
+        {
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    var instructor = db.Instructors.Find(model.Id);
+                    if (instructor == null)
+                    {
+                        return HttpNotFound();
+                    }
+
+                    // Check if email is already used by another instructor
+                    if (db.Instructors.Any(i => i.Email == model.Email && i.Id != model.Id))
+                    {
+                        ModelState.AddModelError("Email", "Email address is already registered to another instructor.");
+                        return View(model);
+                    }
+
+                    instructor.FullName = model.FullName;
+                    instructor.Group = model.Group;
+                    instructor.Email = model.Email;
+                    instructor.PhoneNumber = model.PhoneNumber;
+                    instructor.Specialization = model.Specialization;
+                    instructor.Site = model.Site;
+                    instructor.IsActive = model.IsActive;
+
+                    // Update associated user email if changed
+                    var user = db.Users.FirstOrDefault(u => u.Id == instructor.UserId);
+                    if (user != null && user.Email != model.Email)
+                    {
+                        user.Email = model.Email;
+                        user.UserName = model.Email;
+                    }
+
+                    db.SaveChanges();
+
+                    TempData["SuccessMessage"] = $"Instructor {model.FullName} updated successfully!";
+                    return RedirectToAction("ManageInstructors");
+                }
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error updating instructor: " + ex.Message;
+                return View(model);
+            }
+        }
+        
+
+
+        // POST: Admin/UpdateInstructorStatus/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateInstructorStatus(int id, bool isActive)
+        {
+            try
+            {
+                var instructor = db.Instructors.Find(id);
+                if (instructor == null)
+                {
+                    return HttpNotFound();
+                }
+
+                instructor.IsActive = isActive;
+
+                var user = db.Users.FirstOrDefault(u => u.Id == instructor.UserId);
+                if (user != null)
+                {
+                    var isActiveProperty = user.GetType().GetProperty("IsActive");
+                    if (isActiveProperty != null && isActiveProperty.CanWrite)
+                    {
+                        isActiveProperty.SetValue(user, isActive);
+                    }
+                }
+
+                db.SaveChanges();
+
+                TempData["SuccessMessage"] = $"Instructor {instructor.FullName} status updated successfully to {(isActive ? "Active" : "Inactive")}.";
+                return RedirectToAction("ManageInstructors");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error updating instructor status: " + ex.Message;
+                return RedirectToAction("ManageInstructors");
+            }
+        }
+
+
 
         // GET: Redirect to Payroll
         public ActionResult Payroll()
@@ -611,19 +700,23 @@ namespace PiranaSecuritySystem.Controllers
                 roleManager.Create(new IdentityRole("Director"));
         }
 
-        private void CreateNewStaffNotification(string staffType, string staffName)
+        private void CreateNewStaffNotification(string staffType, string staffName, string employeeId = null)
         {
             try
             {
+                var message = employeeId != null
+                    ? $"A new {staffType.ToLower()} ({staffName}, ID: {employeeId}) has been registered in the system"
+                    : $"A new {staffType.ToLower()} ({staffName}) has been registered in the system";
+
                 var notification = new Notification
                 {
                     Title = $"New {staffType} Added",
-                    Message = $"A new {staffType.ToLower()} ({staffName}) has been registered in the system",
+                    Message = message,
                     NotificationType = staffType.ToLower(),
                     RelatedUrl = staffType.ToLower() == "guard"
                         ? Url.Action("ManageGuards", "Admin")
                         : Url.Action("ManageInstructors", "Admin"),
-                    UserId = "Director", // Send to all directors
+                    UserId = "Director",
                     UserType = "Director",
                     CreatedAt = DateTime.Now,
                     IsRead = false
@@ -635,7 +728,6 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error creating notification: {ex.Message}");
-                // Don't throw, just log the error
             }
         }
 
@@ -690,11 +782,10 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error sending email to {email}: {ex.Message}");
-                // You might want to log this error or handle it appropriately
             }
         }
 
-        private async Task SendInstructorCredentialsEmail(string email, string password, string fullName)
+        private async Task SendInstructorCredentialsEmail(string email, string password, string fullName, string employeeId)
         {
             try
             {
@@ -720,9 +811,9 @@ namespace PiranaSecuritySystem.Controllers
         <div class='content'>
             <h3>Dear {fullName},</h3>
             <p>You have been successfully registered on the Pirana Security System as an Instructor.</p>
-            <p>Please use the following credentials to login to your account:</p>
             
             <div class='credentials'>
+                <strong>Employee ID:</strong> {employeeId}<br>
                 <strong>Email:</strong> {email}<br>
                 <strong>Password:</strong> {password}
             </div>
@@ -734,7 +825,7 @@ namespace PiranaSecuritySystem.Controllers
         </div>
         <div class='footer'>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy> {DateTime.Now.Year} Pirana Security System. All rights reserved.</p>
+            <p>&copy; {DateTime.Now.Year} Pirana Security System. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -745,7 +836,6 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error sending email to {email}: {ex.Message}");
-                // You might want to log this error or handle it appropriately
             }
         }
 
@@ -753,12 +843,11 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                // Configure these settings in your web.config or app settings
-                string fromEmail = "noreply@piranasecurity.com"; // Change this to your email
-                string smtpServer = "smtp.your-email-provider.com"; // Change to your SMTP server
-                int smtpPort = 587; // Change to your SMTP port
-                string smtpUsername = "your-email@domain.com"; // Change to your SMTP username
-                string smtpPassword = "your-email-password"; // Change to your SMTP password
+                string fromEmail = "noreply@piranasecurity.com";
+                string smtpServer = "smtp.your-email-provider.com";
+                int smtpPort = 587;
+                string smtpUsername = "your-email@domain.com";
+                string smtpPassword = "your-email-password";
 
                 using (var message = new MailMessage())
                 {
@@ -782,7 +871,7 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error sending email: {ex.Message}");
-                throw; // Re-throw to handle in calling method
+                throw;
             }
         }
 

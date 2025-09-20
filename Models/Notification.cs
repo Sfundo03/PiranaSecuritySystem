@@ -12,18 +12,18 @@ namespace PiranaSecuritySystem.Models
         [Key]
         public int NotificationId { get; set; }
 
-        public int? ResidentId { get; set; } // Nullable, if notification is for a resident
-        public int? DirectorId { get; set; } // Nullable, if notification is for a director
-        public int? AdminId { get; set; } // Nullable, if notification is for an admin
-        public int? GuardId { get; set; } // Nullable, if notification is for a guard
-        public int? InstructorId { get; set; } // Nullable, if notification is for an instructor
+        public int? ResidentId { get; set; }
+        public int? DirectorId { get; set; }
+        public int? AdminId { get; set; }
+        public int? GuardId { get; set; }
+        public int? InstructorId { get; set; }
 
         [Required]
-        public string UserId { get; set; } // The actual recipient's user ID
+        public string UserId { get; set; }
 
         [Required]
         [StringLength(20)]
-        public string UserType { get; set; } // "Resident", "Director", "Admin", "Guard", "Instructor"
+        public string UserType { get; set; }
 
         [Required]
         [StringLength(200)]
@@ -40,30 +40,56 @@ namespace PiranaSecuritySystem.Models
         public DateTime? DateRead { get; set; }
 
         [StringLength(200)]
-        public string RelatedUrl { get; set; } // URL to relevant page
+        public string RelatedUrl { get; set; }
 
         [StringLength(50)]
-        public string NotificationType { get; set; } // "Login", "Incident", "System", "Security", "Guard", "Instructor", "Checkin", "Report"
+        public string NotificationType { get; set; }
 
         public bool IsImportant { get; set; } = false;
 
-        // Additional properties for better notification management
-        public string Source { get; set; } // Which system/module generated the notification
+        public string Source { get; set; }
 
         [StringLength(100)]
-        public string ActionRequired { get; set; } // Optional: what action is needed
+        public string ActionRequired { get; set; }
 
-        public DateTime? ExpiryDate { get; set; } // Optional: when notification becomes irrelevant
+        public DateTime? ExpiryDate { get; set; }
 
-        public int PriorityLevel { get; set; } = 1; // 1=Low, 2=Medium, 3=High, 4=Critical
+        public int PriorityLevel { get; set; } = 1;
 
-        // Navigation properties (if needed)
         public virtual ApplicationUser User { get; set; }
+
+        // Helper method to get formatted time ago
+        public string GetTimeAgo()
+        {
+            try
+            {
+                if (CreatedAt == DateTime.MinValue || CreatedAt.Year <= 2000)
+                    return "Just now";
+
+                TimeSpan timeSince = DateTime.Now - CreatedAt;
+
+                if (timeSince.TotalSeconds < 60)
+                    return "Just now";
+                else if (timeSince.TotalMinutes < 60)
+                    return $"{(int)timeSince.TotalMinutes} minute{(timeSince.TotalMinutes >= 2 ? "s" : "")} ago";
+                else if (timeSince.TotalHours < 24)
+                    return $"{(int)timeSince.TotalHours} hour{(timeSince.TotalHours >= 2 ? "s" : "")} ago";
+                else if (timeSince.TotalDays < 7)
+                    return $"{(int)timeSince.TotalDays} day{(timeSince.TotalDays >= 2 ? "s" : "")} ago";
+                else if (timeSince.TotalDays < 30)
+                    return $"{(int)(timeSince.TotalDays / 7)} week{((int)(timeSince.TotalDays / 7) >= 2 ? "s" : "")} ago";
+                else if (timeSince.TotalDays < 365)
+                    return $"{(int)(timeSince.TotalDays / 30)} month{((int)(timeSince.TotalDays / 30) >= 2 ? "s" : "")} ago";
+                else
+                    return CreatedAt.ToString("MMM dd, yyyy");
+            }
+            catch
+            {
+                return "Just now";
+            }
+        }
     }
 
-    
-
-    // Optional: Enum for notification types
     public enum NotificationType
     {
         System,
@@ -78,7 +104,6 @@ namespace PiranaSecuritySystem.Models
         Emergency
     }
 
-    // Optional: Enum for user types
     public enum UserType
     {
         Director,
@@ -89,7 +114,6 @@ namespace PiranaSecuritySystem.Models
         System
     }
 
-    // Optional: Enum for priority levels
     public enum PriorityLevel
     {
         Low = 1,

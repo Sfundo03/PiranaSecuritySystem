@@ -29,16 +29,10 @@
             {
                 <div class="notification-item @(!notification.IsRead ? "unread" : "")"
                      data-id="@notification.NotificationId">
-                    <div>@notification.Message</div>
+                    <div class="notification-title">@notification.Title</div>
+                    <div class="notification-message">@notification.Message</div>
                     <span class="notification-time">
-                        @if (notification.CreatedAt > DateTime.MinValue && notification.CreatedAt.Year > 2000)
-                        {
-                            @notification.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")
-                        }
-                        else
-                        {
-                            @:Just now
-                        }
+                        @notification.GetTimeAgo()
                     </span>
                 </div>
             }
@@ -50,26 +44,40 @@
     </div>
 </div>
 
-<script>
-    // Add this script to handle date formatting for AJAX-loaded notifications
-    function formatNotificationDate(dateString) {
-        try {
-            if (!dateString) return 'Just now';
-
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Just now';
-
-            const now = new Date();
-            const diffInSeconds = Math.floor((now - date) / 1000);
-
-            if (diffInSeconds < 60) return 'Just now';
-            if (diffInSeconds < 3600) return Math.floor(diffInSeconds / 60) + ' min ago';
-            if (diffInSeconds < 86400) return Math.floor(diffInSeconds / 3600) + ' hours ago';
-            if (diffInSeconds < 604800) return Math.floor(diffInSeconds / 86400) + ' days ago';
-
-            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-        } catch (e) {
-            return 'Just now';
-        }
+<style>
+    .notification-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
     }
+
+    .notification-message {
+        color: #666;
+        margin-bottom: 5px;
+        line-height: 1.4;
+    }
+
+    .notification-time {
+        font-size: 12px;
+        color: #999;
+    }
+
+    .notification-item.unread {
+        background-color: #f8f9fa;
+        border-left: 3px solid #007bff;
+    }
+
+    .notification-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+
+        .notification-item:hover {
+            background-color: #f0f0f0;
+        }
+</style>
+
+<script>
+    // Remove the old formatNotificationDate function since we're using server-side formatting now
 </script>

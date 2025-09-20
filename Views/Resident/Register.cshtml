@@ -1,4 +1,4 @@
-﻿@model PiranaSecuritySystem.Models.Resident
+﻿@model PiranaSecuritySystem.Controllers.RegisterResidentViewModel
 
 @{
     ViewBag.Title = "Register - Resident Portal";
@@ -167,6 +167,12 @@
                 </div>
 
                 <div class="form-group">
+                    @Html.LabelFor(model => model.ConfirmPassword)
+                    @Html.PasswordFor(model => model.ConfirmPassword, new { @class = "form-control", placeholder = "Confirm your password", required = "required", minlength = "6" })
+                    @Html.ValidationMessageFor(model => model.ConfirmPassword, "", new { @class = "validation-error" })
+                </div>
+
+                <div class="form-group">
                     @Html.LabelFor(model => model.EmergencyContact)
                     @Html.TextBoxFor(model => model.EmergencyContact, new { @class = "form-control", placeholder = "Emergency contact (optional)" })
                     @Html.ValidationMessageFor(model => model.EmergencyContact, "", new { @class = "validation-error" })
@@ -175,7 +181,7 @@
                 <button type="submit" class="btn-register">Create Account</button>
             }
 
-            <a href="@Url.Action("Index", "Resident")" class="btn-login">
+            <a href="@Url.Action("Login", "Account")" class="btn-login">
                 Back to Login
             </a>
         </div>

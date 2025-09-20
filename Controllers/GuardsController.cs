@@ -36,18 +36,17 @@ namespace PiranaSecuritySystem.Controllers
                 }
 
                 // Add dashboard statistics
-                ViewBag.TotalIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId);
-                ViewBag.PendingIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId && r.Status == "Pending Review");
-                ViewBag.ResolvedIncidents = db.IncidentReports.Count(r => r.ResidentId == guard.GuardId && r.Status == "Resolved");
+                ViewBag.TotalIncidents = db.IncidentReports.Count(r => r.GuardId == guard.GuardId);
+                ViewBag.PendingIncidents = db.IncidentReports.Count(r => r.GuardId == guard.GuardId && r.Status == "Pending Review");
+                ViewBag.ResolvedIncidents = db.IncidentReports.Count(r => r.GuardId == guard.GuardId && r.Status == "Resolved");
                 ViewBag.UpcomingShifts = db.ShiftRosters.Count(s => s.GuardId == guard.GuardId && s.RosterDate >= DateTime.Today);
 
                 // Get recent incidents for dashboard
                 var recentIncidents = db.IncidentReports
-                    .Where(r => r.ResidentId == guard.GuardId)
-                    .OrderByDescending(r => r.ReportDate)
-                    .Take(5)
-                    .ToList();
-
+                .Where(r => r.GuardId == guard.GuardId) // Changed from ResidentId to GuardId
+                .OrderByDescending(r => r.ReportDate)
+                .Take(5)
+                .ToList();
                 ViewBag.RecentIncidents = recentIncidents;
 
                 // Return the view with guard model
@@ -147,7 +146,7 @@ namespace PiranaSecuritySystem.Controllers
                 db.GuardCheckIns.Add(checkIn);
                 db.SaveChanges();
 
-                // Create a notification for the check-in
+                // Create a notification for the check-in with proper formatting
                 var currentUserId = User.Identity.GetUserId();
                 var notification = new Notification
                 {
@@ -155,7 +154,7 @@ namespace PiranaSecuritySystem.Controllers
                     UserId = currentUserId,
                     UserType = "Guard",
                     Title = "Check-in Recorded",
-                    Message = $"{guard.Guard_FName} {guard.Guard_LName} has {checkInData.Status.ToLower()} at {checkInData.ActualTime}",
+                    Message = $"{guard.Guard_FName} {guard.Guard_LName} has checked in{(checkInData.IsLate ? " (late arrival)" : "")} at {checkInData.ActualTime}",
                     NotificationType = "CheckIn",
                     IsRead = false,
                     CreatedAt = DateTime.Now,
@@ -242,10 +241,12 @@ namespace PiranaSecuritySystem.Controllers
                 // Create a new incident report with guard info pre-filled
                 var incidentReport = new IncidentReport
                 {
-                    ResidentId = guard.GuardId,
+                    GuardId = guard.GuardId, // Use GuardId instead of ResidentId
+                    ResidentId = null, // Set ResidentId to null
                     ReportDate = DateTime.Now,
                     Status = "Pending Review",
-                    CreatedBy = guard.FullName
+                    CreatedBy = guard.FullName,
+                    ReportedBy = "Guard" // Indicate this is a guard report
                 };
 
                 // Populate dropdown lists
@@ -288,29 +289,41 @@ namespace PiranaSecuritySystem.Controllers
 
                 if (ModelState.IsValid)
                 {
-                    // Set additional properties
-                    incidentReport.ResidentId = guard.GuardId;
+                    // Set properties for guard-reported incident
+                    incidentReport.GuardId = guard.GuardId; // Use GuardId instead of ResidentId
+                    incidentReport.ResidentId = null; // Set ResidentId to null for guard incidents
                     incidentReport.ReportDate = DateTime.Now;
                     incidentReport.Status = "Pending Review";
                     incidentReport.CreatedBy = guard.FullName;
                     incidentReport.CreatedDate = DateTime.Now;
+                    incidentReport.ReportedBy = "Guard"; // Indicate this was reported by a guard
+
+                    // Set default values for required fields
+                    if (string.IsNullOrEmpty(incidentReport.IncidentType))
+                        incidentReport.IncidentType = "Other";
+
+                    if (string.IsNullOrEmpty(incidentReport.Priority))
+                        incidentReport.Priority = "Medium";
+
+                    if (string.IsNullOrEmpty(incidentReport.Location))
+                        incidentReport.Location = "Main Gate";
 
                     db.IncidentReports.Add(incidentReport);
                     db.SaveChanges();
 
-                    // Create notification for the incident report
+                    // Create notification
                     var notification = new Notification
                     {
                         GuardId = guard.GuardId,
                         UserId = currentUserId,
                         UserType = "Guard",
                         Title = "Incident Reported",
-                        Message = $"You have successfully reported a {incidentReport.IncidentType} incident at {incidentReport.Location}",
+                        Message = $"You have reported a {incidentReport.IncidentType.ToLower()} incident at {incidentReport.Location}",
                         NotificationType = "Incident",
                         IsRead = false,
                         CreatedAt = DateTime.Now,
                         IsImportant = true,
-                        PriorityLevel = 3 // High priority
+                        PriorityLevel = 3
                     };
 
                     db.Notifications.Add(notification);
@@ -319,8 +332,35 @@ namespace PiranaSecuritySystem.Controllers
                     TempData["SuccessMessage"] = "Incident reported successfully!";
                     return RedirectToAction("Dashboard");
                 }
+                else
+                {
+                    // Log validation errors
+                    foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Validation Error: {error.ErrorMessage}");
+                    }
 
-                // If model state is invalid, repopulate dropdowns
+                    TempData["ErrorMessage"] = "Please fix the validation errors below.";
+                }
+
+                // Repopulate dropdowns
+                ViewBag.IncidentTypes = GetIncidentTypes();
+                ViewBag.Locations = GetLocations();
+                ViewBag.PriorityLevels = GetPriorityLevels();
+
+                return View("~/Views/Guard/Create.cshtml", incidentReport);
+            }
+            catch (System.Data.Entity.Infrastructure.DbUpdateException dbUpdateEx)
+            {
+                // Get the inner exception for more details
+                var innerException = dbUpdateEx.InnerException;
+                string detailedError = innerException?.Message ?? dbUpdateEx.Message;
+
+                System.Diagnostics.Debug.WriteLine($"DbUpdateException: {detailedError}");
+
+                TempData["ErrorMessage"] = $"Database error: {detailedError}";
+
+                // Repopulate dropdowns
                 ViewBag.IncidentTypes = GetIncidentTypes();
                 ViewBag.Locations = GetLocations();
                 ViewBag.PriorityLevels = GetPriorityLevels();
@@ -330,7 +370,9 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in Create (POST): {ex.Message}");
-                TempData["ErrorMessage"] = "An error occurred while reporting the incident.";
+                System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
+
+                TempData["ErrorMessage"] = $"An error occurred: {ex.Message}";
 
                 // Repopulate dropdowns
                 ViewBag.IncidentTypes = GetIncidentTypes();
@@ -340,7 +382,6 @@ namespace PiranaSecuritySystem.Controllers
                 return View("~/Views/Guard/Create.cshtml", incidentReport);
             }
         }
-
         // GET: Guard/MyIncidentReports
         public ActionResult MyIncidentReports()
         {
@@ -362,12 +403,12 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("ProfileNotFound", "Error");
                 }
 
+                // Filter by GuardId instead of ResidentId
                 var incidents = db.IncidentReports
-                    .Where(r => r.ResidentId == guard.GuardId)
+                    .Where(r => r.GuardId == guard.GuardId) // Changed from ResidentId to GuardId
                     .OrderByDescending(r => r.ReportDate)
                     .ToList();
 
-                // Check if the view exists, if not return a simple message
                 return View("~/Views/Guard/MyIncidentReports.cshtml", incidents);
             }
             catch (Exception ex)
@@ -385,7 +426,7 @@ namespace PiranaSecuritySystem.Controllers
             return Redirect("~/Content/Guard/Index.html");
         }
 
-        
+
         // GET: Guard/Calendar
         public ActionResult Calendar()
         {
@@ -506,18 +547,18 @@ namespace PiranaSecuritySystem.Controllers
                 shift.Status = "In Progress";
                 db.SaveChanges();
 
-                // Notification
+                // Notification with proper formatting
                 var notification = new Notification
                 {
                     GuardId = guard.GuardId,
                     UserId = currentUserId,
                     UserType = "Guard",
                     Title = "Check-In Successful",
-                    Message = $"You have checked in for your {shift.ShiftType} shift at {shift.Location}.",
+                    Message = $"You have checked in for your {shift.ShiftType.ToLower()} shift at {shift.Location}",
                     NotificationType = "CheckIn",
                     IsRead = false,
                     CreatedAt = DateTime.Now,
-                    IsImportant = true
+                    IsImportant = isLate
                 };
 
                 db.Notifications.Add(notification);
@@ -577,17 +618,18 @@ namespace PiranaSecuritySystem.Controllers
                 shift.Status = "Completed";
                 db.SaveChanges();
 
+                // Notification with proper formatting
                 var notification = new Notification
                 {
                     GuardId = guard.GuardId,
                     UserId = currentUserId,
                     UserType = "Guard",
                     Title = "Check-Out Successful",
-                    Message = $"You have successfully checked out from your {shift.ShiftType} shift at {shift.Location}.",
+                    Message = $"You have checked out from your {shift.ShiftType.ToLower()} shift at {shift.Location}",
                     NotificationType = "CheckOut",
                     IsRead = false,
                     CreatedAt = DateTime.Now,
-                    IsImportant = false
+                    IsImportant = isLate
                 };
 
                 db.Notifications.Add(notification);
@@ -623,7 +665,7 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("ProfileNotFound", "Error");
                 }
 
-                // Get notifications for the guard
+                // Get notifications for the guard with proper time formatting
                 var notifications = db.Notifications
                     .Where(n => n.GuardId == guard.GuardId)
                     .OrderByDescending(n => n.CreatedAt)
@@ -632,7 +674,7 @@ namespace PiranaSecuritySystem.Controllers
                     {
                         NotificationId = n.NotificationId,
                         Title = n.Title,
-                        Message = n.Message,
+                        Message = FormatNotificationMessage(n.Message), // Format the message
                         NotificationType = n.NotificationType,
                         IsRead = n.IsRead,
                         CreatedAt = n.CreatedAt,
@@ -644,7 +686,6 @@ namespace PiranaSecuritySystem.Controllers
                     })
                     .ToList();
 
-                // Check if the view exists, if not return a simple message
                 return View("~/Views/Guard/Notifications.cshtml", notifications);
             }
             catch (Exception ex)
@@ -678,15 +719,16 @@ namespace PiranaSecuritySystem.Controllers
                     {
                         notificationId = n.NotificationId,
                         title = n.Title,
-                        message = n.Message,
+                        message = FormatNotificationMessage(n.Message), // Format the message
                         notificationType = n.NotificationType,
                         isRead = n.IsRead,
                         createdAt = n.CreatedAt,
+                        timeAgo = GetTimeAgo(n.CreatedAt), // Use proper time formatting
                         isImportant = n.IsImportant
                     })
                     .ToList();
 
-                return Json(notifications, JsonRequestBehavior.AllowGet);
+                return Json(new { success = true, notifications = notifications }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
@@ -694,8 +736,6 @@ namespace PiranaSecuritySystem.Controllers
                 return Json(new { success = false, message = "Error loading notifications" }, JsonRequestBehavior.AllowGet);
             }
         }
-
-
 
         // API: Mark all notifications as read
         [HttpPost]
@@ -752,7 +792,7 @@ namespace PiranaSecuritySystem.Controllers
                     UserId = currentUserId,
                     UserType = "Guard",
                     Title = title,
-                    Message = message,
+                    Message = FormatNotificationMessage(message), // Format the message
                     NotificationType = notificationType,
                     IsRead = false,
                     CreatedAt = DateTime.Now,
@@ -837,8 +877,6 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-       
-
         // Helper methods for shift times
         private string GetShiftStartTime(string shiftType)
         {
@@ -860,19 +898,60 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // Helper method to get time ago string
+        // Helper method to get time ago string (fixed to prevent NaN)
         private string GetTimeAgo(DateTime date)
         {
-            var timeSpan = DateTime.Now - date;
+            try
+            {
+                if (date == DateTime.MinValue || date.Year <= 2000)
+                    return "Just now";
 
-            if (timeSpan <= TimeSpan.FromSeconds(60))
+                var timeSpan = DateTime.Now - date;
+
+                if (timeSpan <= TimeSpan.FromSeconds(60))
+                    return "Just now";
+                else if (timeSpan <= TimeSpan.FromMinutes(60))
+                    return $"{(int)timeSpan.TotalMinutes} minute{(timeSpan.TotalMinutes >= 2 ? "s" : "")} ago";
+                else if (timeSpan <= TimeSpan.FromHours(24))
+                    return $"{(int)timeSpan.TotalHours} hour{(timeSpan.TotalHours >= 2 ? "s" : "")} ago";
+                else if (timeSpan <= TimeSpan.FromDays(7))
+                    return $"{(int)timeSpan.TotalDays} day{(timeSpan.TotalDays >= 2 ? "s" : "")} ago";
+                else if (timeSpan <= TimeSpan.FromDays(30))
+                    return $"{(int)(timeSpan.TotalDays / 7)} week{((int)(timeSpan.TotalDays / 7) >= 2 ? "s" : "")} ago";
+                else if (timeSpan <= TimeSpan.FromDays(365))
+                    return $"{(int)(timeSpan.TotalDays / 30)} month{((int)(timeSpan.TotalDays / 30) >= 2 ? "s" : "")} ago";
+                else
+                    return date.ToString("MMM dd, yyyy");
+            }
+            catch
+            {
                 return "Just now";
-            else if (timeSpan <= TimeSpan.FromMinutes(60))
-                return $"{(int)timeSpan.TotalMinutes} minutes ago";
-            else if (timeSpan <= TimeSpan.FromHours(24))
-                return $"{(int)timeSpan.TotalHours} hours ago";
-            else
-                return $"{(int)timeSpan.TotalDays} days ago";
+            }
+        }
+
+        // Helper method to format notification messages
+        private string FormatNotificationMessage(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return message;
+
+            // Remove unwanted text like "CheckIn Important"
+            message = message.Replace("CheckIn Important", "")
+                            .Replace("CheckIn", "")
+                            .Replace("Important", "")
+                            .Trim();
+
+            // Fix tense issues - ensure present tense
+            message = message.Replace("checked in", "has checked in")
+                            .Replace("arrived at", "has arrived at")
+                            .Replace("reported", "has reported")
+                            .Replace("completed", "has completed");
+
+            // Remove any double spaces
+            while (message.Contains("  "))
+                message = message.Replace("  ", " ");
+
+            return message.Trim();
         }
 
         // Helper method to get priority class
@@ -887,6 +966,18 @@ namespace PiranaSecuritySystem.Controllers
                 default: return "badge bg-secondary";
             }
         }
+        
+        public ActionResult Details(int id)
+        {
+            var incident = db.IncidentReports.Find(id);
+            if (incident == null)
+            {
+                return HttpNotFound();
+            }
+            return View(incident);
+        }
+
+        
 
         // Helper method to get incident types for dropdown
         private List<SelectListItem> GetIncidentTypes()
