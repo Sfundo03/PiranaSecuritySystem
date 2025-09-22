@@ -1,0 +1,23 @@
+﻿@{
+    ViewBag.Title = "Access Denied";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Access Denied</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <p>You do not have permission to access this resource.</p>
+                </div>
+                <p>Please contact your administrator if you believe this is an error.</p>
+            </div>
+            <div class="card-footer text-center">
+                @Html.ActionLink("Back to Home", "Index", "Home")
+            </div>
+        </div>
+    </div>
+</div>

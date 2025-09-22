@@ -66,12 +66,13 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"ValidateGuardByUsername called with: {siteUsername}");
+
                 if (string.IsNullOrEmpty(siteUsername))
                 {
                     return Json(new { isValid = false, message = "Site username is required" });
                 }
 
-                // Check if guard exists with the provided site username
                 var guard = db.Guards.FirstOrDefault(g =>
                     g.SiteUsername.Equals(siteUsername, StringComparison.OrdinalIgnoreCase) &&
                     g.IsActive);
@@ -130,11 +131,11 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Guard not found or inactive" });
                 }
 
-                // Create a new check-in record using your GuardCheckIn model
+                // Create a new check-in record
                 var checkIn = new GuardCheckIn
                 {
                     GuardId = checkInData.GuardId,
-                    CheckInTime = DateTime.Now, // Use current datetime
+                    CheckInTime = DateTime.Now,
                     Status = checkInData.Status,
                     CreatedDate = DateTime.Now,
                     IsLate = checkInData.IsLate,
@@ -146,7 +147,7 @@ namespace PiranaSecuritySystem.Controllers
                 db.GuardCheckIns.Add(checkIn);
                 db.SaveChanges();
 
-                // Create a notification for the check-in with proper formatting
+                // Create a notification
                 var currentUserId = User.Identity.GetUserId();
                 var notification = new Notification
                 {
@@ -154,7 +155,7 @@ namespace PiranaSecuritySystem.Controllers
                     UserId = currentUserId,
                     UserType = "Guard",
                     Title = "Check-in Recorded",
-                    Message = $"{guard.Guard_FName} {guard.Guard_LName} has checked in{(checkInData.IsLate ? " (late arrival)" : "")} at {checkInData.ActualTime}",
+                    Message = $"{guard.Guard_FName} {guard.Guard_LName} has {checkInData.Status.ToLower()} at {checkInData.ActualTime}",
                     NotificationType = "CheckIn",
                     IsRead = false,
                     CreatedAt = DateTime.Now,
@@ -169,7 +170,6 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in SaveCheckIn: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
                 return Json(new { success = false, message = $"An error occurred while saving check-in: {ex.Message}" });
             }
         }
@@ -216,7 +216,6 @@ namespace PiranaSecuritySystem.Controllers
                 return Json(new { success = false, message = "Error retrieving check-ins" }, JsonRequestBehavior.AllowGet);
             }
         }
-
         // GET: Guard/Create
         public ActionResult Create()
         {

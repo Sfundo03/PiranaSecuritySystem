@@ -1,16 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNet.Identity.EntityFramework;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PiranaSecuritySystem.Models
 {
-    public class Resident : ApplicationUser  // Change from IdentityUser to ApplicationUser
+    public class Resident : ApplicationUser
     {
-        [Required(ErrorMessage = "Full Name is required")]
-        [Display(Name = "Full Name")]
-        [StringLength(100, ErrorMessage = "Full Name cannot exceed 100 characters")]
-        public new string FullName { get; set; }
-
+        
         [Required(ErrorMessage = "Address is required")]
         [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters")]
         public string Address { get; set; }
@@ -23,12 +20,11 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Date Registered")]
         public DateTime DateRegistered { get; set; }
 
-        public new bool IsActive { get; set; }
-
         [Display(Name = "Emergency Contact")]
         [StringLength(100, ErrorMessage = "Emergency Contact cannot exceed 100 characters")]
         public string EmergencyContact { get; set; }
 
-        
+        // Navigation property for incidents
+        public virtual ICollection<IncidentReport> IncidentReports { get; set; }
     }
 }

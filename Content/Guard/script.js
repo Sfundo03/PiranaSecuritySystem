@@ -1,12 +1,10 @@
-﻿// script.js - Complete Guard Check-In System with Security Validation
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+﻿// script.js - Fixed Guard Check-In System
 
 // Store today's data in session
-const checkinData = JSON.parse(sessionStorage.getItem("checkinData")) || [];
+let checkinData = JSON.parse(sessionStorage.getItem("checkinData")) || [];
 const today = new Date().toISOString().split("T")[0];
 let isValidGuard = false;
 let currentGuardData = null;
-let originalValidatedGuardId = null;
 let currentShiftType = null;
 
 // Configuration
@@ -19,16 +17,6 @@ const GRACE_PERIOD_MINUTES = 15;
 // Utility functions
 function generateShortCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
-function isLate(checkTime, expectedTime) {
-    const [expectedHours, expectedMinutes] = expectedTime.split(':').map(Number);
-    const [checkHours, checkMinutes] = checkTime.split(':').map(Number);
-
-    const expectedTotalMinutes = expectedHours * 60 + expectedMinutes;
-    const checkTotalMinutes = checkHours * 60 + checkMinutes;
-
-    return checkTotalMinutes > (expectedTotalMinutes + GRACE_PERIOD_MINUTES);
 }
 
 function getCurrentTimeString() {
@@ -50,21 +38,54 @@ function getExpectedTime(shiftType, action) {
     }
 }
 
+function isTimeAllowedForCheckout() {
+    const now = new Date();
+    const hours = now.getHours();
+    const currentShift = determineShiftType();
+
+    if (currentShift === 'Day') {
+        return hours >= 18;
+    } else {
+        return hours >= 6 && hours < 18;
+    }
+}
+
 function showMessage(text, type) {
     const element = document.getElementById("statusMessage");
     element.textContent = text;
     element.className = type;
+    element.style.display = "block";
+}
+
+function showValidationMessage(text, type) {
+    const element = document.getElementById("validationMessage");
+    element.textContent = text;
+    element.className = type;
+    element.style.display = "block";
 }
 
 // API CALLS
 async function validateGuardByUsername(siteUsername) {
     try {
+        console.log('Validating guard:', siteUsername);
+
         const response = await fetch('/Guard/ValidateGuardByUsername', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
             body: `siteUsername=${encodeURIComponent(siteUsername)}`
         });
-        return response.ok ? await response.json() : { isValid: false, message: "Error validating guard" };
+
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Response data:', data);
+        return data;
     } catch (error) {
         console.error("Error validating guard:", error);
         return { isValid: false, message: "Network error validating guard" };
@@ -73,10 +94,11 @@ async function validateGuardByUsername(siteUsername) {
 
 async function saveCheckInToDatabase(checkinRecord) {
     try {
-        console.log("Saving to database:", checkinRecord);
         const response = await fetch('/Guard/SaveCheckIn', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(checkinRecord)
         });
 
@@ -102,70 +124,31 @@ async function getTodayGuardCheckIns(guardId) {
     }
 }
 
-// SECURITY FUNCTIONS
-function resetGuardSession() {
-    sessionStorage.removeItem("guardData");
-    sessionStorage.removeItem("originalGuardId");
-    sessionStorage.removeItem("lastToken");
-    sessionStorage.removeItem("tokenTime");
-    sessionStorage.removeItem("checkinData");
-    currentGuardData = null;
-    originalValidatedGuardId = null;
-    isValidGuard = false;
-    currentShiftType = null;
-
-    document.getElementById("siteUsername").value = "";
-    document.getElementById("validationMessage").textContent = "";
-    document.getElementById("validationMessage").className = "";
-    document.getElementById("qrSection").style.display = "none";
-    document.getElementById("qrcode").innerHTML = "";
-    document.getElementById("scannedCode").value = "";
-    document.getElementById("statusMessage").textContent = "";
-    document.getElementById("statusMessage").className = "";
-}
-
 // MAIN FUNCTIONS
 async function validateGuard() {
+    console.log('validateGuard function called');
+
     const siteUsername = document.getElementById("siteUsername").value.trim();
     const validationMessage = document.getElementById("validationMessage");
     const qrSection = document.getElementById("qrSection");
-    const message = document.getElementById("statusMessage");
 
+    // Reset messages
+    validationMessage.textContent = "";
     validationMessage.className = "";
-    message.className = "";
+    validationMessage.style.display = "none";
+    showMessage("", "");
 
     if (!siteUsername) {
-        validationMessage.textContent = "Please enter your site username.";
-        validationMessage.className = "warning";
-        return;
-    }
-
-    // SECURITY: Prevent guard switching
-    if (originalValidatedGuardId && currentGuardData && currentGuardData.guardId !== originalValidatedGuardId) {
-        validationMessage.textContent = "Security violation: You cannot check in/out for another guard.";
-        validationMessage.className = "error";
-        qrSection.style.display = "none";
+        showValidationMessage("Please enter your site username.", "error");
         return;
     }
 
     try {
+        console.log('Calling validateGuardByUsername API');
         const result = await validateGuardByUsername(siteUsername);
+        console.log('API result:', result);
 
         if (result.isValid) {
-            // SECURITY: Store original guard ID
-            if (!originalValidatedGuardId) {
-                originalValidatedGuardId = result.guardData.guardId;
-                sessionStorage.setItem("originalGuardId", originalValidatedGuardId.toString());
-            }
-
-            // SECURITY: Prevent different guard validation
-            if (originalValidatedGuardId && result.guardData.guardId !== originalValidatedGuardId) {
-                validationMessage.textContent = "Security violation: You cannot check in/out for another guard.";
-                validationMessage.className = "error";
-                qrSection.style.display = "none";
-                return;
-            }
-
             currentGuardData = result.guardData;
             currentShiftType = determineShiftType();
 
@@ -176,23 +159,33 @@ async function validateGuard() {
             const hasCheckedIn = todayCheckins.some(e => e.status === "Present" || e.status === "Late Arrival");
             const hasCheckedOut = todayCheckins.some(e => e.status === "Checked Out" || e.status === "Late Departure");
 
-            validationMessage.textContent = `Welcome, ${currentGuardData.fullName}!`;
-            validationMessage.className = "success";
+            showValidationMessage(`Welcome, ${currentGuardData.fullName}! (${currentShiftType} Shift)`, "success");
 
             // Update guard info display
             document.getElementById("currentGuardInfo").textContent =
-                `${currentGuardData.fullName} (${currentShiftType} Shift)`;
+                `${currentGuardData.fullName} - ${currentShiftType} Shift`;
 
             if (hasCheckedOut) {
-                validationMessage.textContent += " You have already completed your shift today.";
+                showValidationMessage(" You have already completed your shift today.", "success");
                 qrSection.style.display = "none";
+                isValidGuard = false;
             } else if (hasCheckedIn) {
-                validationMessage.textContent += " You are currently checked in.";
-                document.getElementById("checkInBtn").style.display = "none";
-                document.getElementById("checkOutBtn").style.display = "block";
-                qrSection.style.display = "block";
+                // Check if it's allowed to checkout yet
+                const canCheckout = isTimeAllowedForCheckout();
+                if (canCheckout) {
+                    showValidationMessage(" You can now check out.", "success");
+                    document.getElementById("checkInBtn").style.display = "none";
+                    document.getElementById("checkOutBtn").style.display = "block";
+                    qrSection.style.display = "block";
+                } else {
+                    const nextActionTime = currentShiftType === 'Day' ? '6:00 PM' : '6:00 AM';
+                    showValidationMessage(` You are checked in. Checkout will be available after ${nextActionTime}.`, "info");
+                    document.getElementById("checkInBtn").style.display = "none";
+                    document.getElementById("checkOutBtn").style.display = "none";
+                    qrSection.style.display = "none";
+                }
             } else {
-                validationMessage.textContent += " You can check in now.";
+                showValidationMessage(" You can check in now.", "success");
                 document.getElementById("checkInBtn").style.display = "block";
                 document.getElementById("checkOutBtn").style.display = "none";
                 qrSection.style.display = "block";
@@ -200,29 +193,26 @@ async function validateGuard() {
 
             isValidGuard = true;
             sessionStorage.setItem("guardData", JSON.stringify(currentGuardData));
-            message.textContent = "";
         } else {
-            validationMessage.textContent = result.message || "Site username not recognized.";
-            validationMessage.className = "error";
+            showValidationMessage(result.message || "Site username not recognized.", "error");
             qrSection.style.display = "none";
+            isValidGuard = false;
         }
     } catch (error) {
         console.error("Error:", error);
-        validationMessage.textContent = "Network error. Please try again.";
-        validationMessage.className = "error";
+        showValidationMessage("Network error. Please try again.", "error");
         qrSection.style.display = "none";
+        isValidGuard = false;
     }
 }
 
 function generateQRCode() {
     if (!isValidGuard || !currentGuardData) {
-        showMessage("Please validate your identity first.", "warning");
+        showMessage("Please validate your identity first.", "error");
         return;
     }
 
     const qrcodeDiv = document.getElementById("qrcode");
-    const message = document.getElementById("statusMessage");
-    message.className = "";
 
     // Check if already completed shift
     const todayCheckins = checkinData.filter(entry =>
@@ -238,13 +228,12 @@ function generateQRCode() {
     const token = generateShortCode();
     qrcodeDiv.innerHTML = "";
 
-    const canvas = document.createElement("canvas");
-    QRCode.toCanvas(canvas, token, function (error) {
+    // Generate QR code
+    QRCode.toCanvas(document.getElementById("qrcode"), token, function (error) {
         if (error) {
             showMessage("Error generating QR code.", "error");
             return;
         }
-        qrcodeDiv.appendChild(canvas);
     });
 
     sessionStorage.setItem("lastToken", token);
@@ -253,19 +242,26 @@ function generateQRCode() {
 }
 
 async function checkIn() {
-    const expectedTime = getExpectedTime(currentShiftType, 'checkin');
-    await verifyScan("Present", expectedTime);
+    if (!isTimeAllowedForCheckout()) {
+        const expectedTime = getExpectedTime(currentShiftType, 'checkin');
+        await verifyScan("Present", expectedTime);
+    } else {
+        showMessage("Cannot check in during checkout hours.", "error");
+    }
 }
 
 async function checkOut() {
-    const expectedTime = getExpectedTime(currentShiftType, 'checkout');
-    await verifyScan("Checked Out", expectedTime);
+    if (isTimeAllowedForCheckout()) {
+        const expectedTime = getExpectedTime(currentShiftType, 'checkout');
+        await verifyScan("Checked Out", expectedTime);
+    } else {
+        const nextActionTime = currentShiftType === 'Day' ? '6:00 PM' : '6:00 AM';
+        showMessage(`Checkout is only allowed after ${nextActionTime}.`, "error");
+    }
 }
 
 async function verifyScan(statusType, expectedTime) {
     const scanned = document.getElementById("scannedCode").value.trim().toUpperCase();
-    const message = document.getElementById("statusMessage");
-    message.className = "";
 
     const exactToken = sessionStorage.getItem("lastToken");
     const tokenTime = parseInt(sessionStorage.getItem("tokenTime") || "0");
@@ -279,7 +275,7 @@ async function verifyScan(statusType, expectedTime) {
     }
 
     if (!scanned || !exactToken || !currentGuardData) {
-        showMessage("Please generate and scan a QR code first.", "warning");
+        showMessage("Please generate and scan a QR code first.", "error");
         return;
     }
 
@@ -289,12 +285,12 @@ async function verifyScan(statusType, expectedTime) {
     }
 
     const currentTime = getCurrentTimeString();
-    const isLateArrival = statusType === "Present" && isLate(currentTime, expectedTime);
-    const isLateDeparture = statusType === "Checked Out" && isLate(currentTime, expectedTime);
+    const isLate = currentTime > expectedTime;
 
     let statusWithTiming = statusType;
-    if (isLateArrival) statusWithTiming = "Late Arrival";
-    if (isLateDeparture) statusWithTiming = "Late Departure";
+    if (isLate) {
+        statusWithTiming = statusType === "Present" ? "Late Arrival" : "Late Departure";
+    }
 
     const checkinRecord = {
         guardId: currentGuardData.guardId,
@@ -303,7 +299,7 @@ async function verifyScan(statusType, expectedTime) {
         status: statusWithTiming,
         expectedTime: expectedTime,
         actualTime: currentTime,
-        isLate: isLateArrival || isLateDeparture,
+        isLate: isLate,
         token: exactToken
     };
 
@@ -317,19 +313,27 @@ async function verifyScan(statusType, expectedTime) {
             sessionStorage.setItem("checkinData", JSON.stringify(checkinData));
 
             let statusMessage = `${statusType} recorded successfully at ${currentTime}!`;
-            if (isLateArrival || isLateDeparture) {
+            if (isLate) {
                 statusMessage += ` (${statusWithTiming})`;
             }
 
-            showMessage(statusMessage, isLateArrival || isLateDeparture ? "warning" : "success");
+            showMessage(statusMessage, isLate ? "warning" : "success");
             document.getElementById("scannedCode").value = "";
 
             if (statusType === "Present") {
                 document.getElementById("checkInBtn").style.display = "none";
-                document.getElementById("checkOutBtn").style.display = "block";
+                if (isTimeAllowedForCheckout()) {
+                    document.getElementById("checkOutBtn").style.display = "block";
+                    showMessage("You are checked in. You can now check out.", "success");
+                } else {
+                    document.getElementById("checkOutBtn").style.display = "none";
+                    const nextActionTime = currentShiftType === 'Day' ? '6:00 PM' : '6:00 AM';
+                    showMessage(`You are checked in. Checkout will be available after ${nextActionTime}.`, "info");
+                }
             } else {
                 document.getElementById("qrSection").style.display = "none";
                 isValidGuard = false;
+                showMessage("Shift completed successfully! Thank you.", "success");
             }
         } else {
             showMessage(result.message || "Error saving to database.", "error");
@@ -342,21 +346,44 @@ async function verifyScan(statusType, expectedTime) {
     sessionStorage.removeItem("tokenTime");
 }
 
+function resetForm() {
+    sessionStorage.removeItem("guardData");
+    sessionStorage.removeItem("lastToken");
+    sessionStorage.removeItem("tokenTime");
+    currentGuardData = null;
+    isValidGuard = false;
+
+    document.getElementById("siteUsername").value = "";
+    document.getElementById("validationMessage").textContent = "";
+    document.getElementById("validationMessage").className = "";
+    document.getElementById("validationMessage").style.display = "none";
+    document.getElementById("qrSection").style.display = "none";
+    document.getElementById("qrcode").innerHTML = "";
+    document.getElementById("scannedCode").value = "";
+    document.getElementById("statusMessage").textContent = "";
+    document.getElementById("statusMessage").className = "";
+    document.getElementById("statusMessage").style.display = "none";
+    document.getElementById("currentGuardInfo").textContent = "";
+}
+
 // EVENT LISTENERS
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM loaded - attaching event listeners');
+
     // Load existing data
     const savedGuardData = sessionStorage.getItem("guardData");
     if (savedGuardData) {
         currentGuardData = JSON.parse(savedGuardData);
-    }
-
-    const savedOriginalGuardId = sessionStorage.getItem("originalGuardId");
-    if (savedOriginalGuardId) {
-        originalValidatedGuardId = parseInt(savedOriginalGuardId);
+        isValidGuard = true;
+        document.getElementById("currentGuardInfo").textContent =
+            `${currentGuardData.fullName} - ${determineShiftType()} Shift`;
     }
 
     // Clear username field
     document.getElementById("siteUsername").value = "";
+
+    // Add click event listener to validate button
+    document.querySelector('button[onclick="validateGuard()"]').addEventListener('click', validateGuard);
 
     // Enter key handlers
     document.getElementById("siteUsername").addEventListener("keypress", function (event) {
@@ -376,4 +403,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    console.log('Event listeners attached successfully');
 });

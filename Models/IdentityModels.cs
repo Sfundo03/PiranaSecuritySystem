@@ -59,6 +59,15 @@ namespace PiranaSecuritySystem.Models
         public DbSet<Director> Directors { get; set; }
         public object TrainingEnrollments { get; internal set; }
 
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Configure all DateTime properties to use datetime2
+            modelBuilder.Properties<DateTime>()
+                       .Configure(c => c.HasColumnType("datetime2"));
+        }
+
         public static ApplicationDbContext Create()
         {
             return new ApplicationDbContext();
