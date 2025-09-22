@@ -1,14 +1,11 @@
 ﻿using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
-using Microsoft.Owin.Security;
 using PiranaSecuritySystem.Models;
-using PiranaSecuritySystem.Models.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.Entity.Validation;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
@@ -64,9 +61,9 @@ namespace PiranaSecuritySystem.Controllers
             // If user is already logged in, redirect to dashboard
             if (User.Identity.IsAuthenticated)
             {
-                return RedirectToAction("Dashboard", "Resident");
+                return RedirectToAction("Dashboard");
             }
-            return View(new RegisterResidentViewModel());
+            return View();
         }
 
         // POST: Resident/Register
@@ -86,8 +83,8 @@ namespace PiranaSecuritySystem.Controllers
                         return View(model);
                     }
 
-                    // Create new resident (as ApplicationUser first)
-                    var user = new ApplicationUser
+                    // Create new resident (as ApplicationUser)
+                    var resident = new ApplicationUser
                     {
                         UserName = model.Email,
                         Email = model.Email,
@@ -98,7 +95,7 @@ namespace PiranaSecuritySystem.Controllers
                     };
 
                     // Create user with password
-                    var result = await UserManager.CreateAsync(user, model.Password);
+                    var result = await UserManager.CreateAsync(resident, model.Password);
 
                     if (result.Succeeded)
                     {
@@ -117,7 +114,7 @@ namespace PiranaSecuritySystem.Controllers
                         // Try to add to Resident role
                         try
                         {
-                            var addToRoleResult = await UserManager.AddToRoleAsync(user.Id, "Resident");
+                            var addToRoleResult = await UserManager.AddToRoleAsync(resident.Id, "Resident");
                             if (!addToRoleResult.Succeeded)
                             {
                                 System.Diagnostics.Debug.WriteLine("Failed to assign Resident role: " +
@@ -130,27 +127,21 @@ namespace PiranaSecuritySystem.Controllers
                             // Continue with registration even if role assignment fails
                         }
 
-                        // Create Resident entity with the same UserId
-                        var resident = new Resident
+                        // Store additional resident info in separate table
+                        var residentInfo = new ResidentInfo
                         {
-                            Id = user.Id,
-                            UserName = user.UserName,
-                            Email = user.Email,
-                            FullName = user.FullName,
-                            PhoneNumber = user.PhoneNumber,
-                            IsActive = true,
-                            CreatedAt = DateTime.Now,
+                            UserId = resident.Id,
                             Address = model.Address?.Trim(),
                             UnitNumber = model.UnitNumber?.Trim(),
                             EmergencyContact = model.EmergencyContact?.Trim(),
                             DateRegistered = DateTime.Now
                         };
-                        db.Residents.Add(resident);
+                        db.ResidentInfos.Add(residentInfo);
 
                         // Create success notification
                         var notification = new Notification
                         {
-                            UserId = user.Id,
+                            UserId = resident.Id,
                             UserType = "Resident",
                             Message = "Welcome to Pirana Security System! Your account has been created successfully.",
                             IsRead = false,
@@ -194,7 +185,7 @@ namespace PiranaSecuritySystem.Controllers
                         }
 
                         TempData["SuccessMessage"] = "Registration successful! Please login with your credentials.";
-                        return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Dashboard", "Resident") });
+                        return RedirectToAction("Login", "Account"); // Redirect to Account/Login
                     }
                     else
                     {
@@ -278,21 +269,10 @@ namespace PiranaSecuritySystem.Controllers
         // GET: Resident/Index
         public ActionResult Index()
         {
-            // If user is already logged in and is a resident, redirect to dashboard
-            if (User.Identity.IsAuthenticated && User.IsInRole("Resident"))
-            {
-                return RedirectToAction("Dashboard", "Resident");
-            }
-
-            // If user is logged in but not a resident, redirect to appropriate dashboard
+            // If user is already logged in, redirect to dashboard
             if (User.Identity.IsAuthenticated)
             {
-                if (User.IsInRole("Director"))
-                    return RedirectToAction("Dashboard", "Director");
-                else if (User.IsInRole("Guard"))
-                    return RedirectToAction("Dashboard", "Guard");
-                else
-                    return RedirectToAction("Login", "Account"); // Or handle appropriately
+                return RedirectToAction("Dashboard");
             }
 
             // Clear any existing messages
@@ -301,36 +281,40 @@ namespace PiranaSecuritySystem.Controllers
 
             return View();
         }
-        
+
+        // GET: Resident/Dashboard
         [Authorize(Roles = "Resident")]
         public ActionResult Dashboard()
         {
             try
             {
-                // Simple version - remove all complex logic temporarily
-                
                 var residentId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == residentId);
+                var resident = UserManager.FindById(residentId);
 
-                // Just return a simple view to test
-                return View("Dashboard"); // Create a s
+                if (resident == null)
+                {
+                    TempData["ErrorMessage"] = "Resident not found.";
+                    return RedirectToAction("Index");
+                }
+
+                // Get resident info
+                var residentInfo = db.ResidentInfos.FirstOrDefault(r => r.UserId == residentId);
+
+                // Create dashboard view model
+                var viewModel = new ResidentDashboardViewModel
+                {
+                    Resident = resident,
+                    ResidentInfo = residentInfo,
+                    RecentIncidents = new List<IncidentReport>() // Empty list for now
+                };
+
+                return View(viewModel);
             }
             catch (Exception ex)
             {
-                // Log error and redirect to login
-                System.Diagnostics.Debug.WriteLine("DASHBOARD ERROR: " + ex.Message);
-                AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
-                return RedirectToAction("Login", "Account");
-            }
-        }
-
-        
-
-        private IAuthenticationManager AuthenticationManager
-        {
-            get
-            {
-                return HttpContext.GetOwinContext().Authentication;
+                System.Diagnostics.Debug.WriteLine("Dashboard error: " + ex.Message);
+                TempData["ErrorMessage"] = "An error occurred while loading the dashboard.";
+                return RedirectToAction("Index");
             }
         }
 
@@ -341,7 +325,7 @@ namespace PiranaSecuritySystem.Controllers
             try
             {
                 var residentId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == residentId);
+                var resident = UserManager.FindById(residentId);
 
                 if (resident == null)
                 {
@@ -349,14 +333,17 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Dashboard");
                 }
 
+                // Get resident info
+                var residentInfo = db.ResidentInfos.FirstOrDefault(r => r.UserId == residentId);
+
                 var model = new UpdateResidentViewModel
                 {
                     FullName = resident.FullName,
                     Email = resident.Email,
                     PhoneNumber = resident.PhoneNumber,
-                    EmergencyContact = resident.EmergencyContact,
-                    Address = resident.Address,
-                    UnitNumber = resident.UnitNumber
+                    EmergencyContact = residentInfo?.EmergencyContact,
+                    Address = residentInfo?.Address,
+                    UnitNumber = residentInfo?.UnitNumber
                 };
 
                 return View(model);
@@ -378,7 +365,7 @@ namespace PiranaSecuritySystem.Controllers
             try
             {
                 var residentId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == residentId);
+                var resident = await UserManager.FindByIdAsync(residentId);
 
                 if (resident == null)
                 {
@@ -392,26 +379,36 @@ namespace PiranaSecuritySystem.Controllers
                     resident.FullName = model.FullName?.Trim();
                     resident.Email = model.Email?.Trim();
                     resident.PhoneNumber = model.PhoneNumber?.Trim();
-                    resident.EmergencyContact = model.EmergencyContact?.Trim();
-                    resident.Address = model.Address?.Trim();
-                    resident.UnitNumber = model.UnitNumber?.Trim();
 
-                    // Also update the ApplicationUser details
-                    var user = await UserManager.FindByIdAsync(residentId);
-                    if (user != null)
+                    var result = await UserManager.UpdateAsync(resident);
+                    if (!result.Succeeded)
                     {
-                        user.FullName = model.FullName?.Trim();
-                        user.Email = model.Email?.Trim();
-                        user.PhoneNumber = model.PhoneNumber?.Trim();
-                        var result = await UserManager.UpdateAsync(user);
-                        if (!result.Succeeded)
-                        {
-                            TempData["ErrorMessage"] = "Failed to update details: " + string.Join("; ", result.Errors);
-                            return RedirectToAction("Profile");
-                        }
+                        TempData["ErrorMessage"] = "Failed to update details: " + string.Join("; ", result.Errors);
+                        return RedirectToAction("Profile");
                     }
 
-                    db.Entry(resident).State = System.Data.Entity.EntityState.Modified;
+                    // Update resident info
+                    var residentInfo = db.ResidentInfos.FirstOrDefault(r => r.UserId == residentId);
+                    if (residentInfo != null)
+                    {
+                        residentInfo.EmergencyContact = model.EmergencyContact?.Trim();
+                        residentInfo.Address = model.Address?.Trim();
+                        residentInfo.UnitNumber = model.UnitNumber?.Trim();
+                    }
+                    else
+                    {
+                        // Create new resident info if it doesn't exist
+                        residentInfo = new ResidentInfo
+                        {
+                            UserId = residentId,
+                            EmergencyContact = model.EmergencyContact?.Trim(),
+                            Address = model.Address?.Trim(),
+                            UnitNumber = model.UnitNumber?.Trim(),
+                            DateRegistered = DateTime.Now
+                        };
+                        db.ResidentInfos.Add(residentInfo);
+                    }
+
                     await db.SaveChangesAsync();
 
                     // Create notification for profile update
@@ -452,517 +449,6 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // GET: Resident/MyIncidents
-        [Authorize(Roles = "Resident")]
-        public ActionResult MyIncidents()
-        {
-            try
-            {
-                // Get the currently logged-in user's ID
-                var currentUserId = User.Identity.GetUserId();
-
-                // First get the resident record for the current user
-                var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                if (resident == null)
-                {
-                    TempData["ErrorMessage"] = "Resident profile not found.";
-                    return RedirectToAction("Dashboard");
-                }
-
-                // Get incidents for the current resident using the ResidentId (int)
-                var incidents = db.IncidentReports
-                    .Where(i => i.ResidentId == resident.Id)
-                    .OrderByDescending(i => i.ReportDate)
-                    .ToList();
-
-                return View(incidents);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("MyIncidents error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while loading your incidents.";
-                return RedirectToAction("Dashboard");
-            }
-        }
-
-        // GET: Resident/ReportIncident
-        [Authorize(Roles = "Resident")]
-        public ActionResult ReportIncident()
-        {
-            try
-            {
-                var currentUserId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                if (resident == null)
-                {
-                    TempData["ErrorMessage"] = "Resident profile not found.";
-                    return RedirectToAction("Dashboard");
-                }
-
-                var model = new IncidentReport
-                {
-                    // Pre-fill resident information
-                    Location = $"{resident.Address}, Unit {resident.UnitNumber}",
-                    EmergencyContact = resident.EmergencyContact
-                };
-
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("ReportIncident error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while loading the incident form.";
-                return RedirectToAction("MyIncidents");
-            }
-        }
-
-        // POST: Resident/ReportIncident
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Resident")]
-        public async Task<ActionResult> ReportIncident(IncidentReport model, HttpPostedFileBase Attachment)
-        {
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    var currentUserId = User.Identity.GetUserId();
-                    var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                    if (resident == null)
-                    {
-                        TempData["ErrorMessage"] = "Resident profile not found.";
-                        return RedirectToAction("Dashboard");
-                    }
-
-                    var incident = new IncidentReport
-                    {
-                        ResidentId = resident.Id,
-                        IncidentType = model.IncidentType,
-                        Location = model.Location,
-                        EmergencyContact = model.EmergencyContact,
-                        Description = model.Description,
-                        Priority = model.Priority,
-                        ReportDate = DateTime.Now,
-                        Status = "Pending",
-                        ReportedBy = "Resident",
-                        CreatedBy = currentUserId,
-                        CreatedDate = DateTime.Now
-                    };
-
-                    // Handle file upload if any
-                    if (Attachment != null && Attachment.ContentLength > 0)
-                    {
-                        // Create uploads directory if it doesn't exist
-                        var uploadsDir = Server.MapPath("~/Content/Uploads/IncidentReports");
-                        if (!Directory.Exists(uploadsDir))
-                        {
-                            Directory.CreateDirectory(uploadsDir);
-                        }
-
-                        // Save the file and store the path
-                        var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(Attachment.FileName)}";
-                        var path = Path.Combine(uploadsDir, fileName);
-                        Attachment.SaveAs(path);
-                        incident.Attachment = fileName;
-                    }
-
-                    db.IncidentReports.Add(incident);
-                    await db.SaveChangesAsync();
-
-                    // Create notification
-                    var notification = new Notification
-                    {
-                        UserId = currentUserId,
-                        UserType = "Resident",
-                        Message = $"New incident reported: {model.IncidentType}",
-                        IsRead = false,
-                        CreatedAt = DateTime.Now,
-                        RelatedUrl = Url.Action("IncidentDetails", "Resident", new { id = incident.IncidentReportId })
-                    };
-                    db.Notifications.Add(notification);
-
-                    // Notify security team/directors
-                    await NotifySecurityTeamAboutIncident(incident);
-
-                    await db.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Incident reported successfully!";
-                    return RedirectToAction("MyIncidents");
-                }
-
-                // If we got this far, something failed
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("ReportIncident error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while reporting the incident.";
-                return View(model);
-            }
-        }
-
-        // AJAX method to get incident feedback
-        [Authorize(Roles = "Resident")]
-        public JsonResult GetIncidentFeedback(int id)
-        {
-            try
-            {
-                var currentUserId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                if (resident == null)
-                {
-                    return Json(new { error = "Resident not found." }, JsonRequestBehavior.AllowGet);
-                }
-
-                var incident = db.IncidentReports
-                    .FirstOrDefault(i => i.IncidentReportId == id && i.ResidentId == resident.Id);
-
-                if (incident == null)
-                {
-                    return Json(new { error = "Incident not found or access denied." }, JsonRequestBehavior.AllowGet);
-                }
-
-                return Json(new
-                {
-                    feedback = incident.Feedback,
-                    hasAttachment = !string.IsNullOrEmpty(incident.FeedbackAttachment),
-                    attachmentName = incident.FeedbackAttachment
-                }, JsonRequestBehavior.AllowGet);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("GetIncidentFeedback error: " + ex.Message);
-                return Json(new { error = "An error occurred while retrieving feedback." }, JsonRequestBehavior.AllowGet);
-            }
-        }
-
-        // Download attachment
-        [Authorize(Roles = "Resident")]
-        public ActionResult DownloadAttachment(int id)
-        {
-            try
-            {
-                var currentUserId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                if (resident == null)
-                {
-                    TempData["ErrorMessage"] = "Resident not found.";
-                    return RedirectToAction("MyIncidents");
-                }
-
-                var incident = db.IncidentReports
-                    .FirstOrDefault(i => i.IncidentReportId == id && i.ResidentId == resident.Id);
-
-                if (incident == null || string.IsNullOrEmpty(incident.FeedbackAttachment))
-                {
-                    TempData["ErrorMessage"] = "File not found or access denied.";
-                    return RedirectToAction("MyIncidents");
-                }
-
-                var filePath = Server.MapPath("~/Content/Uploads/IncidentFeedback/" + incident.FeedbackAttachment);
-                if (!System.IO.File.Exists(filePath))
-                {
-                    TempData["ErrorMessage"] = "File not found.";
-                    return RedirectToAction("MyIncidents");
-                }
-
-                return File(filePath, "application/octet-stream", incident.FeedbackAttachment);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("DownloadAttachment error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while downloading the file.";
-                return RedirectToAction("MyIncidents");
-            }
-        }
-
-        // GET: Resident/CreateIncident
-        [Authorize(Roles = "Resident")]
-        public ActionResult CreateIncident()
-        {
-            try
-            {
-                var currentUserId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                if (resident == null)
-                {
-                    TempData["ErrorMessage"] = "Resident profile not found.";
-                    return RedirectToAction("Dashboard");
-                }
-
-                var model = new CreateIncidentViewModel
-                {
-                    // Pre-fill resident information
-                    ResidentId = resident.Id,
-                    EmergencyContact = resident.EmergencyContact,
-                    Location = $"{resident.Address}, Unit {resident.UnitNumber}"
-                };
-
-                // Populate incident types dropdown
-                ViewBag.IncidentTypes = GetIncidentTypes();
-                ViewBag.Priorities = GetPriorityLevels();
-
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("CreateIncident error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while loading the incident form.";
-                return RedirectToAction("MyIncidents");
-            }
-        }
-
-        // POST: Resident/CreateIncident
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Resident")]
-        public async Task<ActionResult> CreateIncident(CreateIncidentViewModel model)
-        {
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    var currentUserId = User.Identity.GetUserId();
-                    var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                    if (resident == null)
-                    {
-                        TempData["ErrorMessage"] = "Resident profile not found.";
-                        return RedirectToAction("Dashboard");
-                    }
-
-                    var incident = new IncidentReport
-                    {
-                        ResidentId = resident.Id,
-                        IncidentType = model.IncidentType,
-                        Location = model.Location,
-                        EmergencyContact = model.EmergencyContact,
-                        Description = model.Description,
-                        Priority = model.Priority,
-                        ReportDate = DateTime.Now,
-                        Status = "Pending",
-                        ReportedBy = "Resident",
-                        CreatedBy = currentUserId,
-                        CreatedDate = DateTime.Now
-                    };
-
-                    // Handle file upload if any
-                    if (model.Attachment != null && model.Attachment.ContentLength > 0)
-                    {
-                        // Create uploads directory if it doesn't exist
-                        var uploadsDir = Server.MapPath("~/Content/Uploads/IncidentReports");
-                        if (!Directory.Exists(uploadsDir))
-                        {
-                            Directory.CreateDirectory(uploadsDir);
-                        }
-
-                        // Save the file and store the path
-                        var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Attachment.FileName)}";
-                        var path = Path.Combine(uploadsDir, fileName);
-                        model.Attachment.SaveAs(path);
-                        incident.Attachment = fileName;
-                    }
-
-                    db.IncidentReports.Add(incident);
-                    await db.SaveChangesAsync();
-
-                    // Create notification
-                    var notification = new Notification
-                    {
-                        UserId = currentUserId,
-                        UserType = "Resident",
-                        Message = $"New incident reported: {model.IncidentType}",
-                        IsRead = false,
-                        CreatedAt = DateTime.Now,
-                        RelatedUrl = Url.Action("IncidentDetails", "Resident", new { id = incident.IncidentReportId })
-                    };
-                    db.Notifications.Add(notification);
-
-                    // Notify security team/directors
-                    await NotifySecurityTeamAboutIncident(incident);
-
-                    await db.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Incident reported successfully!";
-                    return RedirectToAction("MyIncidents");
-                }
-
-                // If we got this far, something failed
-                ViewBag.IncidentTypes = GetIncidentTypes();
-                ViewBag.Priorities = GetPriorityLevels();
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("CreateIncident error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while reporting the incident.";
-                ViewBag.IncidentTypes = GetIncidentTypes();
-                ViewBag.Priorities = GetPriorityLevels();
-                return View(model);
-            }
-        }
-
-        // GET: Resident/IncidentDetails/5
-        [Authorize(Roles = "Resident")]
-        public ActionResult IncidentDetails(int id)
-        {
-            try
-            {
-                var currentUserId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                if (resident == null)
-                {
-                    TempData["ErrorMessage"] = "Resident profile not found.";
-                    return RedirectToAction("Dashboard");
-                }
-
-                var incident = db.IncidentReports
-                    .FirstOrDefault(i => i.IncidentReportId == id && i.ResidentId == resident.Id);
-
-                if (incident == null)
-                {
-                    TempData["ErrorMessage"] = "Incident not found or access denied.";
-                    return RedirectToAction("MyIncidents");
-                }
-
-                return View(incident);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("IncidentDetails error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while loading incident details.";
-                return RedirectToAction("MyIncidents");
-            }
-        }
-
-        // GET: Resident/AddFeedback/5
-        [Authorize(Roles = "Resident")]
-        public ActionResult AddFeedback(int id)
-        {
-            try
-            {
-                var currentUserId = User.Identity.GetUserId();
-                var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                if (resident == null)
-                {
-                    TempData["ErrorMessage"] = "Resident profile not found.";
-                    return RedirectToAction("Dashboard");
-                }
-
-                var incident = db.IncidentReports
-                    .FirstOrDefault(i => i.IncidentReportId == id && i.ResidentId == resident.Id);
-
-                if (incident == null)
-                {
-                    TempData["ErrorMessage"] = "Incident not found or access denied.";
-                    return RedirectToAction("MyIncidents");
-                }
-
-                var model = new IncidentFeedbackViewModel
-                {
-                    IncidentReportId = incident.IncidentReportId,
-                    CurrentFeedback = incident.Feedback
-                };
-
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("AddFeedback error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while loading the feedback form.";
-                return RedirectToAction("MyIncidents");
-            }
-        }
-
-        // POST: Resident/AddFeedback
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Resident")]
-        public async Task<ActionResult> AddFeedback(IncidentFeedbackViewModel model)
-        {
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    var currentUserId = User.Identity.GetUserId();
-                    var resident = db.Residents.FirstOrDefault(r => r.Id == currentUserId);
-
-                    if (resident == null)
-                    {
-                        TempData["ErrorMessage"] = "Resident profile not found.";
-                        return RedirectToAction("Dashboard");
-                    }
-
-                    var incident = db.IncidentReports
-                        .FirstOrDefault(i => i.IncidentReportId == model.IncidentReportId && i.ResidentId == resident.Id);
-
-                    if (incident == null)
-                    {
-                        TempData["ErrorMessage"] = "Incident not found or access denied.";
-                        return RedirectToAction("MyIncidents");
-                    }
-
-                    incident.Feedback = model.Feedback;
-                    incident.FeedbackDate = DateTime.Now;
-
-                    // Handle file upload if any
-                    if (model.Attachment != null && model.Attachment.ContentLength > 0)
-                    {
-                        // Create uploads directory if it doesn't exist
-                        var uploadsDir = Server.MapPath("~/Content/Uploads/IncidentFeedback");
-                        if (!Directory.Exists(uploadsDir))
-                        {
-                            Directory.CreateDirectory(uploadsDir);
-                        }
-
-                        // Save the file and store the path
-                        var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Attachment.FileName)}";
-                        var path = Path.Combine(uploadsDir, fileName);
-                        model.Attachment.SaveAs(path);
-                        incident.FeedbackAttachment = fileName;
-                    }
-
-                    await db.SaveChangesAsync();
-
-                    // Create notification
-                    var notification = new Notification
-                    {
-                        UserId = currentUserId,
-                        UserType = "Resident",
-                        Message = $"Feedback added to incident: {incident.IncidentType}",
-                        IsRead = false,
-                        CreatedAt = DateTime.Now,
-                        RelatedUrl = Url.Action("IncidentDetails", "Resident", new { id = incident.IncidentReportId })
-                    };
-                    db.Notifications.Add(notification);
-
-                    // Notify security team about feedback
-                    await NotifySecurityTeamAboutFeedback(incident);
-
-                    await db.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Feedback submitted successfully!";
-                    return RedirectToAction("IncidentDetails", new { id = model.IncidentReportId });
-                }
-
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("AddFeedback error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while submitting feedback.";
-                return View(model);
-            }
-        }
-
         // GET: Resident/NotificationBellPartial
         [ChildActionOnly]
         public ActionResult NotificationBellPartial()
@@ -980,105 +466,6 @@ namespace PiranaSecuritySystem.Controllers
                 .ToList();
 
             return PartialView("_NotificationBell", notifications);
-        }
-
-        // Helper methods
-        private List<SelectListItem> GetIncidentTypes()
-        {
-            return new List<SelectListItem>
-            {
-                new SelectListItem { Value = "Security Breach", Text = "Security Breach" },
-                new SelectListItem { Value = "Suspicious Activity", Text = "Suspicious Activity" },
-                new SelectListItem { Value = "Emergency", Text = "Emergency" },
-                new SelectListItem { Value = "Maintenance Issue", Text = "Maintenance Issue" },
-                new SelectListItem { Value = "Noise Complaint", Text = "Noise Complaint" },
-                new SelectListItem { Value = "Other", Text = "Other" }
-            };
-        }
-
-        private List<SelectListItem> GetPriorityLevels()
-        {
-            return new List<SelectListItem>
-            {
-                new SelectListItem { Value = "Low", Text = "Low" },
-                new SelectListItem { Value = "Medium", Text = "Medium" },
-                new SelectListItem { Value = "High", Text = "High" },
-                new SelectListItem { Value = "Critical", Text = "Critical" }
-            };
-        }
-
-        private async Task NotifySecurityTeamAboutIncident(IncidentReport incident)
-        {
-            try
-            {
-                // Notify directors
-                var directors = db.Directors.Where(d => d.IsActive).ToList();
-                foreach (var director in directors)
-                {
-                    var notification = new Notification
-                    {
-                        UserId = director.DirectorId.ToString(),
-                        UserType = "Director",
-                        Message = $"New incident reported by resident: {incident.IncidentType} (Priority: {incident.Priority})",
-                        IsRead = false,
-                        CreatedAt = DateTime.Now,
-                        RelatedUrl = Url.Action("IncidentDetails", "Director", new { id = incident.IncidentReportId })
-                    };
-                    db.Notifications.Add(notification);
-                }
-
-                // Notify guards (if applicable)
-                var guards = db.Guards.Where(g => g.IsActive).ToList();
-                foreach (var guard in guards)
-                {
-                    var notification = new Notification
-                    {
-                        UserId = guard.GuardId.ToString(),
-                        UserType = "Guard",
-                        Message = $"New incident reported: {incident.IncidentType} at {incident.Location}",
-                        IsRead = false,
-                        CreatedAt = DateTime.Now,
-                        RelatedUrl = Url.Action("IncidentDetails", "Guard", new { id = incident.IncidentReportId })
-                    };
-                    db.Notifications.Add(notification);
-                }
-
-                await db.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Notification error: " + ex.Message);
-                // Continue even if notifications fail
-            }
-        }
-
-        private async Task NotifySecurityTeamAboutFeedback(IncidentReport incident)
-        {
-            try
-            {
-                // Notify directors about feedback
-                var directors = db.Directors.Where(d => d.IsActive).ToList();
-                foreach (var director in directors)
-                {
-                    var notification = new Notification
-                    {
-                        UserId = director.DirectorId.ToString(),
-                        UserType = "Director",
-                        Message = $"Feedback received for incident: {incident.IncidentType}",
-                        IsRead = false,
-                        CreatedAt = DateTime.Now,
-                        RelatedUrl = Url.Action("IncidentDetails", "Director", new { id = incident.IncidentReportId })
-                    };
-                    db.Notifications.Add(notification);
-                }
-
-                await db.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Feedback notification error: " + ex.Message);
-                // Continue even if notifications fail
-            }
         }
 
         protected override void Dispose(bool disposing)
@@ -1099,6 +486,50 @@ namespace PiranaSecuritySystem.Controllers
             }
             base.Dispose(disposing);
         }
+    }
+
+    // ViewModel for Resident Registration
+    public class RegisterResidentViewModel
+    {
+        [Required(ErrorMessage = "Full Name is required")]
+        [Display(Name = "Full Name")]
+        [StringLength(100, ErrorMessage = "Full Name cannot exceed 100 characters")]
+        public string FullName { get; set; }
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Phone Number is required")]
+        [Display(Name = "Phone Number")]
+        [Phone(ErrorMessage = "Please enter a valid phone number")]
+        [StringLength(20, ErrorMessage = "Phone Number cannot exceed 20 characters")]
+        public string PhoneNumber { get; set; }
+
+        [Required(ErrorMessage = "Address is required")]
+        [StringLength(200, ErrorMessage = "Address cannot exceed 200 characters")]
+        public string Address { get; set; }
+
+        [Required(ErrorMessage = "Unit Number is required")]
+        [Display(Name = "Unit Number")]
+        [StringLength(20, ErrorMessage = "Unit Number cannot exceed 20 characters")]
+        public string UnitNumber { get; set; }
+
+        [Required(ErrorMessage = "Password is required")]
+        [DataType(DataType.Password)]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters long")]
+        [StringLength(100, ErrorMessage = "Password cannot exceed 100 characters")]
+        public string Password { get; set; }
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm Password")]
+        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; }
+
+        [Display(Name = "Emergency Contact")]
+        [StringLength(100, ErrorMessage = "Emergency Contact cannot exceed 100 characters")]
+        public string EmergencyContact { get; set; }
     }
 
     // ViewModel for Resident Update
@@ -1137,56 +568,13 @@ namespace PiranaSecuritySystem.Controllers
     // ViewModel for Resident Dashboard
     public class ResidentDashboardViewModel
     {
-        public Resident Resident { get; set; }
+        public ApplicationUser Resident { get; set; }
+        public ResidentInfo ResidentInfo { get; set; }
         public int TotalIncidents { get; set; }
         public int ResolvedIncidents { get; set; }
         public int PendingIncidents { get; set; }
         public int InProgressIncidents { get; set; }
         public List<Notification> Notifications { get; set; }
         public List<IncidentReport> RecentIncidents { get; set; }
-    }
-
-    // ViewModel for creating incidents
-    public class CreateIncidentViewModel
-    {
-        public string ResidentId { get; set; }
-
-        [Required(ErrorMessage = "Incident type is required")]
-        [Display(Name = "Incident Type")]
-        public string IncidentType { get; set; }
-
-        [Required(ErrorMessage = "Location is required")]
-        [StringLength(200, ErrorMessage = "Location cannot exceed 200 characters")]
-        public string Location { get; set; }
-
-        [Display(Name = "Emergency Contact")]
-        [StringLength(100, ErrorMessage = "Emergency Contact cannot exceed 100 characters")]
-        public string EmergencyContact { get; set; }
-
-        [Required(ErrorMessage = "Description is required")]
-        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
-        public string Description { get; set; }
-
-        [Required(ErrorMessage = "Priority is required")]
-        public string Priority { get; set; }
-
-        [Display(Name = "Upload Evidence (optional)")]
-        public HttpPostedFileBase Attachment { get; set; }
-    }
-
-    // ViewModel for incident feedback
-    public class IncidentFeedbackViewModel
-    {
-        public int IncidentReportId { get; set; }
-
-        [Display(Name = "Your Feedback")]
-        [StringLength(1000, ErrorMessage = "Feedback cannot exceed 1000 characters")]
-        public string Feedback { get; set; }
-
-        [Display(Name = "Current Feedback")]
-        public string CurrentFeedback { get; set; }
-
-        [Display(Name = "Upload Attachment (optional)")]
-        public HttpPostedFileBase Attachment { get; set; }
     }
 }
