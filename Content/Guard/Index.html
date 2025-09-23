@@ -49,15 +49,17 @@
             cursor: pointer;
             font-size: 16px;
             margin: 5px;
+            transition: background-color 0.3s;
         }
 
-            button:hover {
+            button:hover:not(:disabled) {
                 background-color: #0056b3;
             }
 
             button:disabled {
                 background-color: #6c757d;
                 cursor: not-allowed;
+                opacity: 0.6;
             }
 
         .message {
@@ -104,6 +106,10 @@
         #qrcode {
             margin: 20px auto;
             padding: 10px;
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .guard-info {
@@ -122,6 +128,11 @@
             margin: 20px 0;
             flex-wrap: wrap;
         }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -132,19 +143,21 @@
 
         <div class="form-group">
             <label for="siteUsername">Site Username:</label>
-            <input type="text" id="siteUsername" placeholder="Enter your site username">
-            <button type="button" id="validateBtn">Validate Identity</button>
+            <input type="text" id="siteUsername" placeholder="Enter your site username" autocomplete="off">
+            <button type="button" id="validateBtn" onclick="validateGuard()">Validate Identity</button>
         </div>
 
         <div id="validationMessage" class="message"></div>
 
         <div id="qrSection">
             <h3>QR Code Authentication</h3>
-            <div id="qrcode"></div>
+            <div id="qrcode">
+                <p style="color: #666;">QR code will appear here after generation</p>
+            </div>
 
             <div class="form-group">
                 <label for="scannedCode">Enter Scanned Code:</label>
-                <input type="text" id="scannedCode" placeholder="Enter the scanned code">
+                <input type="text" id="scannedCode" placeholder="Enter the scanned code" autocomplete="off">
             </div>
 
             <div class="button-group">
@@ -160,22 +173,5 @@
 
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="script.js"></script>
-
-    <script>
-        // Additional event listeners to ensure buttons work
-        document.addEventListener('DOMContentLoaded', function () {
-            // Add event listeners to all buttons
-            document.getElementById('validateBtn').addEventListener('click', validateGuard);
-            document.getElementById('checkInBtn').addEventListener('click', checkIn);
-            document.getElementById('checkOutBtn').addEventListener('click', checkOut);
-            document.getElementById('generateQRBtn').addEventListener('click', generateQRCode);
-            document.getElementById('resetBtn').addEventListener('click', resetForm);
-
-            // Hide buttons initially
-            document.getElementById('checkInBtn').style.display = 'none';
-            document.getElementById('checkOutBtn').style.display = 'none';
-            document.getElementById('qrSection').style.display = 'none';
-        });
-    </script>
 </body>
 </html>
