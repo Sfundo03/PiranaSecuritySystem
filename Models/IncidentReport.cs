@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PiranaSecuritySystem.Models
 {
@@ -8,7 +10,18 @@ namespace PiranaSecuritySystem.Models
         [Key]
         public int IncidentReportId { get; set; }
 
-        public int ResidentId { get; set; }
+        // For resident-reported incidents - use string to match ApplicationUser.Id
+        [StringLength(128)]
+        public string ResidentId { get; set; }
+
+        [ForeignKey("ResidentId")]
+        public virtual Resident Resident { get; set; }
+
+        // For guard-reported incidents
+        public int? GuardId { get; set; }
+
+        [ForeignKey("GuardId")]
+        public virtual Guard Guard { get; set; }
 
         [Required]
         public string IncidentType { get; set; }
@@ -16,8 +29,9 @@ namespace PiranaSecuritySystem.Models
         public string Location { get; set; }
 
         public string EmergencyContact { get; set; }
-
         public string Feedback { get; set; }
+
+        public string Attachment { get; set; }
         public string FeedbackAttachment { get; set; }
         public DateTime? FeedbackDate { get; set; }
 
@@ -32,11 +46,7 @@ namespace PiranaSecuritySystem.Models
 
         public string ReportedBy { get; set; }
 
-
-
-        // Navigation property
-        public virtual Resident Resident { get; set; }
-        public string CreatedBy { get; internal set; }
-        public DateTime CreatedDate { get; internal set; }
+        public string CreatedBy { get; set; }
+        public DateTime CreatedDate { get; set; }
     }
 }

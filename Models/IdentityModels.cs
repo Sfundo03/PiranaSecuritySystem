@@ -18,6 +18,8 @@ namespace PiranaSecuritySystem.Models
         public bool IsActive { get; set; } = true; // Add this line
         public DateTime? LastLoginDate { get; set; }
         public DateTime DateCreated { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; internal set; }
+
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager)
         {
             // Note the authenticationType must match the one defined in CookieAuthenticationOptions.AuthenticationType
@@ -36,6 +38,8 @@ namespace PiranaSecuritySystem.Models
 
         // Add your DbSets here
         public DbSet<IncidentReport> IncidentReports { get; set; }
+
+        public DbSet<ResidentInfo> ResidentInfos { get; set; }
         public DbSet<TrainingSession> TrainingSessions { get; set; }
         public DbSet<ShiftRoster> ShiftRosters { get; set; }
 
@@ -47,13 +51,24 @@ namespace PiranaSecuritySystem.Models
 
         public DbSet<Resident> Residents { get; set; }
         public DbSet<Guard> Guards { get; set; }
-        
+
         public List<int> SelectedGuardIDs { get; set; }
         public List<string> SelectedSpecializations { get; set; }
         public DbSet<GuardCheckIn> GuardCheckIns { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Director> Directors { get; set; }
         public object TrainingEnrollments { get; internal set; }
+
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Configure all DateTime properties to use datetime2
+            modelBuilder.Properties<DateTime>()
+                       .Configure(c => c.HasColumnType("datetime2"));
+
+          
+        }
 
         public static ApplicationDbContext Create()
         {

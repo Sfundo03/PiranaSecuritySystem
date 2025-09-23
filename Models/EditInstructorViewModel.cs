@@ -2,11 +2,12 @@
 using System.ComponentModel.DataAnnotations;
 using System.Web.Mvc;
 
-
 namespace PiranaSecuritySystem.ViewModels
 {
-    public class RegisterInstructorViewModel
+    public class EditInstructorViewModel
     {
+        public int Id { get; set; }
+
         [Required(ErrorMessage = "Full Name is required")]
         [Display(Name = "Full Name")]
         public string FullName { get; set; }
@@ -30,21 +31,13 @@ namespace PiranaSecuritySystem.ViewModels
         [Display(Name = "Site")]
         public string Site { get; set; }
 
+        [Display(Name = "Is Active")]
+        public bool IsActive { get; set; }
+
         public List<SelectListItem> SiteOptions { get; set; }
         public List<SelectListItem> GroupOptions { get; set; }
 
-        [Required(ErrorMessage = "Password is required")]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "Password")]
-        public string Password { get; set; }
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; }
-
-        public RegisterInstructorViewModel()
+        public EditInstructorViewModel()
         {
             SiteOptions = new List<SelectListItem>
             {

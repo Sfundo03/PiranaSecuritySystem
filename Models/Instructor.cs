@@ -1,6 +1,4 @@
-﻿// Models/Instructor.cs
-using PiranaSecuritySystem.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -13,7 +11,6 @@ namespace PiranaSecuritySystem.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Employee ID is required")]
         [Display(Name = "Employee ID")]
         [StringLength(50, ErrorMessage = "Employee ID cannot exceed 50 characters")]
         public string EmployeeId { get; set; }
@@ -22,6 +19,10 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Full Name")]
         [StringLength(100, ErrorMessage = "Full Name cannot exceed 100 characters")]
         public string FullName { get; set; }
+
+        [Display(Name = "Group")]
+        [StringLength(50, ErrorMessage = "Group cannot exceed 50 characters")]
+        public string Group { get; set; }
 
         [Required(ErrorMessage = "Email Address is required")]
         [EmailAddress(ErrorMessage = "Invalid Email Address format")]
@@ -49,7 +50,6 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Is Active")]
         public bool IsActive { get; set; } = true;
 
-        // Foreign key to AspNetUsers table
         [Required(ErrorMessage = "User ID is required")]
         [StringLength(450, ErrorMessage = "User ID cannot exceed 450 characters")]
         public string UserId { get; set; }
@@ -57,7 +57,6 @@ namespace PiranaSecuritySystem.Models
         [ForeignKey("UserId")]
         public virtual ApplicationUser User { get; set; }
 
-        // Navigation property for Duty Rosters
         public virtual ICollection<ShiftRoster> ShiftRosters { get; set; }
     }
 }

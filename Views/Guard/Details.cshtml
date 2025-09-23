@@ -1,0 +1,63 @@
+﻿@model PiranaSecuritySystem.Models.IncidentReport
+
+<div class="detail-item">
+    <div class="detail-label">Incident ID</div>
+    <div class="detail-value">INC-@Model.IncidentReportId.ToString("D4")</div>
+</div>
+
+<div class="detail-item">
+    <div class="detail-label">Type</div>
+    <div class="detail-value">@Model.IncidentType</div>
+</div>
+
+<div class="detail-item">
+    <div class="detail-label">Location</div>
+    <div class="detail-value">@Model.Location</div>
+</div>
+
+<div class="detail-item">
+    <div class="detail-label">Date Reported</div>
+    <div class="detail-value">@Model.ReportDate.ToString("MM/dd/yyyy hh:mm tt")</div>
+</div>
+
+<div class="detail-item">
+    <div class="detail-label">Status</div>
+    <div class="detail-value">
+        @if (Model.Status == "Resolved")
+        {
+            <span class="badge badge-success">@Model.Status</span>
+        }
+        else if (Model.Status == "In Progress")
+        {
+            <span class="badge badge-primary">@Model.Status</span>
+        }
+        else
+        {
+            <span class="badge badge-warning">@Model.Status</span>
+        }
+    </div>
+</div>
+
+<div class="detail-item">
+    <div class="detail-label">Priority</div>
+    <div class="detail-value">
+        @if (Model.Priority == "High")
+        {
+            <span class="badge badge-danger">@Model.Priority</span>
+        }
+        else if (Model.Priority == "Medium")
+        {
+            <span class="badge badge-warning">@Model.Priority</span>
+        }
+        else
+        {
+            <span class="badge badge-info">@Model.Priority</span>
+        }
+    </div>
+</div>
+
+<div class="detail-item">
+    <div class="detail-label">Description</div>
+    <div class="detail-value">@Model.Description</div>
+</div>
+

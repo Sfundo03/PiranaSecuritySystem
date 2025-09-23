@@ -22,10 +22,40 @@ namespace PiranaSecuritySystem.Controllers
                     .Select(n => new
                     {
                         n.NotificationId,
+                        n.Title,
                         n.Message,
                         n.IsRead,
                         n.CreatedAt,
-                        n.RelatedUrl
+                        n.RelatedUrl,
+                        TimeAgo = n.GetTimeAgo() // Use the helper method
+                    })
+                    .ToList();
+
+                return Json(notifications, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // GET: Notification/GetGuardNotifications
+        public JsonResult GetGuardNotifications(int guardId)
+        {
+            try
+            {
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == guardId.ToString() && n.UserType == "Guard")
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Select(n => new
+                    {
+                        n.NotificationId,
+                        n.Title,
+                        n.Message,
+                        n.IsRead,
+                        n.CreatedAt,
+                        n.RelatedUrl,
+                        TimeAgo = n.GetTimeAgo() // Use the helper method
                     })
                     .ToList();
 
@@ -47,6 +77,7 @@ namespace PiranaSecuritySystem.Controllers
                 if (notification != null)
                 {
                     notification.IsRead = true;
+                    notification.DateRead = DateTime.Now;
                     db.SaveChanges();
                     return Json(new { success = true });
                 }
@@ -71,6 +102,7 @@ namespace PiranaSecuritySystem.Controllers
                 foreach (var notification in notifications)
                 {
                     notification.IsRead = true;
+                    notification.DateRead = DateTime.Now;
                 }
 
                 db.SaveChanges();
@@ -90,6 +122,5 @@ namespace PiranaSecuritySystem.Controllers
             }
             base.Dispose(disposing);
         }
-
     }
 }

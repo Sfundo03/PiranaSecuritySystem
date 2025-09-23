@@ -217,6 +217,20 @@
         .input-validation-error {
             border-color: #dc3545;
         }
+
+        .validation-summary-errors {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+            .validation-summary-errors ul {
+                margin-bottom: 0;
+                padding-left: 20px;
+            }
     </style>
 </head>
 <body>
@@ -238,10 +252,10 @@
                 <p class="welcome-text">Fill out the form below to report a security incident</p>
 
                 <!-- Display error/success messages -->
-                @if (ViewBag.ErrorMessage != null)
+                @if (TempData["ErrorMessage"] != null)
                 {
                     <div class="alert alert-danger">
-                        @ViewBag.ErrorMessage
+                        <strong>Error:</strong> @TempData["ErrorMessage"]
                     </div>
                 }
                 @if (TempData["SuccessMessage"] != null)
@@ -254,37 +268,38 @@
                 @using (Html.BeginForm("Create", "Guard", FormMethod.Post, new { @id = "incidentForm" }))
                 {
                     @Html.AntiForgeryToken()
-                    @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+
+                    <!-- Show validation summary at the top -->
+                    @Html.ValidationSummary(true, "", new { @class = "alert alert-danger validation-summary-errors" })
 
                     <div class="floating-label">
                         @Html.DropDownListFor(model => model.IncidentType, ViewBag.IncidentTypes as List<SelectListItem>, "Select Incident Type", new { @class = "form-control" })
-                        <label for="IncidentType">Incident Type</label>
-                        @Html.ValidationMessageFor(model => model.IncidentType)
+                        <label for="IncidentType">Incident Type *</label>
+                        @Html.ValidationMessageFor(model => model.IncidentType, "", new { @class = "field-validation-error" })
                     </div>
 
                     <div class="floating-label">
                         @Html.DropDownListFor(model => model.Location, ViewBag.Locations as List<SelectListItem>, "Select Location", new { @class = "form-control" })
-                        <label for="Location">Location</label>
-                        @Html.ValidationMessageFor(model => model.Location)
+                        <label for="Location">Location *</label>
+                        @Html.ValidationMessageFor(model => model.Location, "", new { @class = "field-validation-error" })
                     </div>
 
                     <div class="floating-label">
                         @Html.DropDownListFor(model => model.Priority, ViewBag.PriorityLevels as List<SelectListItem>, "Select Priority", new { @class = "form-control" })
-                        <label for="Priority">Priority Level</label>
-                        @Html.ValidationMessageFor(model => model.Priority)
+                        <label for="Priority">Priority Level *</label>
+                        @Html.ValidationMessageFor(model => model.Priority, "", new { @class = "field-validation-error" })
                     </div>
 
                     <div class="floating-label">
-                        @Html.TextAreaFor(model => model.Description, new { @class = "form-control", placeholder = " ", rows = "4" })
-                        <label for="Description">Incident Description</label>
-                        @Html.ValidationMessageFor(model => model.Description)
+                        @Html.TextAreaFor(model => model.Description, new { @class = "form-control", placeholder = " ", rows = "4", required = "required" })
+                        <label for="Description">Incident Description *</label>
+                        @Html.ValidationMessageFor(model => model.Description, "", new { @class = "field-validation-error" })
                     </div>
 
                     <!-- Optional fields section -->
                     <div class="optional-fields mt-4">
                         <h5 class="mb-3" style="color: var(--primary-blue);">Additional Information (Optional)</h5>
 
-                        <!-- If you have other optional fields, add them here -->
                         <div class="floating-label">
                             <textarea class="form-control" placeholder=" " rows="3" name="AdditionalNotes" id="AdditionalNotes"></textarea>
                             <label for="AdditionalNotes">Additional Notes</label>
@@ -319,36 +334,67 @@
                 const priority = document.getElementById('Priority').value;
                 const description = document.getElementById('Description').value;
 
-                if (!incidentType || !location || !priority || !description) {
+                if (!incidentType || incidentType === "Select Incident Type" ||
+                    !location || location === "Select Location" ||
+                    !priority || priority === "Select Priority" ||
+                    !description.trim()) {
                     e.preventDefault();
-                    alert('Please fill in all required fields');
+
+                    // Highlight empty fields
+                    const fields = [
+                        { id: 'IncidentType', value: incidentType },
+                        { id: 'Location', value: location },
+                        { id: 'Priority', value: priority },
+                        { id: 'Description', value: description }
+                    ];
+
+                    fields.forEach(field => {
+                        const element = document.getElementById(field.id);
+                        if (!field.value || (field.id !== 'Description' && field.value.includes('Select'))) {
+                            element.classList.add('input-validation-error');
+                        } else {
+                            element.classList.remove('input-validation-error');
+                        }
+                    });
+
+                    alert('Please fill in all required fields (marked with *)');
                     return;
                 }
             });
 
             // Initialize floating labels for selects and textareas
-            const formElements = document.querySelectorAll('select, textarea, input[type="text"]');
+            const formElements = document.querySelectorAll('select, textarea');
             formElements.forEach(element => {
                 element.addEventListener('change', function () {
-                    if (this.value) {
+                    if (this.value && !this.value.includes('Select')) {
                         this.classList.add('has-value');
+                        this.classList.remove('input-validation-error');
                     } else {
                         this.classList.remove('has-value');
                     }
                 });
 
                 element.addEventListener('blur', function () {
-                    if (this.value) {
+                    if (this.value && !this.value.includes('Select')) {
                         this.classList.add('has-value');
+                        this.classList.remove('input-validation-error');
                     } else {
                         this.classList.remove('has-value');
                     }
                 });
 
                 // Trigger change event on load to set initial state
-                if (element.value) {
+                if (element.value && !element.value.includes('Select')) {
                     element.classList.add('has-value');
                 }
+            });
+
+            // Clear validation errors when user starts typing
+            const inputs = document.querySelectorAll('select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('input', function () {
+                    this.classList.remove('input-validation-error');
+                });
             });
         });
     </script>

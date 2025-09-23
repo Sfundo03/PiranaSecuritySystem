@@ -1,4 +1,4 @@
-﻿@model PiranaSecuritySystem.Models.Resident
+﻿@model PiranaSecuritySystem.Models.ViewModels.RegisterResidentViewModel
 
 @{
     ViewBag.Title = "Register - Resident Portal";
@@ -62,6 +62,7 @@
         color: #e74c3c;
         font-size: 0.9rem;
         margin-top: 5px;
+        display: block;
     }
 
     .alert {
@@ -71,9 +72,15 @@
     }
 
     .alert-danger {
-        background-color: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #fff;
+        border: 1px solid rgba(220, 53, 69, 0.5);
+    }
+
+    .alert-success {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #fff;
+        border: 1px solid rgba(40, 167, 69, 0.5);
     }
 
     .btn-register {
@@ -86,10 +93,13 @@
         cursor: pointer;
         width: 100%;
         margin-bottom: 20px;
+        transition: all 0.3s;
+        font-weight: 600;
     }
 
         .btn-register:hover {
             background: #2980b9;
+            transform: translateY(-2px);
         }
 
     .btn-login {
@@ -104,11 +114,27 @@
         text-decoration: none;
         display: block;
         text-align: center;
+        transition: all 0.3s;
+        font-weight: 600;
     }
 
         .btn-login:hover {
             background: #c0392b;
+            transform: translateY(-2px);
         }
+
+    .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: var(--light-text);
+    }
+
+    .input-icon {
+        position: relative;
+    }
 </style>
 
 <div class="resident-register">
@@ -126,58 +152,130 @@
                 </div>
             }
 
-            @using (Html.BeginForm("Register", "Resident", FormMethod.Post))
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">
+                    @TempData["SuccessMessage"]
+                </div>
+            }
+
+            @using (Html.BeginForm("Register", "Resident", FormMethod.Post, new { id = "registerForm" }))
             {
                 @Html.AntiForgeryToken()
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.FullName)
-                    @Html.TextBoxFor(model => model.FullName, new { @class = "form-control", placeholder = "Enter your full name", required = "required" })
+                    @Html.TextBoxFor(model => model.FullName, new { @class = "form-control", placeholder = "Enter your full name", required = "required", value = Model?.FullName })
                     @Html.ValidationMessageFor(model => model.FullName, "", new { @class = "validation-error" })
                 </div>
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.Email)
-                    @Html.TextBoxFor(model => model.Email, new { @class = "form-control", type = "email", placeholder = "Enter your email", required = "required" })
+                    @Html.TextBoxFor(model => model.Email, new { @class = "form-control", type = "email", placeholder = "Enter your email", required = "required", value = Model?.Email })
                     @Html.ValidationMessageFor(model => model.Email, "", new { @class = "validation-error" })
                 </div>
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.PhoneNumber)
-                    @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control", placeholder = "Enter your phone number", required = "required" })
+                    @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control", placeholder = "Enter your phone number", required = "required", value = Model?.PhoneNumber })
                     @Html.ValidationMessageFor(model => model.PhoneNumber, "", new { @class = "validation-error" })
                 </div>
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.Address)
-                    @Html.TextBoxFor(model => model.Address, new { @class = "form-control", placeholder = "Enter your address", required = "required" })
+                    @Html.TextBoxFor(model => model.Address, new { @class = "form-control", placeholder = "Enter your address", required = "required", value = Model?.Address })
                     @Html.ValidationMessageFor(model => model.Address, "", new { @class = "validation-error" })
                 </div>
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.UnitNumber)
-                    @Html.TextBoxFor(model => model.UnitNumber, new { @class = "form-control", placeholder = "Enter your unit number", required = "required" })
+                    @Html.TextBoxFor(model => model.UnitNumber, new { @class = "form-control", placeholder = "Enter your unit number", required = "required", value = Model?.UnitNumber })
                     @Html.ValidationMessageFor(model => model.UnitNumber, "", new { @class = "validation-error" })
                 </div>
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.Password)
-                    @Html.PasswordFor(model => model.Password, new { @class = "form-control", placeholder = "Create a password (min. 6 characters)", required = "required", minlength = "6" })
+                    <div class="input-icon">
+                        @Html.PasswordFor(model => model.Password, new { @class = "form-control", placeholder = "Create a password (min. 6 characters)", required = "required", minlength = "6", id = "Password" })
+                        <span class="password-toggle" id="passwordToggle">
+                            <i class="fas fa-eye"></i>
+                        </span>
+                    </div>
                     @Html.ValidationMessageFor(model => model.Password, "", new { @class = "validation-error" })
                 </div>
 
                 <div class="form-group">
+                    @Html.LabelFor(model => model.ConfirmPassword)
+                    <div class="input-icon">
+                        @Html.PasswordFor(model => model.ConfirmPassword, new { @class = "form-control", placeholder = "Confirm your password", required = "required", minlength = "6", id = "ConfirmPassword" })
+                        <span class="password-toggle" id="confirmPasswordToggle">
+                            <i class="fas fa-eye"></i>
+                        </span>
+                    </div>
+                    @Html.ValidationMessageFor(model => model.ConfirmPassword, "", new { @class = "validation-error" })
+                </div>
+
+                <div class="form-group">
                     @Html.LabelFor(model => model.EmergencyContact)
-                    @Html.TextBoxFor(model => model.EmergencyContact, new { @class = "form-control", placeholder = "Emergency contact (optional)" })
+                    @Html.TextBoxFor(model => model.EmergencyContact, new { @class = "form-control", placeholder = "Emergency contact (optional)", value = Model?.EmergencyContact })
                     @Html.ValidationMessageFor(model => model.EmergencyContact, "", new { @class = "validation-error" })
                 </div>
 
                 <button type="submit" class="btn-register">Create Account</button>
             }
 
-            <a href="@Url.Action("Index", "Resident")" class="btn-login">
+            <a href="@Url.Action("Login", "Account")" class="btn-login">
                 Back to Login
             </a>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const passwordToggle = document.getElementById('passwordToggle');
+        const confirmPasswordToggle = document.getElementById('confirmPasswordToggle');
+        const passwordInput = document.getElementById('Password');
+        const confirmPasswordInput = document.getElementById('ConfirmPassword');
+
+        // Password visibility toggle
+        if (passwordToggle) {
+            passwordToggle.addEventListener('click', function () {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.querySelector('i').classList.toggle('fa-eye');
+                this.querySelector('i').classList.toggle('fa-eye-slash');
+            });
+        }
+
+        if (confirmPasswordToggle) {
+            confirmPasswordToggle.addEventListener('click', function () {
+                const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                confirmPasswordInput.setAttribute('type', type);
+                this.querySelector('i').classList.toggle('fa-eye');
+                this.querySelector('i').classList.toggle('fa-eye-slash');
+            });
+        }
+
+        // Real-time password confirmation validation
+        if (confirmPasswordInput && passwordInput) {
+            confirmPasswordInput.addEventListener('input', function() {
+                const confirmError = document.getElementById('ConfirmPasswordError');
+                if (this.value !== passwordInput.value) {
+                    confirmError.textContent = 'Passwords do not match';
+                } else {
+                    confirmError.textContent = '';
+                }
+            });
+
+            passwordInput.addEventListener('input', function() {
+                const confirmError = document.getElementById('ConfirmPasswordError');
+                if (confirmPasswordInput.value && this.value !== confirmPasswordInput.value) {
+                    confirmError.textContent = 'Passwords do not match';
+                } else {
+                    confirmError.textContent = '';
+                }
+            });
+        }
+    });
+</script>

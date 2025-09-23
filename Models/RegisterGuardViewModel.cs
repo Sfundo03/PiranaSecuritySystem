@@ -54,6 +54,10 @@ namespace PiranaSecuritySystem.ViewModels
         [Display(Name = "Address")]
         public string Address { get; set; }
 
+        [Display(Name = "House Number")]
+        public string HouseNumber { get; set; }
+
+
         public string Street { get; set; }
         public string City { get; set; }
         public string PostalCode { get; set; }

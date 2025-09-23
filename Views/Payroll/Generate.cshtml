@@ -146,6 +146,34 @@
                 margin-right: 10px;
             }
 
+        .alert-existing {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success-custom {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .currency-note {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--accent-orange);
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 0.875rem;
+            color: var(--light-text);
+        }
+
         /* Responsive adjustments */
         @@media (max-width: 768px) {
             .form-container {
@@ -179,7 +207,25 @@
                 <!-- Information Box -->
                 <div class="info-box">
                     <i class="fas fa-info-circle"></i>
-                    <span>Select a guard and pay period to generate payroll. The system will calculate hours worked and apply the appropriate rates.</span>
+                    <span>Select a guard and pay period to generate payroll. The system will calculate hours worked and apply the appropriate rates. <strong>Note:</strong> Only one payroll per guard per month is allowed.</span>
+                </div>
+
+                <!-- Currency Note -->
+                <div class="currency-note">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>All amounts are calculated and displayed in South African Rand (ZAR).</span>
+                </div>
+
+                <!-- Existing Payroll Alert -->
+                <div id="existingPayrollAlert" class="alert-existing">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="existingPayrollMessage"></span>
+                    <a href="#" id="existingPayrollLink" class="btn btn-outline-warning btn-sm ms-2">View Existing Payroll</a>
+                </div>
+
+                <div id="noExistingPayrollAlert" class="alert-success-custom">
+                    <i class="fas fa-check-circle"></i>
+                    <span>No existing payroll found for this guard and month. You can proceed with generation.</span>
                 </div>
 
                 @using (Html.BeginForm())
@@ -191,7 +237,7 @@
                     <div class="form-group">
                         @Html.Label("Guard", htmlAttributes: new { @class = "control-label" })
                         <div>
-                            @Html.DropDownList("guardId", null, "Select Guard", htmlAttributes: new { @class = "form-control", required = "required" })
+                            @Html.DropDownList("guardId", null, "Select Guard", htmlAttributes: new { @class = "form-control", required = "required", id = "guardId" })
                         </div>
                     </div>
 
@@ -200,7 +246,7 @@
                             <div class="form-group">
                                 @Html.Label("Pay Period Start", htmlAttributes: new { @class = "control-label" })
                                 <div>
-                                    @Html.Editor("payPeriodStart", new { htmlAttributes = new { @class = "form-control", type = "date", required = "required" } })
+                                    @Html.Editor("payPeriodStart", new { htmlAttributes = new { @class = "form-control", type = "date", required = "required", id = "payPeriodStart" } })
                                 </div>
                             </div>
                         </div>
@@ -208,14 +254,17 @@
                             <div class="form-group">
                                 @Html.Label("Pay Period End", htmlAttributes: new { @class = "control-label" })
                                 <div>
-                                    @Html.Editor("payPeriodEnd", new { htmlAttributes = new { @class = "form-control", type = "date", required = "required" } })
+                                    @Html.Editor("payPeriodEnd", new { htmlAttributes = new { @class = "form-control", type = "date", required = "required", id = "payPeriodEnd" } })
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <input type="submit" value="Generate Payroll" class="btn btn-custom" />
+                        <button type="button" id="checkExistingBtn" class="btn btn-outline-custom me-2">
+                            <i class="fas fa-search me-1"></i>Check for Existing Payroll
+                        </button>
+                        <input type="submit" value="Generate Payroll" class="btn btn-custom" id="generateBtn" />
                     </div>
                 }
 
@@ -230,7 +279,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log("Generate payroll page loaded");
 
             // Set default dates for pay period
@@ -241,12 +290,78 @@
             document.getElementById('payPeriodStart').valueAsDate = startDate;
             document.getElementById('payPeriodEnd').valueAsDate = today;
 
-            // Add form validation
+            // Elements
+            const guardSelect = document.getElementById('guardId');
+            const startDateInput = document.getElementById('payPeriodStart');
+            const endDateInput = document.getElementById('payPeriodEnd');
+            const checkExistingBtn = document.getElementById('checkExistingBtn');
+            const generateBtn = document.getElementById('generateBtn');
+            const existingAlert = document.getElementById('existingPayrollAlert');
+            const noExistingAlert = document.getElementById('noExistingPayrollAlert');
+            const existingMessage = document.getElementById('existingPayrollMessage');
+            const existingLink = document.getElementById('existingPayrollLink');
+
+            // Check for existing payroll
+            function checkExistingPayroll() {
+                const guardId = guardSelect.value;
+                const startDate = startDateInput.value;
+
+                if (!guardId || !startDate) {
+                    alert('Please select both a guard and a start date');
+                    return;
+                }
+
+                // Show loading state
+                checkExistingBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Checking...';
+                checkExistingBtn.disabled = true;
+
+                fetch(`/Payroll/CheckExisting?guardId=${guardId}&payPeriodStart=${startDate}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            existingMessage.textContent = data.message;
+                            existingLink.href = `/Payroll/Details/${data.payrollId}`;
+                            existingAlert.style.display = 'block';
+                            noExistingAlert.style.display = 'none';
+                            generateBtn.disabled = true;
+                        } else {
+                            existingAlert.style.display = 'none';
+                            noExistingAlert.style.display = 'block';
+                            generateBtn.disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking existing payroll:', error);
+                        alert('Error checking for existing payroll');
+                    })
+                    .finally(() => {
+                        checkExistingBtn.innerHTML = '<i class="fas fa-search me-1"></i>Check for Existing Payroll';
+                        checkExistingBtn.disabled = false;
+                    });
+            }
+
+            // Event listeners
+            checkExistingBtn.addEventListener('click', checkExistingPayroll);
+
+            // Auto-check when dates change
+            startDateInput.addEventListener('change', function () {
+                if (guardSelect.value) {
+                    checkExistingPayroll();
+                }
+            });
+
+            guardSelect.addEventListener('change', function () {
+                if (startDateInput.value) {
+                    checkExistingPayroll();
+                }
+            });
+
+            // Form validation
             const form = document.querySelector('form');
-            form.addEventListener('submit', function(e) {
-                const guardId = document.getElementById('guardId').value;
-                const startDate = document.getElementById('payPeriodStart').value;
-                const endDate = document.getElementById('payPeriodEnd').value;
+            form.addEventListener('submit', function (e) {
+                const guardId = guardSelect.value;
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
 
                 if (!guardId || guardId === '') {
                     e.preventDefault();
@@ -265,7 +380,21 @@
                     alert('Pay period start date cannot be after end date');
                     return false;
                 }
+
+                // Check if pay period is in the same month
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                if (start.getMonth() !== end.getMonth() || start.getFullYear() !== end.getFullYear()) {
+                    e.preventDefault();
+                    alert('Pay period must be within the same month');
+                    return false;
+                }
             });
+
+            // Initial check if values are already selected
+            if (guardSelect.value && startDateInput.value) {
+                checkExistingPayroll();
+            }
         });
     </script>
 </body>

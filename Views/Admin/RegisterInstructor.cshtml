@@ -87,12 +87,15 @@
             font-weight: 600;
             transition: all 0.3s;
             margin-top: 10px;
+            text-decoration: none;
+            display: inline-block;
         }
 
             .btn-outline-custom:hover {
                 background: var(--secondary-color);
                 color: white;
                 transform: translateY(-2px);
+                text-decoration: none;
             }
 
         .form-control {
@@ -205,13 +208,6 @@
                     @Html.ValidationSummary("", new { @class = "text-danger" })
 
                     <div class="input-icon floating-label">
-                        <i class="fas fa-id-card"></i>
-                        @Html.TextBoxFor(m => m.EmployeeId, new { @class = "form-control", placeholder = " ", required = "required" })
-                        <label for="EmployeeId">Employee ID</label>
-                        @Html.ValidationMessageFor(m => m.EmployeeId, "", new { @class = "text-danger" })
-                    </div>
-
-                    <div class="input-icon floating-label">
                         <i class="fas fa-user"></i>
                         @Html.TextBoxFor(m => m.FullName, new { @class = "form-control", placeholder = " ", required = "required" })
                         <label for="FullName">Full Name</label>
@@ -241,7 +237,7 @@
 
                     <div class="input-icon select-floating">
                         <i class="fas fa-users"></i>
-                        @Html.DropDownListFor(m => m.Group, new SelectList(new[] { "Group A", "Group B", "Group C" }), "", new { @class = "form-control", required = "required" })
+                        @Html.DropDownListFor(m => m.Group, Model.GroupOptions, "Select Group", new { @class = "form-control", required = "required" })
                         <label for="Group">Instructor Group</label>
                         @Html.ValidationMessageFor(m => m.Group, "", new { @class = "text-danger" })
                     </div>
@@ -271,7 +267,7 @@
                         <button type="submit" class="btn btn-custom me-2">
                             <i class="fas fa-user-plus me-2"></i>Register Instructor
                         </button>
-                        @Html.ActionLink("Cancel", "Dashboard", null, new { @class = "btn btn-outline-custom" })
+                        @Html.ActionLink("Cancel", "Dashboard", "Admin", null, new { @class = "btn btn-outline-custom" })
                     </div>
                 }
             </div>

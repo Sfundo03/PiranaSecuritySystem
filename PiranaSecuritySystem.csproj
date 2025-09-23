@@ -199,6 +199,7 @@
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\IdentityConfig.cs" />
+    <Compile Include="App_Start\RoleInitializer.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\Startup.Auth.cs" />
     <Compile Include="Controllers\AccountController.cs" />
@@ -216,19 +217,12 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="Migrations\202509131346081_InitialCreate.cs" />
-    <Compile Include="Migrations\202509131346081_InitialCreate.Designer.cs">
-      <DependentUpon>202509131346081_InitialCreate.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\202509131609501_UpdateGuardCheckInSystem.cs" />
-    <Compile Include="Migrations\202509131609501_UpdateGuardCheckInSystem.Designer.cs">
-      <DependentUpon>202509131609501_UpdateGuardCheckInSystem.cs</DependentUpon>
-    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\DashboardStats.cs" />
     <Compile Include="Models\Director.cs" />
     <Compile Include="Models\DirectorViewModel.cs" />
+    <Compile Include="Models\EditInstructorViewModel.cs" />
     <Compile Include="Models\Guard.cs" />
     <Compile Include="Models\GuardAttendance.cs" />
     <Compile Include="Models\GuardCalendarViewModel.cs" />
@@ -244,7 +238,9 @@
     <Compile Include="Models\PayrollModel.cs" />
     <Compile Include="Models\RegisterGuardViewModel.cs" />
     <Compile Include="Models\RegisterInstructorViewModel.cs" />
+    <Compile Include="Models\RegisterResidentViewModel.cs" />
     <Compile Include="Models\Resident.cs" />
+    <Compile Include="Models\ResidentInfo.cs" />
     <Compile Include="Models\ShiftRoster.cs" />
     <Compile Include="Models\TrainingSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -364,6 +360,8 @@
     <Content Include="Views\ShiftRoster\RosterPreview.cshtml" />
     <Content Include="Views\Admin\UpdateGuardStatus.cshtml" />
     <Content Include="Views\Guard\Notifications.cshtml" />
+    <Content Include="Views\Guard\Details.cshtml" />
+    <Content Include="Views\Admin\EditInstructor.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -394,14 +392,6 @@
     <Content Include="Scripts\bootstrap.bundle.js.map" />
     <Content Include="Scripts\jquery-3.7.0.slim.min.map" />
     <Content Include="Scripts\jquery-3.7.0.min.map" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Migrations\202509131346081_InitialCreate.resx">
-      <DependentUpon>202509131346081_InitialCreate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\202509131609501_UpdateGuardCheckInSystem.resx">
-      <DependentUpon>202509131609501_UpdateGuardCheckInSystem.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

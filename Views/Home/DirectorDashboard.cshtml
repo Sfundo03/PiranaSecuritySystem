@@ -1,0 +1,30 @@
+﻿@{
+    ViewBag.Title = "Director Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Director Dashboard</h2>
+            <div class="alert alert-info">
+                Welcome, @ViewBag.UserEmail! You are logged in as @ViewBag.UserRole.
+            </div>
+
+            <!-- Add director-specific content here -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Director Functions</h5>
+                </div>
+                <div class="card-body">
+                    <p>This is the director dashboard where you can view executive reports and manage high-level operations.</p>
+                    @using (Html.BeginForm("Logout", "Account", FormMethod.Post, new { id = "logoutForm" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <a href="javascript:document.getElementById('logoutForm').submit()" class="btn btn-danger">Logout</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
