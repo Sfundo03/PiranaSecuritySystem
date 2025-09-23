@@ -336,7 +336,6 @@
     <Content Include="Views\Notification\_NotificationBell.cshtml" />
     <Content Include="Views\Resident\About.cshtml" />
     <Content Include="Views\Resident\Dashboard.cshtml" />
-    <Content Include="Views\Resident\Index.cshtml" />
     <Content Include="Views\Resident\MyIncidents.cshtml" />
     <Content Include="Views\Resident\Register.cshtml" />
     <Content Include="Views\Resident\ReportIncident.cshtml" />

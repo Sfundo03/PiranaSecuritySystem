@@ -1,39 +1,41 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc;
-
+using System.Web.Mvc; 
 
 namespace PiranaSecuritySystem.ViewModels
 {
     public class RegisterInstructorViewModel
     {
-        [Required(ErrorMessage = "Full Name is required")]
+        [Required]
+        [Display(Name = "Employee ID")]
+        public string EmployeeId { get; set; }
+
+        [Required]
         [Display(Name = "Full Name")]
         public string FullName { get; set; }
 
-        [Required(ErrorMessage = "Instructor Group is required")]
-        [Display(Name = "Instructor Group")]
         public string Group { get; set; }
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid Email Address")]
+        [Required]
+        [EmailAddress]
         public string Email { get; set; }
 
-        [Required(ErrorMessage = "Phone Number is required")]
+        [Required]
         [Display(Name = "Phone Number")]
         public string PhoneNumber { get; set; }
 
-        [Required(ErrorMessage = "Specialization is required")]
+        [Required]
         public string Specialization { get; set; }
 
-        [Required(ErrorMessage = "Site is required")]
+        
+
+        [Required]
         [Display(Name = "Site")]
         public string Site { get; set; }
 
         public List<SelectListItem> SiteOptions { get; set; }
-        public List<SelectListItem> GroupOptions { get; set; }
 
-        [Required(ErrorMessage = "Password is required")]
+        [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 6)]
         [DataType(DataType.Password)]
         [Display(Name = "Password")]
@@ -43,22 +45,5 @@ namespace PiranaSecuritySystem.ViewModels
         [Display(Name = "Confirm password")]
         [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
-
-        public RegisterInstructorViewModel()
-        {
-            SiteOptions = new List<SelectListItem>
-            {
-                new SelectListItem { Value = "Site A", Text = "Site A" },
-                new SelectListItem { Value = "Site B", Text = "Site B" },
-                new SelectListItem { Value = "Site C", Text = "Site C" }
-            };
-
-            GroupOptions = new List<SelectListItem>
-            {
-                new SelectListItem { Value = "Group A", Text = "Group A" },
-                new SelectListItem { Value = "Group B", Text = "Group B" },
-                new SelectListItem { Value = "Group C", Text = "Group C" }
-            };
-        }
     }
 }

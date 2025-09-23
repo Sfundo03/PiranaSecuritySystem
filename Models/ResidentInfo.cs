@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ResidentInfo.cs (add to Models folder)
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace PiranaSecuritySystem.Models

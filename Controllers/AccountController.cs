@@ -3,10 +3,12 @@ using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
 using PiranaSecuritySystem.Models;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web;
+using System.Web.Helpers;
 using System.Web.Mvc;
 
 namespace PiranaSecuritySystem.Controllers
@@ -59,21 +61,33 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        //
         // GET: /Account/Login
         [AllowAnonymous]
         public ActionResult Login(string returnUrl)
         {
-            // If user is already authenticated, handle redirect safely
+            // If user is already authenticated, redirect to appropriate dashboard
             if (User.Identity.IsAuthenticated)
             {
-                return HandleAuthenticatedUser();
+                if (User.IsInRole("Admin"))
+                    return RedirectToAction("Dashboard", "Admin");
+                if (User.IsInRole("Director"))
+                    return RedirectToAction("Dashboard", "Director");
+                if (User.IsInRole("Guard"))
+                    return RedirectToAction("Dashboard", "Guard");
+                if (User.IsInRole("Instructor"))
+                    return RedirectToAction("Dashboard", "Instructor");
+                if (User.IsInRole("Resident"))
+                    return RedirectToAction("Dashboard", "Resident");
+
+                return RedirectToLocal(returnUrl);
             }
 
             ViewBag.ReturnUrl = returnUrl;
             return View();
         }
 
-        // POST: /Account/Login - SIMPLIFIED VERSION
+        // POST: /Account/Login
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -84,148 +98,245 @@ namespace PiranaSecuritySystem.Controllers
                 return View(model);
             }
 
-            // First, try default credentials
-            var defaultRedirect = await TryDefaultCredentials(model);
-            if (defaultRedirect != null)
+            // Check for default admin credentials
+            if (model.Email.Equals(DefaultAdminEmail, StringComparison.OrdinalIgnoreCase) &&
+                model.Password == DefaultAdminPassword)
             {
-                return defaultRedirect;
+                // Sign out any existing authentication
+                AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+
+                // Create claims identity for default admin
+                var identity = new ClaimsIdentity(DefaultAuthenticationTypes.ApplicationCookie);
+                identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "admin-default-id"));
+                identity.AddClaim(new Claim(ClaimTypes.Name, "Default Admin"));
+                identity.AddClaim(new Claim(ClaimTypes.Email, DefaultAdminEmail));
+                identity.AddClaim(new Claim(ClaimTypes.Role, "Admin"));
+
+                // Sign in
+                AuthenticationManager.SignIn(new AuthenticationProperties
+                {
+                    IsPersistent = model.RememberMe
+                }, identity);
+
+                return RedirectToAction("Dashboard", "Admin");
             }
 
-            // Regular user login
+            // Check for default director credentials
+            if (model.Email.Equals(DefaultDirectorEmail, StringComparison.OrdinalIgnoreCase) &&
+                model.Password == DefaultDirectorPassword)
+            {
+                // Sign out any existing authentication
+                AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+
+                // Create claims identity for default director
+                var identity = new ClaimsIdentity(DefaultAuthenticationTypes.ApplicationCookie);
+                identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "director-default-id"));
+                identity.AddClaim(new Claim(ClaimTypes.Name, "Default Director"));
+                identity.AddClaim(new Claim(ClaimTypes.Email, DefaultDirectorEmail));
+                identity.AddClaim(new Claim(ClaimTypes.Role, "Director"));
+
+                // Sign in
+                AuthenticationManager.SignIn(new AuthenticationProperties
+                {
+                    IsPersistent = model.RememberMe
+                }, identity);
+
+                return RedirectToAction("Dashboard", "Director");
+            }
+
+            // Regular ASP.NET Identity login for other users
             try
             {
-                // Use the email as username for login
+                AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
                 var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
 
                 switch (result)
                 {
                     case SignInStatus.Success:
-                        return await HandleSuccessfulLogin(model.Email, returnUrl);
+                        var user = await UserManager.FindByEmailAsync(model.Email);
+                        if (user != null)
+                        {
+                            // Check for Director role to add notification
+                            if (await UserManager.IsInRoleAsync(user.Id, "Director"))
+                            {
+                                using (var db = new ApplicationDbContext())
+                                {
+                                    var notification = new Notification
+                                    {
+                                        UserId = user.Id,
+                                        UserType = "Director",
+                                        Message = $"Director {user.UserName} logged in successfully at {DateTime.Now:MM/dd/yyyy HH:mm}",
+                                        IsRead = false,
+                                        CreatedAt = DateTime.Now,
+                                        RelatedUrl = "/Director/Dashboard",
+                                        NotificationType = "Login"
+                                    };
+
+                                    db.Notifications.Add(notification);
+                                    await db.SaveChangesAsync();
+                                }
+
+                                // Store DirectorId in session
+                                Session["DirectorId"] = user.Id;
+                            }
+
+                            // Redirect based on role
+                            if (await UserManager.IsInRoleAsync(user.Id, "Admin"))
+                                return RedirectToAction("Dashboard", "Admin");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Director"))
+                                return RedirectToAction("Dashboard", "Director");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Guard"))
+                                return RedirectToAction("Dashboard", "Guard");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Instructor"))
+                                return RedirectToAction("Dashboard", "Instructor");
+                            if (await UserManager.IsInRoleAsync(user.Id, "Resident"))
+                                return RedirectToAction("Dashboard", "Resident");
+
+                        }
+                        return RedirectToLocal(returnUrl);
 
                     case SignInStatus.LockedOut:
                         return View("Lockout");
 
+                    case SignInStatus.RequiresVerification:
+                        return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
+
                     case SignInStatus.Failure:
                     default:
                         ModelState.AddModelError("", "Invalid login attempt.");
+                        ViewBag.ErrorMessage = "Invalid login attempt. Please check your credentials.";
                         return View(model);
                 }
             }
             catch (Exception ex)
             {
                 ModelState.AddModelError("", "An error occurred during login: " + ex.Message);
+                ViewBag.ErrorMessage = "An error occurred during login. Please try again.";
                 return View(model);
             }
         }
 
-        private async Task<ActionResult> TryDefaultCredentials(LoginViewModel model)
+        // Helper method to redirect to local URL
+        private ActionResult RedirectToLocal(string returnUrl)
         {
-            // Default admin
-            if (model.Email.Equals(DefaultAdminEmail, StringComparison.OrdinalIgnoreCase) &&
-                model.Password == DefaultAdminPassword)
+            if (Url.IsLocalUrl(returnUrl))
             {
-                await SignInDefaultUser(DefaultAdminEmail, "Admin", "admin-default-id");
-                return RedirectToAction("Dashboard", "Admin");
+                return Redirect(returnUrl);
             }
-
-            // Default director
-            if (model.Email.Equals(DefaultDirectorEmail, StringComparison.OrdinalIgnoreCase) &&
-                model.Password == DefaultDirectorPassword)
-            {
-                await SignInDefaultUser(DefaultDirectorEmail, "Director", "director-default-id");
-                return RedirectToAction("Dashboard", "Director");
-            }
-
-            return null;
+            return RedirectToAction("Index", "Home");
         }
 
-        private async Task SignInDefaultUser(string email, string role, string userId)
+        //
+        // GET: /Account/Register
+        [AllowAnonymous]
+        public ActionResult Register()
         {
-            // Sign out first
-            AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
-
-            // Create identity
-            var identity = new ClaimsIdentity(DefaultAuthenticationTypes.ApplicationCookie);
-            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId));
-            identity.AddClaim(new Claim(ClaimTypes.Name, $"Default {role}"));
-            identity.AddClaim(new Claim(ClaimTypes.Email, email));
-            identity.AddClaim(new Claim(ClaimTypes.Role, role));
-
-            // Sign in
-            AuthenticationManager.SignIn(new AuthenticationProperties { IsPersistent = false }, identity);
+            return View();
         }
 
-        private async Task<ActionResult> HandleSuccessfulLogin(string email, string returnUrl)
+        //
+        // POST: /Account/Register
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> Register(RegisterViewModel model)
         {
-            var user = await UserManager.FindByEmailAsync(email);
+            if (ModelState.IsValid)
+            {
+                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var result = await UserManager.CreateAsync(user, model.Password);
+                if (result.Succeeded)
+                {
+                    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                    return RedirectToAction("Index", "Home");
+                }
+                AddErrors(result);
+            }
+
+            // If we got this far, something failed, redisplay form
+            return View(model);
+        }
+
+        //
+        // GET: /Account/ForgotPassword
+        [AllowAnonymous]
+        public ActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        //
+        // POST: /Account/ForgotPassword
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await UserManager.FindByNameAsync(model.Email);
+                if (user == null || !(await UserManager.IsEmailConfirmedAsync(user.Id)))
+                {
+                    // Don't reveal that the user does not exist or is not confirmed
+                    return View("ForgotPasswordConfirmation");
+                }
+            }
+
+            // If we got this far, something failed, redisplay form
+            return View(model);
+        }
+
+        //
+        // GET: /Account/ForgotPasswordConfirmation
+        [AllowAnonymous]
+        public ActionResult ForgotPasswordConfirmation()
+        {
+            return View();
+        }
+
+        //
+        // GET: /Account/ResetPassword
+        [AllowAnonymous]
+        public ActionResult ResetPassword(string code)
+        {
+            return code == null ? View("Error") : View();
+        }
+
+        //
+        // POST: /Account/ResetPassword
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+            var user = await UserManager.FindByNameAsync(model.Email);
             if (user == null)
             {
-                ModelState.AddModelError("", "User not found.");
-                return View("Login");
+                // Don't reveal that the user does not exist
+                return RedirectToAction("ResetPasswordConfirmation", "Account");
             }
-
-            // Get user roles
-            var roles = await UserManager.GetRolesAsync(user.Id);
-
-            // Redirect based on first role found
-            if (roles.Contains("Admin"))
-                return RedirectToAction("Dashboard", "Admin");
-            if (roles.Contains("Director"))
-                return RedirectToAction("Dashboard", "Director");
-            if (roles.Contains("Guard"))
-                return RedirectToAction("Dashboard", "Guard");
-            if (roles.Contains("Instructor"))
-                return RedirectToAction("Dashboard", "Instructor");
-            if (roles.Contains("Resident"))
-                return RedirectToAction("Dashboard", "Resident"); // Use simple dashboard first
-
-            // No roles found - redirect to home
-            return RedirectToAction("Index", "Home");
-        }
-
-        private ActionResult HandleAuthenticatedUser()
-        {
-            // For already authenticated users, redirect based on role
-            if (User.IsInRole("Admin"))
-                return RedirectToAction("Dashboard", "Admin");
-            if (User.IsInRole("Director"))
-                return RedirectToAction("Dashboard", "Director");
-            if (User.IsInRole("Guard"))
-                return RedirectToAction("Dashboard", "Guard");
-            if (User.IsInRole("Instructor"))
-                return RedirectToAction("Dashboard", "Instructor");
-            if (User.IsInRole("Resident"))
-                return RedirectToAction("Dashboard", "Resident");
-
-            return RedirectToAction("Index", "Home");
-        }
-
-        // GET: /Account/TestAuth
-        [AllowAnonymous]
-        public ActionResult TestAuth()
-        {
-            var info = $"<h1>Auth Test</h1>" +
-                       $"<p>IsAuthenticated: {User.Identity.IsAuthenticated}</p>" +
-                       $"<p>UserName: {User.Identity.Name}</p>" +
-                       $"<p>UserId: {User.Identity.GetUserId()}</p>" +
-                       $"<p>Roles: {string.Join(", ", GetUserRoles())}</p>" +
-                       $"<p><a href='/Resident/SimpleDashboard'>Test Resident Dashboard</a></p>" +
-                       $"<p><a href='/Account/Logout'>Logout</a></p>";
-
-            return Content(info, "text/html");
-        }
-
-        private string[] GetUserRoles()
-        {
-            if (User.Identity.IsAuthenticated)
+            var result = await UserManager.ResetPasswordAsync(user.Id, model.Code, model.Password);
+            if (result.Succeeded)
             {
-                var userManager = HttpContext.GetOwinContext().GetUserManager<ApplicationUserManager>();
-                var roles = userManager.GetRoles(User.Identity.GetUserId());
-                return roles.ToArray();
+                return RedirectToAction("ResetPasswordConfirmation", "Account");
             }
-            return new string[0];
+            AddErrors(result);
+            return View();
         }
 
+        //
+        // GET: /Account/ResetPasswordConfirmation
+        [AllowAnonymous]
+        public ActionResult ResetPasswordConfirmation()
+        {
+            return View();
+        }
+
+        //
         // POST: /Account/LogOff
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -236,13 +347,14 @@ namespace PiranaSecuritySystem.Controllers
             return RedirectToAction("Login", "Account");
         }
 
-        // GET: /Account/LogOff
-        [HttpGet]
-        public ActionResult Logout()
+        //
+        // GET: /Account/LogOff (for cases where POST fails due to anti-forgery token issues)
+        [AllowAnonymous]
+        public ActionResult LogOffGet()
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
             Session.Clear();
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction("Index", "Home");
         }
 
         protected override void Dispose(bool disposing)
@@ -261,10 +373,14 @@ namespace PiranaSecuritySystem.Controllers
                     _signInManager = null;
                 }
             }
+
             base.Dispose(disposing);
         }
 
         #region Helpers
+        // Used for XSRF protection when adding external logins
+        private const string XsrfKey = "XsrfId";
+
         private IAuthenticationManager AuthenticationManager
         {
             get
@@ -281,7 +397,6 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // Add ChallengeResult class back for ManageController
         internal class ChallengeResult : HttpUnauthorizedResult
         {
             public ChallengeResult(string provider, string redirectUri)
@@ -310,8 +425,6 @@ namespace PiranaSecuritySystem.Controllers
                 context.HttpContext.GetOwinContext().Authentication.Challenge(properties, LoginProvider);
             }
         }
-
-        private const string XsrfKey = "XsrfId";
         #endregion
     }
 }
