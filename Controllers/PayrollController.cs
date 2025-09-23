@@ -35,6 +35,27 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
+                // Validate that pay period is within the same month
+                if (payPeriodStart.Month != payPeriodEnd.Month || payPeriodStart.Year != payPeriodEnd.Year)
+                {
+                    ModelState.AddModelError("", "Pay period must be within the same month.");
+                    ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+                    return View();
+                }
+
+                // Check if payroll already exists for this guard in the same month
+                bool payrollExists = db.Payrolls.Any(p =>
+                    p.GuardId == guardId &&
+                    p.PayPeriodStart.Year == payPeriodStart.Year &&
+                    p.PayPeriodStart.Month == payPeriodStart.Month);
+
+                if (payrollExists)
+                {
+                    ModelState.AddModelError("", $"Payroll for this guard has already been generated for {payPeriodStart:MMMM yyyy}. Please edit the existing payroll instead.");
+                    ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+                    return View();
+                }
+
                 // Get guard's current rate
                 var guardRate = db.GuardRates
                     .Where(r => r.GuardId == guardId && r.IsActive)
@@ -149,6 +170,20 @@ namespace PiranaSecuritySystem.Controllers
         {
             if (ModelState.IsValid)
             {
+                // Check if editing would create a duplicate payroll for the same guard and month
+                bool duplicateExists = db.Payrolls.Any(p =>
+                    p.GuardId == payroll.GuardId &&
+                    p.PayPeriodStart.Year == payroll.PayPeriodStart.Year &&
+                    p.PayPeriodStart.Month == payroll.PayPeriodStart.Month &&
+                    p.PayrollId != payroll.PayrollId);
+
+                if (duplicateExists)
+                {
+                    ModelState.AddModelError("", $"A payroll for this guard already exists for {payroll.PayPeriodStart:MMMM yyyy}. Cannot create duplicate payrolls.");
+                    ViewBag.GuardId = new SelectList(db.Guards, "GuardId", "FullName", payroll.GuardId);
+                    return View(payroll);
+                }
+
                 db.Entry(payroll).State = EntityState.Modified;
                 db.SaveChanges();
                 return RedirectToAction("Index");
@@ -292,6 +327,37 @@ namespace PiranaSecuritySystem.Controllers
             return View(taxConfig);
         }
 
+        // GET: Payroll/CheckExisting
+        [Authorize(Roles = "Admin")]
+        public JsonResult CheckExisting(int guardId, DateTime payPeriodStart)
+        {
+            try
+            {
+                bool exists = db.Payrolls.Any(p =>
+                    p.GuardId == guardId &&
+                    p.PayPeriodStart.Year == payPeriodStart.Year &&
+                    p.PayPeriodStart.Month == payPeriodStart.Month);
+
+                var existingPayroll = db.Payrolls
+                    .Include(p => p.Guard)
+                    .FirstOrDefault(p =>
+                        p.GuardId == guardId &&
+                        p.PayPeriodStart.Year == payPeriodStart.Year &&
+                        p.PayPeriodStart.Month == payPeriodStart.Month);
+
+                return Json(new
+                {
+                    exists = exists,
+                    message = exists ? $"Payroll for {existingPayroll?.Guard?.FullName} already exists for {payPeriodStart:MMMM yyyy}" : "No existing payroll found",
+                    payrollId = existingPayroll?.PayrollId
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         // Method to notify director about payroll creation
         private void NotifyDirectorAboutPayroll(int payrollId, string guardName)
         {
@@ -337,30 +403,6 @@ namespace PiranaSecuritySystem.Controllers
             {
                 // Log the error but don't break the payroll generation process
                 System.Diagnostics.Debug.WriteLine("Error creating payroll notification: " + ex.Message);
-            }
-        }
-
-        // Alternative method using the DirectorController's notification system
-        private void NotifyDirectorUsingController(int payrollId, string guardName)
-        {
-            try
-            {
-                // Create an instance of DirectorController
-                var directorController = new DirectorController();
-
-                // Set the controller context to allow URL generation
-                directorController.ControllerContext = new ControllerContext(
-                    this.ControllerContext.RequestContext,
-                    directorController
-                );
-
-                // Call the notification method
-                directorController.NotifyPayrollCreated(payrollId, guardName);
-            }
-            catch (Exception ex)
-            {
-                // Log the error but don't break the payroll generation process
-                System.Diagnostics.Debug.WriteLine("Error notifying director: " + ex.Message);
             }
         }
 

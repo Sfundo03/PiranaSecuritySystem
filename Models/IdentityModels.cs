@@ -66,6 +66,8 @@ namespace PiranaSecuritySystem.Models
             // Configure all DateTime properties to use datetime2
             modelBuilder.Properties<DateTime>()
                        .Configure(c => c.HasColumnType("datetime2"));
+
+          
         }
 
         public static ApplicationDbContext Create()

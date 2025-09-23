@@ -56,8 +56,16 @@ namespace PiranaSecuritySystem.Models
 
         [Display(Name = "Payment Method")]
         public string PaymentMethod { get; set; } // Bank Transfer, Cash, etc.
+
+        // Helper property to get the month and year for validation
+        [NotMapped]
+        public int PayrollMonth => PayPeriodStart.Month;
+
+        [NotMapped]
+        public int PayrollYear => PayPeriodStart.Year;
     }
 
+    // Other classes remain the same...
     public class GuardRate
     {
         [Key]
