@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNet.Identity;
-
 using PiranaSecuritySystem.Models;
 using System;
+using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Web.Mvc;
 
@@ -18,26 +19,18 @@ namespace PiranaSecuritySystem.Controllers
             try
             {
                 var currentUserId = User.Identity.GetUserId();
-
-                if (string.IsNullOrEmpty(currentUserId))
-                {
-                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
-                    return RedirectToAction("Login", "Account");
-                }
-
                 var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
 
                 if (instructor == null)
                 {
-                    TempData["ErrorMessage"] = "Instructor profile not found. Please contact administrator.";
-                    return RedirectToAction("ProfileNotFound", "Error");
+                    TempData["ErrorMessage"] = "Instructor profile not found.";
+                    return RedirectToAction("Login", "Account");
                 }
 
                 return View(instructor);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in Dashboard: {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading the dashboard.";
                 return RedirectToAction("Error", "Home");
             }
@@ -57,63 +50,204 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Dashboard");
                 }
 
-                ViewBag.InstructorName = instructor.FullName;
-                ViewBag.Specialization = instructor.Specialization;
+                // Get unique sites from Guards table
+                var sites = db.Guards
+                    .Where(g => g.Site != null && g.Site != "")
+                    .Select(g => g.Site)
+                    .Distinct()
+                    .OrderBy(s => s)
+                    .ToList();
 
-                return View();
+                // If no sites found in database, use default sites
+                if (!sites.Any())
+                {
+                    sites = new List<string> { "Site A", "Site B", "Site C" };
+                }
+
+                ViewBag.Sites = new SelectList(sites);
+                ViewBag.InstructorName = instructor.FullName;
+
+                var model = new RosterViewModel
+                {
+                    RosterDate = DateTime.Today
+                };
+
+                return View(model);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in CreateRoster: {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading the roster creation page.";
                 return RedirectToAction("Dashboard");
+            }
+        }
+
+        // AJAX method to get guards by site
+        [HttpPost]
+        public JsonResult GetGuardsBySite(string site)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(site))
+                {
+                    return Json(new { success = false, message = "Site is required" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var guards = db.Guards
+                    .Where(g => g.Site == site && g.IsActive)
+                    .AsEnumerable() // Switch to client-side evaluation
+                    .Select(g => new {
+                        id = g.GuardId,
+                        name = g.Guard_FName + " " + g.Guard_LName, 
+                        badge = g.GuardId.ToString()
+                    })
+                    .ToList();
+
+                return Json(new { success = true, guards = guards }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error loading guards: " + ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
 
         // POST: Instructor/GenerateRoster
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult GenerateRoster(DateTime? startDate, DateTime? endDate, string trainingType)
+        public ActionResult GenerateRoster(RosterViewModel model)
         {
             try
             {
+                // Repopulate sites dropdown
+                var sites = db.Guards
+                    .Where(g => g.Site != null && g.Site != "")
+                    .Select(g => g.Site)
+                    .Distinct()
+                    .OrderBy(s => s)
+                    .ToList();
+
+                if (!sites.Any())
+                {
+                    sites = new List<string> { "Site A", "Site B", "Site C" };
+                }
+                ViewBag.Sites = new SelectList(sites);
+
+                if (!ModelState.IsValid)
+                {
+                    return View("CreateRoster", model);
+                }
+
                 var currentUserId = User.Identity.GetUserId();
                 var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
 
-                if (instructor != null)
+                if (instructor == null)
                 {
-                    var start = startDate ?? DateTime.Today;
-                    var end = endDate ?? DateTime.Today.AddDays(7);
+                    TempData["ErrorMessage"] = "Instructor profile not found.";
+                    return View("CreateRoster", model);
+                }
 
-                    var roster = new ShiftRoster
+                // Validate guards selection
+                if (model.SelectedGuardIds == null || model.SelectedGuardIds.Count != 12)
+                {
+                    ModelState.AddModelError("SelectedGuardIds", "Please select exactly 12 guards.");
+                    return View("CreateRoster", model);
+                }
+
+                // Get selected guards
+                var selectedGuards = db.Guards
+                    .Where(g => model.SelectedGuardIds.Contains(g.GuardId))
+                    .ToList()
+                    .Select(g => new Guard
                     {
-                        InstructorName = instructor.FullName,
-                        GeneratedDate = DateTime.Now,
-                        Specialization = instructor.Specialization,
-                        RosterData = GenerateRosterData(start, end, trainingType, instructor.FullName, instructor.Specialization),
-                        StartDate = start,
-                        EndDate = end,
-                        TrainingType = trainingType
-                    };
+                        GuardId = g.GuardId,
+                        Guard_FName = g.Guard_FName,
+                        Guard_LName = g.Guard_LName,
+                        Site = g.Site
+                        
+                    })
+                    .ToList();
 
-                    db.ShiftRosters.Add(roster);
-                    db.SaveChanges();
-
-                    TempData["SuccessMessage"] = "Training roster generated successfully!";
-                    return RedirectToAction("ViewRoster", new { id = roster.RosterId });
-                }
-                else
+                // Create main roster
+                var roster = new ShiftRoster
                 {
-                    TempData["ErrorMessage"] = "Failed to generate roster. Instructor profile not found.";
-                    return RedirectToAction("CreateRoster");
-                }
+                    RosterDate = model.RosterDate,
+                    Site = model.Site,
+                    InstructorName = instructor.FullName,
+                    GeneratedDate = DateTime.Now,
+                    RosterData = GenerateRosterData(model.RosterDate, model.Site, selectedGuards, instructor.FullName),
+                    CreatedDate = DateTime.Now,
+                    Status = "Active"
+                };
+
+                db.ShiftRosters.Add(roster);
+                db.SaveChanges();
+
+                // Create shift assignments
+                CreateShiftAssignments(selectedGuards, model.Site, model.RosterDate);
+
+                TempData["SuccessMessage"] = $"Roster for {model.Site} created successfully!";
+                return RedirectToAction("ViewRoster", new { id = roster.RosterId });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in GenerateRoster: {ex.Message}");
-                TempData["ErrorMessage"] = "An error occurred while generating the roster.";
-                return RedirectToAction("CreateRoster");
+                TempData["ErrorMessage"] = "Error creating roster: " + ex.Message;
+
+                // Repopulate sites on error
+                var sites = db.Guards
+                    .Where(g => g.Site != null && g.Site != "")
+                    .Select(g => g.Site)
+                    .Distinct()
+                    .OrderBy(s => s)
+                    .ToList();
+
+                if (!sites.Any())
+                {
+                    sites = new List<string> { "Site A", "Site B", "Site C" };
+                }
+                ViewBag.Sites = new SelectList(sites);
+
+                return View("CreateRoster", model);
             }
+        }
+
+        private void CreateShiftAssignments(List<Guard> guards, string site, DateTime rosterDate)
+        {
+            for (int i = 0; i < guards.Count; i++)
+            {
+                string shiftType = i < 4 ? "Day" : (i < 8 ? "Night" : "Off");
+
+                var shift = new ShiftRoster
+                {
+                    RosterDate = rosterDate,
+                    Site = site,
+                    GuardId = guards[i].GuardId,
+                    ShiftType = shiftType,
+                    CreatedDate = DateTime.Now,
+                    Status = "Active"
+                };
+
+                db.ShiftRosters.Add(shift);
+            }
+            db.SaveChanges();
+        }
+
+        private string GenerateRosterData(DateTime rosterDate, string site, List<Guard> guards, string instructorName)
+        {
+            var dayShift = guards.Take(4).ToList();
+            var nightShift = guards.Skip(4).Take(4).ToList();
+            var offDuty = guards.Skip(8).Take(4).ToList();
+
+            return $@"Shift Roster - {rosterDate:MMMM dd, yyyy}
+Site: {site}
+Instructor: {instructorName}
+
+Day Shift (06:00-18:00):
+{string.Join("\n", dayShift.Select(g => $"- {g.Guard_FName} {g.Guard_LName}"))}
+
+Night Shift (18:00-06:00):
+{string.Join("\n", nightShift.Select(g => $"- {g.Guard_FName} {g.Guard_LName}"))}
+
+Off Duty:
+{string.Join("\n", offDuty.Select(g => $"- {g.Guard_FName} {g.Guard_LName}"))}";
         }
 
         // GET: Instructor/ViewRoster
@@ -126,107 +260,46 @@ namespace PiranaSecuritySystem.Controllers
                 return RedirectToAction("Dashboard");
             }
 
-            return View(roster);
-        }
+            var shifts = db.ShiftRosters
+                .Where(s => s.RosterDate == roster.RosterDate && s.Site == roster.Site)
+                .Include("Guard")
+                .ToList();
 
-        private string GenerateRosterData(DateTime startDate, DateTime endDate, string trainingType, string instructorName, string specialization)
-        {
-            return $@"Training Roster - {startDate:MMMM dd, yyyy} to {endDate:MMMM dd, yyyy}
-====================================================
-Instructor: {instructorName}
-Specialization: {specialization}
-Training Type: {trainingType ?? "General Security Training"}
-Generated: {DateTime.Now:yyyy-MM-dd HH:mm}
-
-Schedule:
-{GenerateWeeklySchedule(startDate, endDate)}
-
-Notes:
-- All participants must bring required equipment
-- Practical sessions require appropriate attire
-- Assessments will be conducted throughout the period";
-        }
-
-        private string GenerateWeeklySchedule(DateTime start, DateTime end)
-        {
-            var schedule = "";
-            var current = start;
-
-            while (current <= end)
+            var viewModel = new RosterDisplayViewModel
             {
-                schedule += $"{current:dddd, MMMM dd}:\n";
+                RosterId = id,
+                RosterDate = roster.RosterDate,
+                Site = roster.Site,
+                DayShiftGuards = shifts.Where(s => s.ShiftType == "Day").Select(s => s.Guard).ToList(),
+                NightShiftGuards = shifts.Where(s => s.ShiftType == "Night").Select(s => s.Guard).ToList(),
+                OffDutyGuards = shifts.Where(s => s.ShiftType == "Off").Select(s => s.Guard).ToList()
+            };
 
-                switch (current.DayOfWeek)
-                {
-                    case DayOfWeek.Monday:
-                        schedule += "• 09:00 - 12:00: Firearm Safety - Training Room A\n";
-                        schedule += "• 14:00 - 17:00: First Aid Refresher - Medical Lab\n";
-                        break;
-                    case DayOfWeek.Tuesday:
-                        schedule += "• 08:00 - 12:00: Defensive Tactics - Training Ground\n";
-                        schedule += "• 13:00 - 16:00: Surveillance Techniques - Observation Room\n";
-                        break;
-                    case DayOfWeek.Wednesday:
-                        schedule += "• 10:00 - 15:00: Field Training Exercise - Outdoor Range\n";
-                        schedule += "• 16:00 - 17:00: Debriefing - Conference Room\n";
-                        break;
-                    case DayOfWeek.Thursday:
-                        schedule += "• 09:00 - 12:00: Legal Aspects - Classroom B\n";
-                        schedule += "• 14:00 - 17:00: Practical Assessment - Training Ground\n";
-                        break;
-                    case DayOfWeek.Friday:
-                        schedule += "• 08:00 - 12:00: Advanced Tactics - Simulation Room\n";
-                        schedule += "• 13:00 - 16:00: Final Evaluation - All Locations\n";
-                        break;
-                    case DayOfWeek.Saturday:
-                        schedule += "• 10:00 - 14:00: Optional Practice Session\n";
-                        break;
-                    case DayOfWeek.Sunday:
-                        schedule += "• No scheduled activities - Rest Day\n";
-                        break;
-                }
-
-                schedule += "\n";
-                current = current.AddDays(1);
-            }
-
-            return schedule;
+            return View(viewModel);
         }
 
         public ActionResult MyTrainings()
         {
-            try
+            var currentUserId = User.Identity.GetUserId();
+            var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
+
+            if (instructor == null)
             {
-                var currentUserId = User.Identity.GetUserId();
-                var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
-
-                if (instructor == null)
-                {
-                    TempData["ErrorMessage"] = "Instructor profile not found.";
-                    return RedirectToAction("Dashboard");
-                }
-
-                var trainings = db.ShiftRosters
-                    .Where(s => s.InstructorName == instructor.FullName)
-                    .OrderByDescending(s => s.GeneratedDate)
-                    .ToList();
-
-                return View(trainings);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in MyTrainings: {ex.Message}");
-                TempData["ErrorMessage"] = "An error occurred while loading your trainings.";
+                TempData["ErrorMessage"] = "Instructor profile not found.";
                 return RedirectToAction("Dashboard");
             }
+
+            var trainings = db.ShiftRosters
+                .Where(s => s.InstructorName == instructor.FullName)
+                .OrderByDescending(s => s.GeneratedDate)
+                .ToList();
+
+            return View(trainings);
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                db.Dispose();
-            }
+            if (disposing) db.Dispose();
             base.Dispose(disposing);
         }
     }

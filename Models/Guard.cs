@@ -65,7 +65,9 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Assigned Site")]
         public string Site { get; set; }
 
-        
+        public string Group { get; set; }
+
+
         [Display(Name = "Username")]
         public string SiteUsername { get; set; }
 

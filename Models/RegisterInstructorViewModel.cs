@@ -1,20 +1,22 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Web.Mvc; 
+using System.Web.Mvc;
 
 namespace PiranaSecuritySystem.ViewModels
 {
     public class RegisterInstructorViewModel
     {
-        [Required]
-        [Display(Name = "Employee ID")]
-        public string EmployeeId { get; set; }
+      
 
         [Required]
         [Display(Name = "Full Name")]
         public string FullName { get; set; }
 
+        [Required]
+        [Display(Name = "Group")]
         public string Group { get; set; }
+
+        public List<SelectListItem> GroupOptions { get; set; }
 
         [Required]
         [EmailAddress]
@@ -26,8 +28,6 @@ namespace PiranaSecuritySystem.ViewModels
 
         [Required]
         public string Specialization { get; set; }
-
-        
 
         [Required]
         [Display(Name = "Site")]
@@ -45,5 +45,12 @@ namespace PiranaSecuritySystem.ViewModels
         [Display(Name = "Confirm password")]
         [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
+
+        public RegisterInstructorViewModel()
+        {
+            // Initialize the lists to avoid null reference exceptions
+            GroupOptions = new List<SelectListItem>();
+            SiteOptions = new List<SelectListItem>();
+        }
     }
 }
