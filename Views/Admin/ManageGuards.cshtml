@@ -82,6 +82,16 @@
                 color: #000;
             }
 
+        .btn-outline-secondary {
+            border-color: #6c757d;
+            color: #6c757d;
+        }
+
+            .btn-outline-secondary:hover {
+                background-color: #6c757d;
+                color: white;
+            }
+
         .table-custom {
             border-radius: 8px;
             overflow: hidden;
@@ -159,6 +169,74 @@
             background-color: #6f42c1;
             color: white;
         }
+
+        /* Site section styles */
+        .site-section {
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .site-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px 20px;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .site-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            color: var(--primary-blue);
+        }
+
+        .site-icon {
+            font-size: 1.5rem;
+        }
+
+        .no-guards {
+            padding: 20px;
+            text-align: center;
+            color: var(--light-text);
+            font-style: italic;
+        }
+
+        /* Header action buttons */
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Fix for badge text colors */
+        .bg-primary {
+            background-color: #007bff !important;
+            color: white !important;
+        }
+
+        .bg-success {
+            background-color: #28a745 !important;
+            color: white !important;
+        }
+
+        .bg-purple {
+            background-color: #6f42c1 !important;
+            color: white !important;
+        }
+
+        .bg-secondary {
+            background-color: #6c757d !important;
+            color: white !important;
+        }
+
+        /* Ensure all badges have proper contrast */
+        .badge {
+            color: white !important;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -195,66 +273,282 @@
 
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4>Guard List</h4>
-                            @Html.ActionLink("Add New Guard", "RegisterGuard", null, new { @class = "btn btn-custom" })
+                            <div class="header-actions">
+                                @Html.ActionLink("Add New Guard", "RegisterGuard", null, new { @class = "btn btn-custom" })
+                                @Html.ActionLink("Back to Dashboard", "Dashboard", "Admin", null, new { @class = "btn btn-outline-secondary" })
+                            </div>
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-hover table-custom">
-                                <thead>
-                                    <tr>
-                                        <th><i class="fas fa-id-card me-1"></i> ID</th>
-                                        <th><i class="fas fa-user me-1"></i> Name</th>
-                                        <th><i class="fas fa-envelope me-1"></i> Email</th>
-                                        <th><i class="fas fa-phone me-1"></i> Phone</th>
-                                        <th><i class="fas fa-id-badge me-1"></i> Username</th>
-                                        <th><i class="fas fa-map-marker-alt me-1"></i> Site</th>
-                                        <th><i class="fas fa-user-check me-1"></i> Status</th>
-                                        <th><i class="fas fa-tasks me-1"></i> Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (Model != null && Model.Count() > 0)
-                                    {
-                                        foreach (var guard in Model)
-                                        {
+                        @{
+                            // Group guards by site and order by GuardId
+                            var siteAGuards = Model?.Where(g => g.Site?.ToLower() == "site a").OrderBy(g => g.GuardId).ToList() ?? new List<PiranaSecuritySystem.Models.Guard>();
+                            var siteBGuards = Model?.Where(g => g.Site?.ToLower() == "site b").OrderBy(g => g.GuardId).ToList() ?? new List<PiranaSecuritySystem.Models.Guard>();
+                            var siteCGuards = Model?.Where(g => g.Site?.ToLower() == "site c").OrderBy(g => g.GuardId).ToList() ?? new List<PiranaSecuritySystem.Models.Guard>();
+                            var otherGuards = Model?.Where(g => g.Site == null ||
+                                                              (g.Site?.ToLower() != "site a" &&
+                                                               g.Site?.ToLower() != "site b" &&
+                                                               g.Site?.ToLower() != "site c"))
+                                                   .OrderBy(g => g.GuardId).ToList() ?? new List<PiranaSecuritySystem.Models.Guard>();
+                        }
+
+                        <!-- Site A Section -->
+                        <div class="site-section">
+                            <div class="site-header">
+                                <h3 class="site-title">
+                                    <i class="fas fa-building site-icon"></i>
+                                    Site A Guards
+                                    <span class="badge bg-primary ms-2">@siteAGuards.Count</span>
+                                </h3>
+                            </div>
+                            <div class="table-responsive">
+                                @if (siteAGuards.Any())
+                                {
+                                    <table class="table table-hover table-custom">
+                                        <thead>
                                             <tr>
-                                                <td>@guard.GuardId</td>
-                                                <td>@guard.Guard_FName @guard.Guard_LName</td>
-                                                <td>@guard.Email</td>
-                                                <td>@guard.PhoneNumber</td>
-                                                <td>@guard.SiteUsername</td>
-                                                <td>
-                                                    <span class="site-badge @GetSiteBadgeClass(guard.Site)">
-                                                        @guard.Site
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    @if (guard.IsActive)
-                                                    {
-                                                        <span class="status-active">Active</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="status-inactive">Inactive</span>
-                                                    }
-                                                </td>
-                                                <td>
-                                                    <div class="action-buttons">
-                                                        @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
-                                                        @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
-                                                    </div>
-                                                </td>
+                                                <th><i class="fas fa-id-card me-1"></i> ID</th>
+                                                <th><i class="fas fa-user me-1"></i> Name</th>
+                                                <th><i class="fas fa-envelope me-1"></i> Email</th>
+                                                <th><i class="fas fa-phone me-1"></i> Phone</th>
+                                                <th><i class="fas fa-id-badge me-1"></i> Username</th>
+                                                <th><i class="fas fa-user-check me-1"></i> Status</th>
+                                                <th><i class="fas fa-tasks me-1"></i> Actions</th>
                                             </tr>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <tr>
-                                            <td colspan="8" class="text-center">No guards found in the database.</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var guard in siteAGuards)
+                                            {
+                                                <tr>
+                                                    <td>@guard.GuardId</td>
+                                                    <td>@guard.Guard_FName @guard.Guard_LName</td>
+                                                    <td>@guard.Email</td>
+                                                    <td>@guard.PhoneNumber</td>
+                                                    <td>@guard.SiteUsername</td>
+                                                    <td>
+                                                        @if (guard.IsActive)
+                                                        {
+                                                            <span class="status-active">Active</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="status-inactive">Inactive</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <div class="action-buttons">
+                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                            @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <div class="no-guards">
+                                        <i class="fas fa-users fa-2x mb-3"></i>
+                                        <p>No guards assigned to Site A</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Site B Section -->
+                        <div class="site-section">
+                            <div class="site-header">
+                                <h3 class="site-title">
+                                    <i class="fas fa-building site-icon"></i>
+                                    Site B Guards
+                                    <span class="badge bg-success ms-2">@siteBGuards.Count</span>
+                                </h3>
+                            </div>
+                            <div class="table-responsive">
+                                @if (siteBGuards.Any())
+                                {
+                                    <table class="table table-hover table-custom">
+                                        <thead>
+                                            <tr>
+                                                <th><i class="fas fa-id-card me-1"></i> ID</th>
+                                                <th><i class="fas fa-user me-1"></i> Name</th>
+                                                <th><i class="fas fa-envelope me-1"></i> Email</th>
+                                                <th><i class="fas fa-phone me-1"></i> Phone</th>
+                                                <th><i class="fas fa-id-badge me-1"></i> Username</th>
+                                                <th><i class="fas fa-user-check me-1"></i> Status</th>
+                                                <th><i class="fas fa-tasks me-1"></i> Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var guard in siteBGuards)
+                                            {
+                                                <tr>
+                                                    <td>@guard.GuardId</td>
+                                                    <td>@guard.Guard_FName @guard.Guard_LName</td>
+                                                    <td>@guard.Email</td>
+                                                    <td>@guard.PhoneNumber</td>
+                                                    <td>@guard.SiteUsername</td>
+                                                    <td>
+                                                        @if (guard.IsActive)
+                                                        {
+                                                            <span class="status-active">Active</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="status-inactive">Inactive</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <div class="action-buttons">
+                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                            @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <div class="no-guards">
+                                        <i class="fas fa-users fa-2x mb-3"></i>
+                                        <p>No guards assigned to Site B</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Site C Section -->
+                        <div class="site-section">
+                            <div class="site-header">
+                                <h3 class="site-title">
+                                    <i class="fas fa-building site-icon"></i>
+                                    Site C Guards
+                                    <span class="badge bg-purple ms-2">@siteCGuards.Count</span>
+                                </h3>
+                            </div>
+                            <div class="table-responsive">
+                                @if (siteCGuards.Any())
+                                {
+                                    <table class="table table-hover table-custom">
+                                        <thead>
+                                            <tr>
+                                                <th><i class="fas fa-id-card me-1"></i> ID</th>
+                                                <th><i class="fas fa-user me-1"></i> Name</th>
+                                                <th><i class="fas fa-envelope me-1"></i> Email</th>
+                                                <th><i class="fas fa-phone me-1"></i> Phone</th>
+                                                <th><i class="fas fa-id-badge me-1"></i> Username</th>
+                                                <th><i class="fas fa-user-check me-1"></i> Status</th>
+                                                <th><i class="fas fa-tasks me-1"></i> Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var guard in siteCGuards)
+                                            {
+                                                <tr>
+                                                    <td>@guard.GuardId</td>
+                                                    <td>@guard.Guard_FName @guard.Guard_LName</td>
+                                                    <td>@guard.Email</td>
+                                                    <td>@guard.PhoneNumber</td>
+                                                    <td>@guard.SiteUsername</td>
+                                                    <td>
+                                                        @if (guard.IsActive)
+                                                        {
+                                                            <span class="status-active">Active</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="status-inactive">Inactive</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <div class="action-buttons">
+                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                            @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <div class="no-guards">
+                                        <i class="fas fa-users fa-2x mb-3"></i>
+                                        <p>No guards assigned to Site C</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Other Sites Section -->
+                        @if (otherGuards.Any())
+                        {
+                            <div class="site-section">
+                                <div class="site-header">
+                                    <h3 class="site-title">
+                                        <i class="fas fa-map-marker-alt site-icon"></i>
+                                        Other Sites
+                                        <span class="badge bg-secondary ms-2">@otherGuards.Count</span>
+                                    </h3>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-custom">
+                                        <thead>
+                                            <tr>
+                                                <th><i class="fas fa-id-card me-1"></i> ID</th>
+                                                <th><i class="fas fa-user me-1"></i> Name</th>
+                                                <th><i class="fas fa-envelope me-1"></i> Email</th>
+                                                <th><i class="fas fa-phone me-1"></i> Phone</th>
+                                                <th><i class="fas fa-id-badge me-1"></i> Username</th>
+                                                <th><i class="fas fa-map-marker-alt me-1"></i> Site</th>
+                                                <th><i class="fas fa-user-check me-1"></i> Status</th>
+                                                <th><i class="fas fa-tasks me-1"></i> Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var guard in otherGuards)
+                                            {
+                                                <tr>
+                                                    <td>@guard.GuardId</td>
+                                                    <td>@guard.Guard_FName @guard.Guard_LName</td>
+                                                    <td>@guard.Email</td>
+                                                    <td>@guard.PhoneNumber</td>
+                                                    <td>@guard.SiteUsername</td>
+                                                    <td>
+                                                        <span class="site-badge bg-secondary">
+                                                            @(string.IsNullOrEmpty(guard.Site) ? "Unassigned" : guard.Site)
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        @if (guard.IsActive)
+                                                        {
+                                                            <span class="status-active">Active</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="status-inactive">Inactive</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <div class="action-buttons">
+                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                            @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Bottom Back Button -->
+                        <div class="text-center mt-4">
+                            @Html.ActionLink("Back to Dashboard", "Dashboard", "Admin", null, new { @class = "btn btn-outline-secondary btn-lg" })
                         </div>
                     </div>
                 </div>

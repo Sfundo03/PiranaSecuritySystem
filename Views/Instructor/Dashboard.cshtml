@@ -4,9 +4,6 @@
 @{
     ViewBag.Title = "Instructor Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
-
-    // Get dashboard stats from ViewBag or initialize empty
-    
 }
 
 <!DOCTYPE html>
@@ -431,10 +428,6 @@
                             <p class="mb-0">You have successfully logged in to the Pirana Security System instructor portal.</p>
                         </div>
 
-                        <!-- Quick Stats -->
-                        
-                              
-
                         <!-- Instructor Profile and Training Management -->
                         <div class="row mb-4">
                             <div class="col-md-6 mb-3">
@@ -458,12 +451,25 @@
                                             </tr>
                                             <tr>
                                                 <th>Phone:</th>
-                                                <td>@Model.PhoneNumber</td>
+                                                <td>@(string.IsNullOrEmpty(Model.PhoneNumber) ? "Not provided" : Model.PhoneNumber)</td>
                                             </tr>
                                             <tr>
                                                 <th>Specialization:</th>
                                                 <td>
-                                                    <span class="badge badge-info">@Model.Specialization</span>
+                                                    <span class="badge bg-primary">@Model.Specialization</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Assigned Site:</th>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(Model.Site))
+                                                    {
+                                                        <span class="badge bg-info">@Model.Site</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">Not Assigned</span>
+                                                    }
                                                 </td>
                                             </tr>
                                             <tr>
@@ -580,7 +586,7 @@
 
                         <div class="mb-3">
                             <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone" value="@Model.PhoneNumber" placeholder="Enter phone number">
+                            <input type="tel" class="form-control" id="phone" value="@(string.IsNullOrEmpty(Model.PhoneNumber) ? "" : Model.PhoneNumber)" placeholder="Enter phone number">
                         </div>
 
                         <div class="mb-3">
@@ -591,6 +597,12 @@
                         <div class="mb-3">
                             <label for="employeeId" class="form-label">Employee ID</label>
                             <input type="text" class="form-control" id="employeeId" value="@Model.EmployeeId" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="site" class="form-label">Assigned Site</label>
+                            <input type="text" class="form-control" id="site" value="@(string.IsNullOrEmpty(Model.Site) ? "Not Assigned" : Model.Site)" disabled>
+                            <div class="form-text">Your assigned site is managed by the administration.</div>
                         </div>
                     </form>
                 </div>
@@ -637,6 +649,7 @@
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function () {

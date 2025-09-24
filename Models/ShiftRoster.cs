@@ -32,15 +32,20 @@ namespace PiranaSecuritySystem.Models
 
         [Display(Name = "Modified Date")]
         public DateTime? ModifiedDate { get; set; }
-        public string Location { get; internal set; }
-        public string Status { get; internal set; }
-        public string InstructorName { get; internal set; }
-        public object GeneratedDate { get; internal set; }
-        public string Specialization { get; internal set; }
-        public string RosterData { get; internal set; }
-        public DateTime StartDate { get; internal set; }
-        public string TrainingType { get; internal set; }
-        public DateTime EndDate { get; internal set; }
+
+        [Required]
+        [Display(Name = "Site")]
+        public string Site { get; set; } // "Site A", "Site B", "Site C"
+
+        public string Location { get; set; }
+        public string Status { get; set; }
+        public string InstructorName { get; set; }
+        public DateTime GeneratedDate { get; set; }
+        public string Specialization { get; set; }
+        public string RosterData { get; set; }
+        public DateTime StartDate { get; set; }
+        public string TrainingType { get; set; }
+        public DateTime EndDate { get; set; }
     }
 
     public class RosterViewModel
@@ -49,6 +54,10 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Roster Date")]
         [DataType(DataType.Date)]
         public DateTime RosterDate { get; set; }
+
+        [Required(ErrorMessage = "Please select a site")]
+        [Display(Name = "Site")]
+        public string Site { get; set; } // "Site A", "Site B", "Site C"
 
         [Required(ErrorMessage = "Please select exactly 12 guards")]
         [Display(Name = "Selected Guards")]
@@ -67,5 +76,6 @@ namespace PiranaSecuritySystem.Models
         public List<Guard> NightShiftGuards { get; set; }
         public List<Guard> OffDutyGuards { get; set; }
         public int RosterId { get; set; }
+        public string Site { get; set; }
     }
 }

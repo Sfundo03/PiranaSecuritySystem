@@ -213,8 +213,6 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-
-
         // Helper method to generate site username
         private string GenerateSiteUsername(string sitePrefix)
         {
@@ -408,9 +406,17 @@ namespace PiranaSecuritySystem.Controllers
             new SelectListItem { Value = "Site A", Text = "Site A" },
             new SelectListItem { Value = "Site B", Text = "Site B" },
             new SelectListItem { Value = "Site C", Text = "Site C" }
+        },
+                // Initialize group options
+                GroupOptions = new List<SelectListItem>
+        {
+            new SelectListItem { Value = "Group A", Text = "Group A" },
+            new SelectListItem { Value = "Group B", Text = "Group B" },
+            new SelectListItem { Value = "Group C", Text = "Group C" },
+            new SelectListItem { Value = "Group D", Text = "Group D" }
         }
             };
-            return View(model); // FIXED: Now passing the model with populated SiteOptions
+            return View(model);
         }
 
         // POST: Admin/RegisterInstructor
@@ -418,13 +424,21 @@ namespace PiranaSecuritySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterInstructor(RegisterInstructorViewModel model)
         {
-            // Ensure site options are populated if we need to return the view
+            // Ensure site options and group options are populated if we need to return the view
             model.SiteOptions = new List<SelectListItem>
-    {
-        new SelectListItem { Value = "Site A", Text = "Site A" },
-        new SelectListItem { Value = "Site B", Text = "Site B" },
-        new SelectListItem { Value = "Site C", Text = "Site C" }
-    };
+            {
+                new SelectListItem { Value = "Site A", Text = "Site A" },
+                new SelectListItem { Value = "Site B", Text = "Site B" },
+                new SelectListItem { Value = "Site C", Text = "Site C" }
+            };
+
+            model.GroupOptions = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "Group A", Text = "Group A" },
+                new SelectListItem { Value = "Group B", Text = "Group B" },
+                new SelectListItem { Value = "Group C", Text = "Group C" },
+                new SelectListItem { Value = "Group D", Text = "Group D" }
+            };
 
             if (ModelState.IsValid)
             {
@@ -433,12 +447,6 @@ namespace PiranaSecuritySystem.Controllers
                 if (db.Users.Any(u => u.Email == model.Email))
                 {
                     ModelState.AddModelError("", "Email address is already registered.");
-                    return View(model);
-                }
-
-                if (db.Instructors.Any(i => i.EmployeeId == model.EmployeeId))
-                {
-                    ModelState.AddModelError("", "Employee ID is already registered.");
                     return View(model);
                 }
 
@@ -473,9 +481,12 @@ namespace PiranaSecuritySystem.Controllers
                         }
                     }
 
+                    // Auto-generate Employee ID
+                    string employeeId = GenerateEmployeeId();
+
                     var instructor = new Instructor
                     {
-                        EmployeeId = model.EmployeeId,
+                        EmployeeId = employeeId, // Use auto-generated ID instead of model.EmployeeId
                         FullName = model.FullName,
                         Email = model.Email,
                         PhoneNumber = model.PhoneNumber,
@@ -484,7 +495,8 @@ namespace PiranaSecuritySystem.Controllers
                         IsActive = true,
                         UserId = user.Id,
                         Site = model.Site, // Save the site
-                        SiteUsername = siteUsername // Save the site-specific user
+                        SiteUsername = siteUsername, // Save the site-specific user
+                        Group = model.Group // Add Group property
                     };
 
                     db.Instructors.Add(instructor);
@@ -517,7 +529,7 @@ namespace PiranaSecuritySystem.Controllers
                     // Create notification for director
                     CreateNewStaffNotification("Instructor", model.FullName);
 
-                    TempData["SuccessMessage"] = $"Instructor {model.FullName} has been registered successfully! Credentials have been sent to their email.";
+                    TempData["SuccessMessage"] = $"Instructor {model.FullName} has been registered successfully! Employee ID: {employeeId}. Credentials have been sent to their email.";
                     return RedirectToAction("ManageInstructors");
                 }
 
@@ -525,6 +537,20 @@ namespace PiranaSecuritySystem.Controllers
             }
 
             return View(model);
+        }
+
+        // Add this method to generate Employee ID
+        private string GenerateEmployeeId()
+        {
+            // Get the current year
+            string year = DateTime.Now.Year.ToString();
+
+            // Get the count of instructors for this year
+            int instructorCount = db.Instructors
+                .Count(i => i.DateRegistered.Year == DateTime.Now.Year) + 1;
+
+            // Format: INST-YYYY-001, INST-YYYY-002, etc.
+            return $"INST-{year}-{instructorCount:D3}";
         }
 
         // Add these helper methods for instructors
@@ -583,6 +609,133 @@ namespace PiranaSecuritySystem.Controllers
 
             var instructors = db.Instructors.OrderBy(i => i.FullName).ToList();
             return View(instructors);
+        }
+
+        // GET: Admin/EditInstructor/5
+        public ActionResult EditInstructor(int id)
+        {
+            var instructor = db.Instructors.Find(id);
+            if (instructor == null)
+            {
+                return HttpNotFound();
+            }
+            return View(instructor);
+        }
+
+        // POST: Admin/EditInstructor/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult EditInstructor(Instructor model)
+        {
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    var instructor = db.Instructors.Find(model.Id);
+                    if (instructor == null)
+                    {
+                        return HttpNotFound();
+                    }
+
+                    // Update instructor properties
+                    instructor.FullName = model.FullName;
+                    instructor.EmployeeId = model.EmployeeId;
+                    instructor.Email = model.Email;
+                    instructor.PhoneNumber = model.PhoneNumber;
+                    instructor.Specialization = model.Specialization;
+                    instructor.IsActive = model.IsActive;
+                    instructor.Site = model.Site;
+                    instructor.Group = model.Group; // Make sure this line is present
+
+                    // Update user email if changed
+                    var user = db.Users.FirstOrDefault(u => u.Id == instructor.UserId);
+                    if (user != null && user.Email != model.Email)
+                    {
+                        user.Email = model.Email;
+                        user.UserName = model.Email;
+                    }
+
+                    db.SaveChanges();
+
+                    TempData["SuccessMessage"] = $"Instructor {model.FullName} updated successfully!";
+                    return RedirectToAction("ManageInstructors");
+                }
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error updating instructor: " + ex.Message;
+                return View(model);
+            }
+        }
+
+        // GET: Admin/UpdateInstructorStatus/5
+        public ActionResult UpdateInstructorStatus(int id)
+        {
+            var instructor = db.Instructors.Find(id);
+            if (instructor == null)
+            {
+                return HttpNotFound();
+            }
+            return View(instructor);
+        }
+
+        // POST: Admin/UpdateInstructorStatus/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateInstructorStatus(int id, bool isActive, string statusReason = null)
+        {
+            try
+            {
+                var instructor = db.Instructors.Find(id);
+                if (instructor == null)
+                {
+                    return HttpNotFound();
+                }
+
+                // Store old status for notification
+                var oldStatus = instructor.IsActive;
+                instructor.IsActive = isActive;
+
+                // Update the user account status as well if needed
+                var user = db.Users.FirstOrDefault(u => u.Id == instructor.UserId);
+                if (user != null)
+                {
+                    // Check if ApplicationUser has IsActive property using reflection
+                    var isActiveProperty = user.GetType().GetProperty("IsActive");
+                    if (isActiveProperty != null && isActiveProperty.CanWrite)
+                    {
+                        isActiveProperty.SetValue(user, isActive);
+                    }
+                }
+
+                db.SaveChanges();
+
+                // Create notification about status change
+                if (oldStatus != isActive)
+                {
+                    var notification = new Notification
+                    {
+                        Title = "Instructor Status Updated",
+                        Message = $"Instructor {instructor.FullName} status changed to {(isActive ? "Active" : "Inactive")}. Reason: {statusReason ?? "Not specified"}",
+                        NotificationType = "Instructor",
+                        CreatedAt = DateTime.Now,
+                        IsRead = false,
+                        UserId = "Admin"
+                    };
+                    db.Notifications.Add(notification);
+                    db.SaveChanges();
+                }
+
+                TempData["SuccessMessage"] = $"Instructor status updated successfully to {(isActive ? "Active" : "Inactive")}.";
+                return RedirectToAction("ManageInstructors");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error updating instructor status: " + ex.Message;
+                return RedirectToAction("UpdateInstructorStatus", new { id = id });
+            }
         }
 
         // GET: Redirect to Payroll

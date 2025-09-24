@@ -27,13 +27,10 @@
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 20px 0;
-            display: flex;
-            align-items: center;
         }
 
         .form-container {
             max-width: 1000px;
-            width: 100%;
             margin: 0 auto;
         }
 
@@ -42,18 +39,12 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            transition: transform 0.3s ease;
         }
-
-            .form-card:hover {
-                transform: translateY(-5px);
-            }
 
         .card-header-custom {
             background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 20px;
-            border-bottom: none;
+            padding: 30px;
             text-align: center;
         }
 
@@ -62,31 +53,25 @@
             border-bottom: 1px solid #eee;
         }
 
-            .form-section:last-child {
-                border-bottom: none;
-            }
-
         .btn-custom {
             background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
             border: none;
             padding: 12px 30px;
             border-radius: 8px;
             font-weight: 600;
-            transition: all 0.3s;
             color: white;
+            transition: all 0.3s;
         }
 
             .btn-custom:hover {
-                background: linear-gradient(to right, var(--secondary-color), var(--primary-color));
                 transform: translateY(-2px);
-                color: white;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             }
 
         .btn-outline-custom {
-            background: transparent;
-            border: 1px solid var(--secondary-color);
+            border: 2px solid var(--secondary-color);
             color: var(--secondary-color);
-            padding: 10px 20px;
+            padding: 10px 25px;
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s;
@@ -95,19 +80,18 @@
             .btn-outline-custom:hover {
                 background: var(--secondary-color);
                 color: white;
-                transform: translateY(-2px);
             }
 
         .form-control {
             padding: 12px 15px;
             border-radius: 8px;
-            border: 1px solid #ddd;
+            border: 2px solid #e9ecef;
             transition: all 0.3s;
         }
 
             .form-control:focus {
                 border-color: var(--secondary-color);
-                box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+                box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
             }
 
         .input-icon {
@@ -119,265 +103,203 @@
                 left: 15px;
                 top: 50%;
                 transform: translateY(-50%);
-                color: #7f8c8d;
+                color: #6c757d;
+                z-index: 3;
             }
 
             .input-icon input,
             .input-icon select {
                 padding-left: 45px;
+                position: relative;
+                z-index: 2;
+                background: transparent;
             }
 
         h4 {
             color: var(--primary-color);
+            margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid var(--secondary-color);
-            margin-bottom: 20px;
         }
-
-        .floating-label {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-            .floating-label label {
-                position: absolute;
-                top: -10px;
-                left: 40px;
-                font-size: 12px;
-                background: white;
-                padding: 0 5px;
-                color: var(--secondary-color);
-                z-index: 1;
-            }
-
-            .floating-label select:focus + label,
-            .floating-label select:not([value=""]):valid + label {
-                top: -10px;
-                left: 40px;
-                font-size: 12px;
-                background: white;
-                padding: 0 5px;
-                color: var(--secondary-color);
-            }
 
         .field-validation-error {
             color: #dc3545;
             font-size: 0.875rem;
+            display: block;
+            margin-top: 5px;
         }
 
-        #autocomplete-results {
-            border: 1px solid #ccc;
-            max-width: 100%;
+        .validation-summary-errors {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .loading-overlay {
             display: none;
-            position: absolute;
-            z-index: 1000;
-            background: white;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
         }
 
-            #autocomplete-results div {
-                padding: 10px;
-                cursor: pointer;
-                border-bottom: 1px solid #eee;
-            }
-
-                #autocomplete-results div:hover {
-                    background-color: #f8f9fa;
-                }
-
-        .inputmask {
-            text-align: left;
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
         }
-
-        /* Fix for dropdown labels */
-        .select-floating {
-            position: relative;
-        }
-
-            .select-floating select {
-                padding-top: 18px;
-                padding-bottom: 10px;
-                height: 50px;
-            }
-
-            .select-floating label {
-                position: absolute;
-                top: 12px;
-                left: 45px;
-                font-size: 14px;
-                color: #7f8c8d;
-                pointer-events: none;
-                transition: 0.2s ease all;
-                z-index: 1;
-            }
-
-            .select-floating select:focus + label,
-            .select-floating select:not([value=""]):valid + label {
-                top: -10px;
-                left: 40px;
-                font-size: 12px;
-                background: white;
-                padding: 0 5px;
-                color: var(--secondary-color);
-            }
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
     <div class="form-container">
         <div class="form-card">
             <div class="card-header-custom">
                 <h2 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Register New Guard</h2>
+                <p class="mb-0 mt-2">Complete the form below to register a new guard</p>
             </div>
 
             @using (Html.BeginForm("RegisterGuard", "Admin", FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "registerForm" }))
             {
                 @Html.AntiForgeryToken()
+
                 @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
                 <div class="form-section">
                     <h4><i class="fas fa-user me-2"></i>Personal Information</h4>
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="input-icon floating-label">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
                                 <i class="fas fa-signature"></i>
-                                @Html.TextBoxFor(m => m.Guard_FName, new { @class = "form-control", placeholder = " ", required = "required" })
-                                <label for="Guard_FName">First Name</label>
-                                @Html.ValidationMessageFor(m => m.Guard_FName, "", new { @class = "text-danger" })
+                                @Html.TextBoxFor(m => m.Guard_FName, new { @class = "form-control", placeholder = "First Name", required = "required" })
                             </div>
+                            @Html.ValidationMessageFor(m => m.Guard_FName, "", new { @class = "field-validation-error" })
                         </div>
-                        <div class="col-md-6">
-                            <div class="input-icon floating-label">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
                                 <i class="fas fa-signature"></i>
-                                @Html.TextBoxFor(m => m.Guard_LName, new { @class = "form-control", placeholder = " ", required = "required" })
-                                <label for="Guard_LName">Last Name</label>
-                                @Html.ValidationMessageFor(m => m.Guard_LName, "", new { @class = "text-danger" })
+                                @Html.TextBoxFor(m => m.Guard_LName, new { @class = "form-control", placeholder = "Last Name", required = "required" })
                             </div>
+                            @Html.ValidationMessageFor(m => m.Guard_LName, "", new { @class = "field-validation-error" })
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="input-icon floating-label">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
                                 <i class="fas fa-id-card"></i>
-                                @Html.TextBoxFor(m => m.IdentityNumber, new { @class = "form-control", placeholder = " ", maxlength = "13", id = "idNumber", required = "required" })
-                                <label for="IdentityNumber">ID Number</label>
-                                @Html.ValidationMessageFor(m => m.IdentityNumber, "", new { @class = "text-danger" })
+                                @Html.TextBoxFor(m => m.IdentityNumber, new { @class = "form-control", placeholder = "ID Number (13 digits)", maxlength = "13", required = "required" })
                             </div>
+                            @Html.ValidationMessageFor(m => m.IdentityNumber, "", new { @class = "field-validation-error" })
                         </div>
-                        <div class="col-md-6">
-                            <div class="input-icon select-floating">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
                                 <i class="fas fa-venus-mars"></i>
-                                @Html.DropDownListFor(m => m.Gender, new SelectList(new[] { "M", "F" }), "", new { @class = "form-control", required = "required" })
-                                <label for="Gender">Gender</label>
-                                @Html.ValidationMessageFor(m => m.Gender, "", new { @class = "text-danger" })
+                                @Html.DropDownListFor(m => m.Gender, new SelectList(new[] { "M", "F" }), "Select Gender", new { @class = "form-control", required = "required" })
                             </div>
+                            @Html.ValidationMessageFor(m => m.Gender, "", new { @class = "field-validation-error" })
                         </div>
                     </div>
 
-                    <div class="input-icon floating-label">
-                        <i class="fas fa-certificate"></i>
-                        @Html.TextBoxFor(m => m.PSIRAnumber, new { @class = "form-control", placeholder = " ", required = "required" })
-                        <label for="PSIRAnumber">PSIRA Number</label>
-                        @Html.ValidationMessageFor(m => m.PSIRAnumber, "", new { @class = "text-danger" })
+                    <div class="mb-3">
+                        <div class="input-icon">
+                            <i class="fas fa-certificate"></i>
+                            @Html.TextBoxFor(m => m.PSIRAnumber, new { @class = "form-control", placeholder = "PSIRA Number", required = "required" })
+                        </div>
+                        @Html.ValidationMessageFor(m => m.PSIRAnumber, "", new { @class = "field-validation-error" })
                     </div>
                 </div>
 
                 <div class="form-section">
                     <h4><i class="fas fa-address-book me-2"></i>Contact Information</h4>
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="input-icon floating-label">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
                                 <i class="fas fa-envelope"></i>
-                                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = " ", type = "email", required = "required" })
-                                <label for="Email">Email Address</label>
-                                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "Email Address", type = "email", required = "required" })
                             </div>
+                            @Html.ValidationMessageFor(m => m.Email, "", new { @class = "field-validation-error" })
                         </div>
-                        <div class="col-md-6">
-                            <div class="input-icon floating-label">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
                                 <i class="fas fa-phone"></i>
-                                @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = " ", maxlength = "10", id = "phoneNumber", required = "required" })
-                                <label for="PhoneNumber">Phone Number</label>
-                                @Html.ValidationMessageFor(m => m.PhoneNumber, "", new { @class = "text-danger" })
+                                @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = "Phone Number (10 digits)", maxlength = "10", required = "required" })
                             </div>
+                            @Html.ValidationMessageFor(m => m.PhoneNumber, "", new { @class = "field-validation-error" })
                         </div>
                     </div>
 
-                    <div class="input-icon floating-label">
-                        <i class="fas fa-phone-alt"></i>
-                        @Html.TextBoxFor(m => m.Emergency_CellNo, new { @class = "form-control", placeholder = " ", maxlength = "10", id = "emergencyCell", required = "required" })
-                        <label for="Emergency_CellNo">Emergency Contact</label>
-                        @Html.ValidationMessageFor(m => m.Emergency_CellNo, "", new { @class = "text-danger" })
+                    <div class="mb-3">
+                        <div class="input-icon">
+                            <i class="fas fa-phone-alt"></i>
+                            @Html.TextBoxFor(m => m.Emergency_CellNo, new { @class = "form-control", placeholder = "Emergency Contact Number", maxlength = "10", required = "required" })
+                        </div>
+                        @Html.ValidationMessageFor(m => m.Emergency_CellNo, "", new { @class = "field-validation-error" })
                     </div>
 
-                    <div class="input-icon floating-label">
-                        <i class="fas fa-home"></i>
-                        @Html.TextBoxFor(m => m.Address, new { @class = "form-control", placeholder = " ", id = "addressInput", autocomplete = "off", required = "required" })
-                        <label for="Address">Address</label>
-                        @Html.ValidationMessageFor(m => m.Address, "", new { @class = "text-danger" })
-                        <div id="autocomplete-results"></div>
-
-                        @Html.HiddenFor(m => m.Street, new { id = "street" })
-                        
-                        @Html.HiddenFor(m => m.City, new { id = "city" })
-                        @Html.HiddenFor(m => m.PostalCode, new { id = "postalCode" })
+                    <div class="mb-3">
+                        <div class="input-icon">
+                            <i class="fas fa-home"></i>
+                            @Html.TextBoxFor(m => m.Address, new { @class = "form-control", placeholder = "Full Address", required = "required" })
+                        </div>
+                        @Html.ValidationMessageFor(m => m.Address, "", new { @class = "field-validation-error" })
                     </div>
                 </div>
 
                 <div class="form-section">
                     <h4><i class="fas fa-key me-2"></i>Account Information</h4>
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="input-icon floating-label">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
                                 <i class="fas fa-lock"></i>
-                                @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = " ", required = "required" })
-                                <label for="Password">Password</label>
-                                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                                @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Password", required = "required" })
                             </div>
+                            @Html.ValidationMessageFor(m => m.Password, "", new { @class = "field-validation-error" })
                         </div>
-                        <div class="col-md-6">
-                            <div class="input-icon floating-label">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
                                 <i class="fas fa-lock"></i>
-                                @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = " ", required = "required" })
-                                <label for="ConfirmPassword">Confirm Password</label>
-                                @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger" })
+                                @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = "Confirm Password", required = "required" })
                             </div>
+                            @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "field-validation-error" })
                         </div>
                     </div>
 
-                    <div class="input-icon select-floating">
-                        <i class="fas fa-users"></i>
-                        @Html.DropDownListFor(m => m.Group, new SelectList(new[] { "Group A", "Group B", "Group C" }), "", new { @class = "form-control", required = "required" })
-                        <label for="Group">Guard Group</label>
-                        @Html.ValidationMessageFor(m => m.Group, "", new { @class = "text-danger" })
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="input-icon select-floating">
-                            <i class="fas fa-map-marker-alt"></i>
-                            @Html.DropDownListFor(m => m.Site, Model.SiteOptions, "Select Site", new { @class = "form-control", required = "required", id = "siteSelect" })
-                            <label for="Site">Assigned Site</label>
-                            @Html.ValidationMessageFor(m => m.Site, "", new { @class = "text-danger" })
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
+                                <i class="fas fa-users"></i>
+                                @Html.DropDownListFor(m => m.Group, new SelectList(new[] { "Group A", "Group B", "Group C" }), "Select Group", new { @class = "form-control", required = "required" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.Group, "", new { @class = "field-validation-error" })
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="input-icon floating-label">
-                            <i class="fas fa-id-badge"></i>
-                            @Html.HiddenFor(m => m.SiteUsername, new { @class = "form-control", @readonly = "readonly", placeholder = " ", id = "usernameDisplay" })
-                            <label for="SiteUsername">Generated Username</label>
+                        <div class="col-md-6 mb-3">
+                            <div class="input-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                                @Html.DropDownListFor(m => m.Site, Model.SiteOptions, "Select Site", new { @class = "form-control", required = "required", id = "siteSelect" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.Site, "", new { @class = "field-validation-error" })
                         </div>
                     </div>
                 </div>
 
-
-               <div class="form-section text-center">
-                    <button type="submit" class="btn btn-custom me-2">
+                <div class="form-section text-center">
+                    <button type="submit" class="btn btn-custom me-3" id="submitButton">
                         <i class="fas fa-user-plus me-2"></i>Register Guard
                     </button>
-                    @Html.ActionLink("Cancel", "Dashboard", null, new { @class = "btn btn-outline-custom" })
+                    @Html.ActionLink("Cancel", "ManageGuards", "Admin", null, new { @class = "btn btn-outline-custom" })
                 </div>
             }
         </div>
@@ -387,174 +309,119 @@
         @Scripts.Render("~/bundles/jqueryval")
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.7/jquery.inputmask.min.js"></script>
         <script>
-            // Update your JavaScript to show a preview but not set the form value
-            $(document).ready(function () {
-                // When site selection changes, update the username preview
-                $('#siteSelect').change(function () {
-                    var selectedSite = $(this).val();
-                    if (selectedSite) {
-                        var sitePrefix = '';
-                        switch (selectedSite) {
-                            case 'Site A': sitePrefix = 'GA'; break;
-                            case 'Site B': sitePrefix = 'GB'; break;
-                            case 'Site C': sitePrefix = 'GC'; break;
-                            default: sitePrefix = 'GX'; break;
-                        }
+        $(document).ready(function () {
+            // Show success/error messages
+            var successMessage = '@(TempData["SuccessMessage"] ?? "")';
+            var errorMessage = '@(TempData["ErrorMessage"] ?? "")';
 
-                        // Show preview (will be generated on server)
-                        $('#usernameDisplay').val('Will be generated as: ' + sitePrefix + 'XXX');
-                    } else {
-                        $('#usernameDisplay').val('');
+            if (successMessage) {
+                showAlert('success', successMessage);
+            }
+            if (errorMessage) {
+                showAlert('danger', errorMessage);
+            }
+
+            // Input masks
+            $("#IdentityNumber").inputmask("9999999999999");
+            $("#PhoneNumber").inputmask("9999999999");
+            $("#Emergency_CellNo").inputmask("9999999999");
+
+            // AJAX form submission
+            $('#registerForm').on('submit', function (e) {
+                e.preventDefault(); // Prevent default form submission
+
+                if (!$(this).valid()) {
+                    return false;
+                }
+
+                // Show loading overlay
+                $('#loadingOverlay').show();
+                $('#submitButton').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Registering...');
+
+                // Get form data
+                var formData = $(this).serialize();
+
+                // Submit via AJAX
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        // Hide loading overlay
+                        $('#loadingOverlay').hide();
+                        $('#submitButton').prop('disabled', false).html('<i class="fas fa-user-plus me-2"></i>Register Guard');
+
+                        // Redirect to dashboard immediately
+                        window.location.href = '/Admin/ManageGuards';
+                    },
+                    error: function (xhr, status, error) {
+                        // Hide loading overlay
+                        $('#loadingOverlay').hide();
+                        $('#submitButton').prop('disabled', false).html('<i class="fas fa-user-plus me-2"></i>Register Guard');
+
+                        // Show error message but still redirect
+                        showAlert('danger', 'Guard registered but there was an issue. Redirecting...');
+
+                        // Redirect after a short delay
+                        setTimeout(function() {
+                            window.location.href = '/Admin/ManageGuards';
+                        }, 2000);
                     }
                 });
             });
 
-            $(document).ready(function () {
-                // Check for success message in TempData
-                var successMessage = '@(TempData["SuccessMessage"] ?? "")';
-                if (successMessage) {
-                    // Create and show success alert
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                    alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
-                    alertDiv.innerHTML = `
-                        <strong>Success!</strong> ${successMessage}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
-                    document.body.appendChild(alertDiv);
-
-                    // Auto-dismiss after 5 seconds
-                    setTimeout(() => {
-                        const bsAlert = new bootstrap.Alert(alertDiv);
-                        bsAlert.close();
-                    }, 5000);
-                }
-
-                // Apply input mask for ID number (13 digits only)
-                $("#idNumber").inputmask("9999999999999", { placeholder: "" });
-
-                // Apply input mask for phone numbers - 10 digits only
-                $("#phoneNumber, #emergencyCell").inputmask("9999999999", {
-                    placeholder: "",
-                    greedy: false
-                });
-
-                // Address autocomplete functionality
-                const apiKey = 'db1f2ec180bd423eadf3af1d333ff4d8';
-                const input = document.getElementById('addressInput');
-                const resultsDiv = document.getElementById('autocomplete-results');
-
-                input.addEventListener('input', debounce(async function () {
-                    const query = input.value;
-
-                    if (query.length < 3) {
-                        resultsDiv.style.display = 'none';
-                        resultsDiv.innerHTML = '';
-                        return;
-                    }
-
-                    const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&limit=5&filter=countrycode:za&format=json&apiKey=${apiKey}`;
-
-                    try {
-                        const response = await fetch(url);
-                        const data = await response.json();
-
-                        resultsDiv.innerHTML = '';
-
-                        if (data.results && data.results.length > 0) {
-                            resultsDiv.style.display = 'block';
-
-                            data.results.forEach(result => {
-                                let addressLine = result.address_line1 || "";
-                                let city = result.city || "";
-                                let postcode = result.postcode || "";
-
-                                const div = document.createElement('div');
-                                div.innerText = `${addressLine}, ${city}, ${postcode}`;
-                                div.style.padding = "8px";
-                                div.style.cursor = "pointer";
-                                div.style.borderBottom = "1px solid #eee";
-
-                                div.onmouseover = () => div.style.backgroundColor = "#f0f0f0";
-                                div.onmouseout = () => div.style.backgroundColor = "transparent";
-
-                                div.onclick = () => {
-                                    input.value = div.innerText;
-
-                                    // Fill hidden form fields
-                                    document.getElementById('street').value = result.street || "";
-                                    document.getElementById('houseNumber').value = result.housenumber || "";
-                                    document.getElementById('city').value = result.city || "";
-                                    document.getElementById('postalCode').value = result.postcode || "";
-
-                                    resultsDiv.style.display = 'none';
-                                    resultsDiv.innerHTML = '';
-                                };
-
-                                resultsDiv.appendChild(div);
-                            });
-                        } else {
-                            resultsDiv.style.display = 'none';
-                        }
-                    } catch (error) {
-                        console.error('Error fetching address suggestions:', error);
-                        resultsDiv.style.display = 'none';
-                    }
-                }, 300));
-
-                // Hide results when clicking outside
-                document.addEventListener('click', function (e) {
-                    if (!resultsDiv.contains(e.target) && e.target !== input) {
-                        resultsDiv.style.display = 'none';
-                    }
-                });
-
-                // Debounce function to limit API calls
-                function debounce(func, wait) {
-                    let timeout;
-                    return function executedFunction(...args) {
-                        const later = () => {
-                            clearTimeout(timeout);
-                            func(...args);
-                        };
-                        clearTimeout(timeout);
-                        timeout = setTimeout(later, wait);
-                    };
-                }
-
-                // Client-side validation for phone numbers
-                $("#registerForm").on("submit", function () {
-                    var phone = $("#phoneNumber").val();
-                    var emergency = $("#emergencyCell").val();
-
-                    // Remove any non-digit characters
-                    phone = phone.replace(/\D/g, '');
-                    emergency = emergency.replace(/\D/g, '');
-
-                    // Update the values
-                    $("#phoneNumber").val(phone);
-                    $("#emergencyCell").val(emergency);
-
-                    return true;
-                });
-
-                // Initialize floating labels for all inputs
-                $('.form-control').each(function () {
-                    if ($(this).val() !== '') {
-                        $(this).addClass('has-value');
-                    }
-                });
-
-                $('.form-control').on('focus', function () {
-                    $(this).addClass('has-value');
-                });
-
-                $('.form-control').on('blur', function () {
-                    if ($(this).val() === '') {
-                        $(this).removeClass('has-value');
-                    }
-                });
+            // Phone number validation
+            $('#PhoneNumber, #Emergency_CellNo').on('input', function () {
+                var value = $(this).val().replace(/\D/g, '');
+                $(this).val(value);
             });
+
+            // Real-time validation for ID number
+            $('#IdentityNumber').on('input', function () {
+                var value = $(this).val().replace(/\D/g, '');
+                $(this).val(value);
+
+                if (value.length === 13) {
+                    $(this).removeClass('is-invalid').addClass('is-valid');
+                } else if (value.length > 0) {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                }
+            });
+
+            // Email validation
+            $('#Email').on('blur', function() {
+                var email = $(this).val();
+                if (email && !isValidEmail(email)) {
+                    $(this).addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+            });
+        });
+
+        // Fixed email validation function - using String.fromCharCode to avoid @@ symbol issues
+        function isValidEmail(email) {
+            var atSymbol = String.fromCharCode(64); // @@ symbol
+            var regex = new RegExp('^[^\\s' + atSymbol + ']+' + atSymbol + '[^\\s' + atSymbol + ']+\\.[^\\s' + atSymbol + ']+$');
+            return regex.test(email);
+        }
+
+        function showAlert(type, message) {
+            // Remove existing alerts
+            $('.alert').remove();
+
+            var alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show';
+            alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+            alertDiv.innerHTML = '<strong>' + (type === 'success' ? 'Success!' : 'Error!') + '</strong> ' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            document.body.appendChild(alertDiv);
+
+            setTimeout(function() {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
         </script>
     }
 </body>
