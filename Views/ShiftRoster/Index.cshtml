@@ -1,4 +1,10 @@
-﻿<!DOCTYPE html>
+﻿@model List<PiranaSecuritySystem.Models.RosterDisplayViewModel>
+
+@{
+    ViewBag.Title = "Shift Rosters";
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -126,6 +132,19 @@
             color: var(--dark-text);
             border: 1px solid var(--border-color);
         }
+
+        .badge-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .site-badge {
+            background-color: #6c757d;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -140,51 +159,80 @@
             </div>
         </div>
 
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
         <p>
             @Html.ActionLink("Create New Roster", "Create", null, new { @class = "btn btn-primary" })
         </p>
 
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Day Shift (4 guards)</th>
-                    <th>Night Shift (4 guards)</th>
-                    <th>Off Duty (4 guards)</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
+        @if (!Model.Any())
+        {
+            <div class="alert alert-info">
+                No shift rosters found. Create your first roster by clicking the button above.
+            </div>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
                     <tr>
-                        <td>@item.RosterDate.ToString("yyyy-MM-dd")</td>
-                        <td>
-                            @foreach (var guard in item.DayShiftGuards)
-                            {
-                                <span class="badge badge-primary">@guard.FullName</span><br />
-                            }
-                        </td>
-                        <td>
-                            @foreach (var guard in item.NightShiftGuards)
-                            {
-                                <span class="badge badge-secondary">@guard.FullName</span><br />
-                            }
-                        </td>
-                        <td>
-                            @foreach (var guard in item.OffDutyGuards)
-                            {
-                                <span class="badge badge-light">@guard.FullName</span><br />
-                            }
-                        </td>
-                        <td>
-                            @Html.ActionLink("Edit", "Edit", new { date = item.RosterDate.ToString("yyyy-MM-dd") }, new { @class = "btn btn-warning btn-sm" })
-                            @Html.ActionLink("Delete", "Delete", new { date = item.RosterDate.ToString("yyyy-MM-dd") }, new { @class = "btn btn-danger btn-sm" })
-                        </td>
+                        <th>Date</th>
+                        <th>Site</th>
+                        <th>Day Shift (4 guards)</th>
+                        <th>Night Shift (4 guards)</th>
+                        <th>Off Duty (4 guards)</th>
+                        <th>Actions</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@item.RosterDate.ToString("yyyy-MM-dd")</strong>
+                            </td>
+                            <td>
+                                <span class="site-badge">@item.Site</span>
+                            </td>
+                            <td>
+                                @foreach (var guard in item.DayShiftGuards)
+                                {
+                                    <span class="badge badge-primary" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
+                                }
+                            </td>
+                            <td>
+                                @foreach (var guard in item.NightShiftGuards)
+                                {
+                                    <span class="badge badge-secondary" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
+                                }
+                            </td>
+                            <td>
+                                @foreach (var guard in item.OffDutyGuards)
+                                {
+                                    <span class="badge badge-light" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
+                                }
+                            </td>
+                            <td>
+                                @Html.ActionLink("Edit", "Edit", new { date = item.RosterDate.ToString("yyyy-MM-dd"), site = item.Site }, new { @class = "btn btn-warning btn-sm" })
+                                @Html.ActionLink("Delete", "Delete", new { date = item.RosterDate.ToString("yyyy-MM-dd"), site = item.Site }, new { @class = "btn btn-danger btn-sm" })
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     </div>
 </body>
 </html>

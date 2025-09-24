@@ -2,15 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Web;
 
 namespace PiranaSecuritySystem.Models
 {
     public class Guard
     {
         [Key]
-        
         [Display(Name = "Guard ID")]
         public int GuardId { get; set; }
 
@@ -61,27 +58,25 @@ namespace PiranaSecuritySystem.Models
 
         [Display(Name = "Date Registered")]
         public DateTime DateRegistered { get; set; }
-        
+
+        [Required]
         [Display(Name = "Assigned Site")]
         public string Site { get; set; }
 
-        
         [Display(Name = "Username")]
         public string SiteUsername { get; set; }
 
+        [Display(Name = "Active")]
+        public bool IsActive { get; set; } = true;
+
+        [NotMapped]
+        public string FullName => $"{Guard_FName} {Guard_LName}";
+
         [NotMapped]
         public List<GuardAttendance> MonthlyAttendance { get; set; } = new List<GuardAttendance>();
+
         public string UserId { get; set; }
-
-        [Display(Name = "Active")]
-        public bool IsActive { get; set; }
-        [NotMapped] // This property is not stored in the database
-        public string FullName
-        {
-            get { return $"{Guard_FName} {Guard_LName}"; }
-        }
-        // In your Guard model, add this property
         public virtual ICollection<GuardCheckIn> CheckIns { get; set; }
-
+        public virtual ICollection<ShiftRoster> ShiftRosters { get; set; }
     }
 }

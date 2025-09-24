@@ -29,6 +29,6 @@ namespace PiranaSecuritySystem.Models
         [StringLength(100, ErrorMessage = "Emergency Contact cannot exceed 100 characters")]
         public string EmergencyContact { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public new DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

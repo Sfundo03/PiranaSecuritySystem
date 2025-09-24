@@ -20,10 +20,11 @@ namespace PiranaSecuritySystem.Controllers
                 .ThenBy(r => r.ShiftType)
                 .ToList();
 
-            var groupedRosters = rosters.GroupBy(r => r.RosterDate)
+            var groupedRosters = rosters.GroupBy(r => new { r.RosterDate, r.Site })
                 .Select(g => new RosterDisplayViewModel
                 {
-                    RosterDate = g.Key,
+                    RosterDate = g.Key.RosterDate,
+                    Site = g.Key.Site,
                     DayShiftGuards = g.Where(x => x.ShiftType == "Day").Select(x => x.Guard).ToList(),
                     NightShiftGuards = g.Where(x => x.ShiftType == "Night").Select(x => x.Guard).ToList(),
                     OffDutyGuards = g.Where(x => x.ShiftType == "Off").Select(x => x.Guard).ToList()
@@ -35,15 +36,46 @@ namespace PiranaSecuritySystem.Controllers
         // GET: ShiftRoster/Create
         public ActionResult Create()
         {
-            var activeGuards = db.Guards.Where(g => g.IsActive).ToList();
-
             var viewModel = new RosterViewModel
             {
                 RosterDate = DateTime.Today
             };
 
-            ViewBag.Guards = new MultiSelectList(activeGuards, "GuardId", "FullName");
+            // Get distinct sites from guards
+            var sites = db.Guards
+                .Where(g => g.IsActive)
+                .Select(g => g.Site)
+                .Distinct()
+                .ToList();
+
+            ViewBag.Sites = new SelectList(sites);
+            ViewBag.Guards = new MultiSelectList(new List<Guard>(), "GuardId", "FullName");
+
             return View(viewModel);
+        }
+
+        // AJAX method to get guards by site - FIXED
+        [HttpPost]
+        public JsonResult GetGuardsBySite(string site)
+        {
+            try
+            {
+                var guards = db.Guards
+                    .Where(g => g.IsActive && g.Site == site)
+                    .Select(g => new
+                    {
+                        id = g.GuardId,
+                        name = g.Guard_FName + " " + g.Guard_LName, // Concatenate instead of using FullName
+                        badge = g.PSIRAnumber
+                    })
+                    .ToList();
+
+                return Json(new { success = true, guards = guards });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error loading guards: " + ex.Message });
+            }
         }
 
         // POST: ShiftRoster/Create
@@ -54,19 +86,19 @@ namespace PiranaSecuritySystem.Controllers
             if (ModelState.IsValid)
             {
                 // Validate exactly 12 guards selected
-                if (viewModel.SelectedGuardIds.Count != 12)
+                if (viewModel.SelectedGuardIds == null || viewModel.SelectedGuardIds.Count != 12)
                 {
                     ModelState.AddModelError("SelectedGuardIds", "Please select exactly 12 guards.");
-                    ViewBag.Guards = new MultiSelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+                    PopulateSiteDropdown();
                     return View(viewModel);
                 }
 
-                // Check if roster already exists for this date
-                var existingRoster = db.ShiftRosters.Any(r => r.RosterDate == viewModel.RosterDate);
+                // Check if roster already exists for this date and site
+                var existingRoster = db.ShiftRosters.Any(r => r.RosterDate == viewModel.RosterDate && r.Site == viewModel.Site);
                 if (existingRoster)
                 {
-                    ModelState.AddModelError("", "A roster already exists for this date.");
-                    ViewBag.Guards = new MultiSelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+                    ModelState.AddModelError("", $"A roster already exists for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site}.");
+                    PopulateSiteDropdown();
                     return View(viewModel);
                 }
 
@@ -75,17 +107,23 @@ namespace PiranaSecuritySystem.Controllers
                     .Where(g => viewModel.SelectedGuardIds.Contains(g.GuardId))
                     .ToList();
 
-                // Auto-generate shift assignments (simple rotation algorithm)
-                AutoGenerateShifts(selectedGuards, viewModel);
+                // Validate all guards belong to the selected site
+                var invalidGuards = selectedGuards.Where(g => g.Site != viewModel.Site).ToList();
+                if (invalidGuards.Any())
+                {
+                    ModelState.AddModelError("", $"Some selected guards don't belong to site {viewModel.Site}.");
+                    PopulateSiteDropdown();
+                    return View(viewModel);
+                }
 
-                // Save to database
-                SaveRosterToDatabase(viewModel);
+                // Auto-generate shift assignments with improved algorithm
+                AutoGenerateShifts(selectedGuards, viewModel);
 
                 // Show preview
                 return View("RosterPreview", viewModel);
             }
 
-            ViewBag.Guards = new MultiSelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+            PopulateSiteDropdown();
             return View(viewModel);
         }
 
@@ -94,91 +132,128 @@ namespace PiranaSecuritySystem.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult ConfirmCreate(RosterViewModel viewModel)
         {
-            // Get selected guards again
+            if (viewModel.SelectedGuardIds == null || viewModel.SelectedGuardIds.Count != 12)
+            {
+                TempData["ErrorMessage"] = "Invalid guard selection. Please try again.";
+                return RedirectToAction("Create");
+            }
+
+            // Get selected guards
             var selectedGuards = db.Guards
                 .Where(g => viewModel.SelectedGuardIds.Contains(g.GuardId))
                 .ToList();
 
-            // Regenerate shifts (in case we need to)
+            // Regenerate shifts
             AutoGenerateShifts(selectedGuards, viewModel);
 
             // Save to database
             SaveRosterToDatabase(viewModel);
 
+            TempData["SuccessMessage"] = $"Roster for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
             return RedirectToAction("Index");
         }
 
-        // Auto-generate shift assignments
+        // Improved auto-generate shift assignments
         private void AutoGenerateShifts(List<Guard> selectedGuards, RosterViewModel viewModel)
         {
-            // Simple rotation algorithm - you can customize this logic
-            // For example: rotate based on previous assignments, seniority, etc.
+            // Get previous roster data for fair rotation
+            var previousRosters = db.ShiftRosters
+                .Where(r => r.RosterDate < viewModel.RosterDate && selectedGuards.Select(g => g.GuardId).Contains(r.GuardId))
+                .OrderByDescending(r => r.RosterDate)
+                .ToList();
 
-            // Shuffle the list for random assignment (you can replace with your own logic)
-            var random = new Random();
-            var shuffledGuards = selectedGuards.OrderBy(x => random.Next()).ToList();
+            // Create guard assignments with shift history
+            var guardAssignments = selectedGuards.Select(guard => new
+            {
+                Guard = guard,
+                LastNightShift = previousRosters
+                    .Where(r => r.GuardId == guard.GuardId && r.ShiftType == "Night")
+                    .OrderByDescending(r => r.RosterDate)
+                    .FirstOrDefault()?.RosterDate ?? DateTime.MinValue,
+                LastDayShift = previousRosters
+                    .Where(r => r.GuardId == guard.GuardId && r.ShiftType == "Day")
+                    .OrderByDescending(r => r.RosterDate)
+                    .FirstOrDefault()?.RosterDate ?? DateTime.MinValue,
+                NightShiftCount = previousRosters.Count(r => r.GuardId == guard.GuardId && r.ShiftType == "Night"),
+                DayShiftCount = previousRosters.Count(r => r.GuardId == guard.GuardId && r.ShiftType == "Day")
+            }).ToList();
 
-            // Assign first 4 to Day Shift
-            viewModel.DayShiftGuards = shuffledGuards.Take(4).ToList();
+            // Sort by least recent night shift, then by night shift count
+            var nightShiftCandidates = guardAssignments
+                .OrderBy(g => g.LastNightShift)
+                .ThenBy(g => g.NightShiftCount)
+                .Take(4)
+                .ToList();
 
-            // Next 4 to Night Shift
-            viewModel.NightShiftGuards = shuffledGuards.Skip(4).Take(4).ToList();
+            // Remove night shift candidates and get day shift candidates
+            var remainingForDay = guardAssignments.Except(nightShiftCandidates)
+                .OrderBy(g => g.LastDayShift)
+                .ThenBy(g => g.DayShiftCount)
+                .Take(4)
+                .ToList();
 
-            // Last 4 to Off Duty
-            viewModel.OffDutyGuards = shuffledGuards.Skip(8).Take(4).ToList();
+            // Remaining are off duty
+            var offDuty = guardAssignments.Except(nightShiftCandidates).Except(remainingForDay).ToList();
+
+            viewModel.NightShiftGuards = nightShiftCandidates.Select(g => g.Guard).ToList();
+            viewModel.DayShiftGuards = remainingForDay.Select(g => g.Guard).ToList();
+            viewModel.OffDutyGuards = offDuty.Select(g => g.Guard).ToList();
         }
 
         // Save roster to database
         private void SaveRosterToDatabase(RosterViewModel viewModel)
         {
+            var rosterEntries = new List<ShiftRoster>();
+
             // Save day shift guards
             foreach (var guard in viewModel.DayShiftGuards)
             {
-                var roster = new ShiftRoster
+                rosterEntries.Add(new ShiftRoster
                 {
                     RosterDate = viewModel.RosterDate,
                     ShiftType = "Day",
                     GuardId = guard.GuardId,
+                    Site = viewModel.Site,
                     CreatedDate = DateTime.Now
-                };
-                db.ShiftRosters.Add(roster);
+                });
             }
 
             // Save night shift guards
             foreach (var guard in viewModel.NightShiftGuards)
             {
-                var roster = new ShiftRoster
+                rosterEntries.Add(new ShiftRoster
                 {
                     RosterDate = viewModel.RosterDate,
                     ShiftType = "Night",
                     GuardId = guard.GuardId,
+                    Site = viewModel.Site,
                     CreatedDate = DateTime.Now
-                };
-                db.ShiftRosters.Add(roster);
+                });
             }
 
             // Save off duty guards
             foreach (var guard in viewModel.OffDutyGuards)
             {
-                var roster = new ShiftRoster
+                rosterEntries.Add(new ShiftRoster
                 {
                     RosterDate = viewModel.RosterDate,
                     ShiftType = "Off",
                     GuardId = guard.GuardId,
+                    Site = viewModel.Site,
                     CreatedDate = DateTime.Now
-                };
-                db.ShiftRosters.Add(roster);
+                });
             }
 
+            db.ShiftRosters.AddRange(rosterEntries);
             db.SaveChanges();
         }
 
         // GET: ShiftRoster/Edit/5
-        public ActionResult Edit(DateTime date)
+        public ActionResult Edit(DateTime date, string site)
         {
             var rosterItems = db.ShiftRosters
                 .Include(r => r.Guard)
-                .Where(r => r.RosterDate == date)
+                .Where(r => r.RosterDate == date && r.Site == site)
                 .ToList();
 
             if (!rosterItems.Any())
@@ -189,13 +264,14 @@ namespace PiranaSecuritySystem.Controllers
             var viewModel = new RosterViewModel
             {
                 RosterDate = date,
+                Site = site,
                 SelectedGuardIds = rosterItems.Select(r => r.GuardId).ToList(),
                 DayShiftGuards = rosterItems.Where(r => r.ShiftType == "Day").Select(r => r.Guard).ToList(),
                 NightShiftGuards = rosterItems.Where(r => r.ShiftType == "Night").Select(r => r.Guard).ToList(),
                 OffDutyGuards = rosterItems.Where(r => r.ShiftType == "Off").Select(r => r.Guard).ToList()
             };
 
-            ViewBag.Guards = new MultiSelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+            PopulateSiteDropdown();
             return View(viewModel);
         }
 
@@ -207,15 +283,15 @@ namespace PiranaSecuritySystem.Controllers
             if (ModelState.IsValid)
             {
                 // Validate exactly 12 guards selected
-                if (viewModel.SelectedGuardIds.Count != 12)
+                if (viewModel.SelectedGuardIds == null || viewModel.SelectedGuardIds.Count != 12)
                 {
                     ModelState.AddModelError("SelectedGuardIds", "Please select exactly 12 guards.");
-                    ViewBag.Guards = new MultiSelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+                    PopulateSiteDropdown();
                     return View(viewModel);
                 }
 
-                // Remove existing roster items for this date
-                var existingRosters = db.ShiftRosters.Where(r => r.RosterDate == viewModel.RosterDate);
+                // Remove existing roster items for this date and site
+                var existingRosters = db.ShiftRosters.Where(r => r.RosterDate == viewModel.RosterDate && r.Site == viewModel.Site);
                 db.ShiftRosters.RemoveRange(existingRosters);
 
                 // Get selected guards
@@ -227,53 +303,73 @@ namespace PiranaSecuritySystem.Controllers
                 AutoGenerateShifts(selectedGuards, viewModel);
 
                 // Save new roster items
-                foreach (var guard in viewModel.DayShiftGuards)
-                {
-                    var roster = new ShiftRoster
-                    {
-                        RosterDate = viewModel.RosterDate,
-                        ShiftType = "Day",
-                        GuardId = guard.GuardId,
-                        CreatedDate = DateTime.Now,
-                        ModifiedDate = DateTime.Now
-                    };
-                    db.ShiftRosters.Add(roster);
-                }
+                SaveRosterToDatabase(viewModel);
 
-                foreach (var guard in viewModel.NightShiftGuards)
-                {
-                    var roster = new ShiftRoster
-                    {
-                        RosterDate = viewModel.RosterDate,
-                        ShiftType = "Night",
-                        GuardId = guard.GuardId,
-                        CreatedDate = DateTime.Now,
-                        ModifiedDate = DateTime.Now
-                    };
-                    db.ShiftRosters.Add(roster);
-                }
-
-                foreach (var guard in viewModel.OffDutyGuards)
-                {
-                    var roster = new ShiftRoster
-                    {
-                        RosterDate = viewModel.RosterDate,
-                        ShiftType = "Off",
-                        GuardId = guard.GuardId,
-                        CreatedDate = DateTime.Now,
-                        ModifiedDate = DateTime.Now
-                    };
-                    db.ShiftRosters.Add(roster);
-                }
-
-                db.SaveChanges();
+                TempData["SuccessMessage"] = $"Roster for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} updated successfully!";
                 return RedirectToAction("Index");
             }
 
-            ViewBag.Guards = new MultiSelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+            PopulateSiteDropdown();
             return View(viewModel);
         }
 
-        // Other methods (Delete, etc.) remain the same...
+        // GET: ShiftRoster/Delete/5
+        public ActionResult Delete(DateTime date, string site)
+        {
+            var rosterItems = db.ShiftRosters
+                .Include(r => r.Guard)
+                .Where(r => r.RosterDate == date && r.Site == site)
+                .ToList();
+
+            if (!rosterItems.Any())
+            {
+                return HttpNotFound();
+            }
+
+            var viewModel = new RosterDisplayViewModel
+            {
+                RosterDate = date,
+                Site = site,
+                DayShiftGuards = rosterItems.Where(r => r.ShiftType == "Day").Select(r => r.Guard).ToList(),
+                NightShiftGuards = rosterItems.Where(r => r.ShiftType == "Night").Select(r => r.Guard).ToList(),
+                OffDutyGuards = rosterItems.Where(r => r.ShiftType == "Off").Select(r => r.Guard).ToList()
+            };
+
+            return View(viewModel);
+        }
+
+        // POST: ShiftRoster/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteConfirmed(DateTime date, string site)
+        {
+            var rosterItems = db.ShiftRosters.Where(r => r.RosterDate == date && r.Site == site);
+            db.ShiftRosters.RemoveRange(rosterItems);
+            db.SaveChanges();
+
+            TempData["SuccessMessage"] = $"Roster for {date:yyyy-MM-dd} at {site} deleted successfully!";
+            return RedirectToAction("Index");
+        }
+
+        // Helper method to populate site dropdown
+        private void PopulateSiteDropdown()
+        {
+            var sites = db.Guards
+                .Where(g => g.IsActive)
+                .Select(g => g.Site)
+                .Distinct()
+                .ToList();
+
+            ViewBag.Sites = new SelectList(sites);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
+        }
     }
 }

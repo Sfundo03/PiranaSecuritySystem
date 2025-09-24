@@ -27,16 +27,17 @@ namespace PiranaSecuritySystem.Models
         [ForeignKey("GuardId")]
         public virtual Guard Guard { get; set; }
 
+        [Required]
+        [Display(Name = "Site")]
+        public string Site { get; set; }
+
         [Display(Name = "Created Date")]
         public DateTime CreatedDate { get; set; }
 
         [Display(Name = "Modified Date")]
         public DateTime? ModifiedDate { get; set; }
 
-        [Required]
-        [Display(Name = "Site")]
-        public string Site { get; set; } // "Site A", "Site B", "Site C"
-
+        // Optional fields (can be removed if not needed)
         public string Location { get; set; }
         public string Status { get; set; }
         public string InstructorName { get; set; }
@@ -57,7 +58,7 @@ namespace PiranaSecuritySystem.Models
 
         [Required(ErrorMessage = "Please select a site")]
         [Display(Name = "Site")]
-        public string Site { get; set; } // "Site A", "Site B", "Site C"
+        public string Site { get; set; }
 
         [Required(ErrorMessage = "Please select exactly 12 guards")]
         [Display(Name = "Selected Guards")]
@@ -67,15 +68,27 @@ namespace PiranaSecuritySystem.Models
         public List<Guard> DayShiftGuards { get; set; } = new List<Guard>();
         public List<Guard> NightShiftGuards { get; set; } = new List<Guard>();
         public List<Guard> OffDutyGuards { get; set; } = new List<Guard>();
+
+        // For displaying available guards
+        [NotMapped]
+        public List<Guard> AvailableGuards { get; set; } = new List<Guard>();
     }
 
     public class RosterDisplayViewModel
     {
         public DateTime RosterDate { get; set; }
+        public string Site { get; set; }
         public List<Guard> DayShiftGuards { get; set; }
         public List<Guard> NightShiftGuards { get; set; }
         public List<Guard> OffDutyGuards { get; set; }
         public int RosterId { get; set; }
-        public string Site { get; set; }
+    }
+
+    public class GuardSelectionViewModel
+    {
+        public int GuardId { get; set; }
+        public string FullName { get; set; }
+        public string BadgeNumber { get; set; }
+        public bool IsSelected { get; set; }
     }
 }
