@@ -41,14 +41,7 @@ namespace PiranaSecuritySystem.Controllers
                 RosterDate = DateTime.Today
             };
 
-            // Get distinct sites from guards
-            var sites = db.Guards
-                .Where(g => g.IsActive)
-                .Select(g => g.Site)
-                .Distinct()
-                .ToList();
-
-            ViewBag.Sites = new SelectList(sites);
+            PopulateSiteDropdown();
             return View(viewModel);
         }
 
@@ -91,13 +84,32 @@ namespace PiranaSecuritySystem.Controllers
                     return View(viewModel);
                 }
 
-                // Check if roster already exists for this date and site
-                var existingRoster = db.ShiftRosters.Any(r => r.RosterDate == viewModel.RosterDate && r.Site == viewModel.Site);
-                if (existingRoster)
+                // Check if rosters already exist for the date range
+                if (viewModel.GenerateFor30Days)
                 {
-                    ModelState.AddModelError("", $"A roster already exists for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site}.");
-                    PopulateSiteDropdown();
-                    return View(viewModel);
+                    var endDate = viewModel.RosterDate.AddDays(29);
+                    var existingRosters = db.ShiftRosters
+                        .Any(r => r.Site == viewModel.Site &&
+                                 r.RosterDate >= viewModel.RosterDate &&
+                                 r.RosterDate <= endDate);
+
+                    if (existingRosters)
+                    {
+                        ModelState.AddModelError("", $"Rosters already exist for some dates between {viewModel.RosterDate:yyyy-MM-dd} and {endDate:yyyy-MM-dd} at {viewModel.Site}.");
+                        PopulateSiteDropdown();
+                        return View(viewModel);
+                    }
+                }
+                else
+                {
+                    // Single date check
+                    var existingRoster = db.ShiftRosters.Any(r => r.RosterDate == viewModel.RosterDate && r.Site == viewModel.Site);
+                    if (existingRoster)
+                    {
+                        ModelState.AddModelError("", $"A roster already exists for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site}.");
+                        PopulateSiteDropdown();
+                        return View(viewModel);
+                    }
                 }
 
                 // Get selected guards using GuardIdList
@@ -114,7 +126,7 @@ namespace PiranaSecuritySystem.Controllers
                     return View(viewModel);
                 }
 
-                // Auto-generate shift assignments
+                // Auto-generate shift assignments for preview (single day)
                 AutoGenerateShifts(selectedGuards, viewModel);
 
                 // Ensure SelectedGuardIds is properly set for the preview
@@ -156,43 +168,112 @@ namespace PiranaSecuritySystem.Controllers
                     .Where(g => guardIds.Contains(g.GuardId))
                     .ToList();
 
-                // Regenerate shifts
-                AutoGenerateShifts(selectedGuards, viewModel);
+                if (viewModel.GenerateFor30Days)
+                {
+                    // Generate roster for 30 days
+                    for (int i = 0; i < 30; i++)
+                    {
+                        var currentDate = viewModel.RosterDate.AddDays(i);
 
-                // Save to database
-                SaveRosterToDatabase(viewModel);
+                        // Check if roster already exists for this specific date
+                        var existingRoster = db.ShiftRosters.Any(r => r.RosterDate == currentDate && r.Site == viewModel.Site);
+                        if (existingRoster)
+                        {
+                            // Skip this date if roster already exists
+                            continue;
+                        }
 
-                TempData["SuccessMessage"] = $"Roster for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
+                        var dailyViewModel = new RosterViewModel
+                        {
+                            RosterDate = currentDate,
+                            Site = viewModel.Site,
+                            GuardIdList = guardIds,
+                            GenerateFor30Days = viewModel.GenerateFor30Days
+                        };
+
+                        // Auto-generate shifts for this day
+                        AutoGenerateShifts(selectedGuards, dailyViewModel);
+
+                        // Save to database
+                        SaveRosterToDatabase(dailyViewModel);
+                    }
+
+                    TempData["SuccessMessage"] = $"Rosters for 30 days starting from {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
+                }
+                else
+                {
+                    // Single day generation
+                    AutoGenerateShifts(selectedGuards, viewModel);
+                    SaveRosterToDatabase(viewModel);
+                    TempData["SuccessMessage"] = $"Roster for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
+                }
+
                 return RedirectToAction("Index");
+            }
+            catch (System.Data.Entity.Validation.DbEntityValidationException ex)
+            {
+                // Handle validation errors
+                var errorMessages = ex.EntityValidationErrors
+                    .SelectMany(x => x.ValidationErrors)
+                    .Select(x => x.ErrorMessage);
+
+                var fullErrorMessage = string.Join("; ", errorMessages);
+                TempData["ErrorMessage"] = "Validation error: " + fullErrorMessage;
+                return RedirectToAction("Create");
+            }
+            catch (System.Data.Entity.Infrastructure.DbUpdateException ex)
+            {
+                // Handle update errors (constraint violations, etc.)
+                var innerException = GetInnerException(ex);
+                TempData["ErrorMessage"] = "Database update error: " + innerException.Message;
+                return RedirectToAction("Create");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Error creating roster: " + ex.Message;
+                // Handle all other errors
+                var innerException = GetInnerException(ex);
+                TempData["ErrorMessage"] = "Error creating roster: " + innerException.Message;
                 return RedirectToAction("Create");
             }
         }
 
-        // Auto-generate shift assignments
+        // Helper method to get the deepest inner exception
+        private Exception GetInnerException(Exception ex)
+        {
+            while (ex.InnerException != null)
+            {
+                ex = ex.InnerException;
+            }
+            return ex;
+        }
+
+        // FIXED: Auto-generate shift assignments
         private void AutoGenerateShifts(List<Guard> selectedGuards, RosterViewModel viewModel)
         {
+            // Use a safe minimum date that SQL Server can handle
+            DateTime safeMinDate = new DateTime(1753, 1, 1);
+
+            // Extract guard IDs for the query
+            var guardIds = selectedGuards.Select(g => g.GuardId).ToList();
+
             // Get previous roster data for fair rotation
             var previousRosters = db.ShiftRosters
-                .Where(r => r.RosterDate < viewModel.RosterDate && selectedGuards.Select(g => g.GuardId).Contains(r.GuardId))
+                .Where(r => r.RosterDate < viewModel.RosterDate && guardIds.Contains(r.GuardId))
                 .OrderByDescending(r => r.RosterDate)
                 .ToList();
 
-            // Create guard assignments with shift history
+            // Create guard assignments with shift history using safe minimum date
             var guardAssignments = selectedGuards.Select(guard => new
             {
                 Guard = guard,
                 LastNightShift = previousRosters
                     .Where(r => r.GuardId == guard.GuardId && r.ShiftType == "Night")
                     .OrderByDescending(r => r.RosterDate)
-                    .FirstOrDefault()?.RosterDate ?? DateTime.MinValue,
+                    .FirstOrDefault()?.RosterDate ?? safeMinDate,
                 LastDayShift = previousRosters
                     .Where(r => r.GuardId == guard.GuardId && r.ShiftType == "Day")
                     .OrderByDescending(r => r.RosterDate)
-                    .FirstOrDefault()?.RosterDate ?? DateTime.MinValue,
+                    .FirstOrDefault()?.RosterDate ?? safeMinDate,
                 NightShiftCount = previousRosters.Count(r => r.GuardId == guard.GuardId && r.ShiftType == "Night"),
                 DayShiftCount = previousRosters.Count(r => r.GuardId == guard.GuardId && r.ShiftType == "Day")
             }).ToList();

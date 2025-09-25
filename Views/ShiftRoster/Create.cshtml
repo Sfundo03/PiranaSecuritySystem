@@ -16,12 +16,26 @@
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
 
-@using (Html.BeginForm("GenerateRoster", "Instructor", FormMethod.Post))
+@using (Html.BeginForm("Create", "ShiftRoster", FormMethod.Post))
 {
     @Html.AntiForgeryToken()
 
     <div class="form-horizontal">
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <!-- Add the 30-day option -->
+        <div class="form-group">
+            <label class="control-label col-md-2">Roster Period</label>
+            <div class="col-md-10">
+                <div class="checkbox">
+                    <label>
+                        @Html.CheckBoxFor(model => model.GenerateFor30Days)
+                        Generate roster for 30 days starting from selected date
+                    </label>
+                </div>
+                <small class="text-muted">If unchecked, roster will be generated for selected date only</small>
+            </div>
+        </div>
 
         <div class="form-group">
             @Html.LabelFor(model => model.RosterDate, htmlAttributes: new { @class = "control-label col-md-2" })
@@ -56,7 +70,7 @@
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
                 <input type="submit" value="Generate Roster" class="btn btn-primary" id="submitBtn" />
-                @Html.ActionLink("Cancel", "Dashboard", null, new { @class = "btn btn-default" })
+                @Html.ActionLink("Cancel", "Index", "ShiftRoster", null, new { @class = "btn btn-default" })
             </div>
         </div>
     </div>
@@ -79,7 +93,7 @@
                     $('#selectedGuardIds').val('');
                     updateCount();
 
-                    $.post('@Url.Action("GetGuardsBySite", "Instructor")', { site: site })
+                    $.post('@Url.Action("GetGuardsBySite", "ShiftRoster")', { site: site })
                         .done(function (response) {
                             loading.hide();
                             if (response.success) {

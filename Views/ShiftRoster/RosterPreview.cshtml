@@ -118,6 +118,10 @@
             <div class="col-md-6 text-end">
                 <h2>Roster Preview for @Model.RosterDate.ToString("yyyy-MM-dd")</h2>
                 <p>Site: @Model.Site</p>
+                @if (Model.GenerateFor30Days)
+                {
+                    <p class="text-info"><strong>30-Day Generation:</strong> This will create rosters for @Model.RosterDate.ToString("yyyy-MM-dd") to @Model.RosterDate.AddDays(29).ToString("yyyy-MM-dd")</p>
+                }
             </div>
         </div>
 
@@ -161,6 +165,7 @@
                     @Html.HiddenFor(model => model.RosterDate)
                     @Html.HiddenFor(model => model.Site)
                     @Html.HiddenFor(model => model.SelectedGuardIds)
+                    @Html.HiddenFor(model => model.GenerateFor30Days)
 
                     <button type="submit" class="btn btn-success">Confirm and Save</button>
                     @Html.ActionLink("Go Back", "Create", "ShiftRoster", null, new { @class = "btn btn-default" })

@@ -14,7 +14,7 @@ namespace PiranaSecuritySystem.Models
         public int RosterId { get; set; }
 
         [Required]
-        [Display(Name = "Roster Date")]
+        [Display(Name = "datetime2")]
         [DataType(DataType.Date)]
         public DateTime RosterDate { get; set; }
 
@@ -35,9 +35,13 @@ namespace PiranaSecuritySystem.Models
         [ForeignKey("GuardId")]
         public virtual Guard Guard { get; set; }
 
-        [Display(Name = "Created Date")]
+        [Column(TypeName = "datetime2")]
         public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+        
         public string InstructorName { get; internal set; }
+
+        [Column(TypeName = "datetime2")]
         public DateTime GeneratedDate { get; internal set; }
         public string RosterData { get; internal set; }
         public string Status { get; internal set; }
@@ -50,6 +54,8 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Roster Date")]
         [DataType(DataType.Date)]
         public DateTime RosterDate { get; set; }
+
+        public bool GenerateFor30Days { get; set; }
 
         [Required]
         [Display(Name = "Site")]
