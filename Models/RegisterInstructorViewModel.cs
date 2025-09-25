@@ -6,7 +6,7 @@ namespace PiranaSecuritySystem.ViewModels
 {
     public class RegisterInstructorViewModel
     {
-
+      
 
         [Required]
         [Display(Name = "Full Name")]

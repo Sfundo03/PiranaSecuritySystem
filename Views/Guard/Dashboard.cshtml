@@ -678,31 +678,31 @@
             document.getElementById('upcomingShifts').textContent = '@ViewBag.UpcomingShifts';
         }
 
-        // Function to load recent incidents
-        function loadRecentIncidents() {
-            const container = document.getElementById('recentIncidentsContainer');
+       // Function to load recent incidents
+function loadRecentIncidents() {
+    const container = document.getElementById('recentIncidentsContainer');
 
-            // Check if we have recent incidents from ViewBag
-            const recentIncidents = @Html.Raw(Json.Encode(ViewBag.RecentIncidents));
+    // Check if we have recent incidents from ViewBag
+    const recentIncidents = @Html.Raw(Json.Encode(ViewBag.RecentIncidents));
 
-            if (recentIncidents && recentIncidents.length > 0) {
-                let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Status</th></tr></thead><tbody>';
+    if (recentIncidents && recentIncidents.length > 0) {
+        let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Status</th></tr></thead><tbody>';
 
-                recentIncidents.forEach(incident => {
-                    html += `<tr>
-                        <td>${new Date(incident.ReportDate).toLocaleDateString()}</td>
-                        <td>${incident.IncidentType || 'N/A'}</td>
-                        <td>${incident.Location || 'N/A'}</td>
-                        <td><span class="badge ${getStatusBadgeClass(incident.Status)}">${incident.Status}</span></td>
-                    </tr>`;
-                });
+        recentIncidents.forEach(incident => {
+            html += `<tr>
+                <td>${new Date(incident.ReportDate).toLocaleDateString()}</td>
+                <td>${incident.IncidentType || 'N/A'}</td>
+                <td>${incident.Location || 'N/A'}</td>
+                <td><span class="badge ${getStatusBadgeClass(incident.Status)}">${incident.Status}</span></td>
+            </tr>`;
+        });
 
-                html += '</tbody></table></div>';
-                container.innerHTML = html;
-            } else {
-                container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No recent incidents found.</div>';
-            }
-        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No recent incidents found.</div>';
+    }
+}
 
         // Function to submit attendance
         function submitAttendance(status) {

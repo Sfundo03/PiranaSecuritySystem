@@ -4,6 +4,61 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<style>
+    /* Custom badge styles for better visibility */
+    .badge-custom {
+        color: white !important;
+        font-weight: bold;
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+    }
+
+    .badge-priority-critical {
+        background-color: #dc3545;
+    }
+
+    .badge-priority-high {
+        background-color: #fd7e14;
+    }
+
+    .badge-priority-medium {
+        background-color: #20c997;
+    }
+
+    .badge-priority-low {
+        background-color: #6c757d;
+    }
+
+    .badge-status-resolved {
+        background-color: #198754;
+    }
+
+    .badge-status-inprogress {
+        background-color: #0d6efd;
+    }
+
+    .badge-status-pending {
+        background-color: #ffc107;
+        color: #000 !important;
+    }
+
+    /* Ensure Font Awesome loads properly */
+    .fas, .fa-eye {
+        font-family: "Font Awesome 5 Free" !important;
+        font-weight: 900;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Action buttons styling */
+    .action-buttons {
+        white-space: nowrap;
+    }
+</style>
+
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -89,10 +144,10 @@
                                 <td>@item.ReportDate.ToString("MM/dd/yyyy HH:mm")</td>
                                 <td>@(item.Resident?.FullName ?? "N/A")</td>
                                 <td>@item.Location</td>
-                                <td>
+                                <td class="action-buttons">
                                     <a href="@Url.Action("IncidentDetails", "Director", new { id = item.IncidentReportId })"
-                                       class="btn btn-info btn-sm" title="View Details">
-                                        <i class="fas fa-eye"></i>
+                                       class="btn btn-info btn-sm" title="View Details and Update Feedback">
+                                        <i class="fas fa-eye"></i> View
                                     </a>
                                 </td>
                             </tr>
@@ -108,65 +163,82 @@
 @functions {
     private IHtmlString GetPriorityBadge(string priority)
     {
-        string badgeClass;
+        string badgeClass = "badge badge-custom ";
+        string displayText = priority ?? "Unknown";
+
         switch (priority?.ToLower())
         {
             case "critical":
-                badgeClass = "badge badge-danger";
+                badgeClass += "badge-priority-critical";
                 break;
             case "high":
-                badgeClass = "badge badge-warning";
+                badgeClass += "badge-priority-high";
                 break;
             case "medium":
-                badgeClass = "badge badge-info";
+                badgeClass += "badge-priority-medium";
                 break;
             case "low":
-                badgeClass = "badge badge-success";
+                badgeClass += "badge-priority-low";
                 break;
             default:
-                badgeClass = "badge badge-secondary";
+                badgeClass += "badge-secondary";
                 break;
         }
-        return new HtmlString($"<span class='{badgeClass}'>{priority}</span>");
+        return new HtmlString($"<span class='{badgeClass}'>{displayText}</span>");
     }
 
     private IHtmlString GetStatusBadge(string status)
     {
-        string badgeClass;
+        string badgeClass = "badge badge-custom ";
+        string displayText = status ?? "Unknown";
+
         switch (status?.ToLower())
         {
             case "resolved":
-                badgeClass = "badge badge-success";
+                badgeClass += "badge-status-resolved";
                 break;
             case "in progress":
-                badgeClass = "badge badge-primary";
+                badgeClass += "badge-status-inprogress";
                 break;
             case "pending":
-                badgeClass = "badge badge-warning";
+                badgeClass += "badge-status-pending";
                 break;
             default:
-                badgeClass = "badge badge-secondary";
+                badgeClass += "badge-secondary";
                 break;
         }
-        return new HtmlString($"<span class='{badgeClass}'>{status}</span>");
+        return new HtmlString($"<span class='{badgeClass}'>{displayText}</span>");
     }
 }
 
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Initialize DataTable
             $('#dataTable').DataTable({
                 "pageLength": 25,
                 "order": [[5, "desc"]], // Sort by report date descending
                 "columnDefs": [
                     { "orderable": false, "targets": [2, 8] } // Make description and actions columns not sortable
-                ]
+                ],
+                "language": {
+                    "search": "Search incidents:",
+                    "lengthMenu": "Show _MENU_ incidents per page",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ incidents",
+                    "infoEmpty": "No incidents available",
+                    "infoFiltered": "(filtered from _MAX_ total incidents)"
+                }
             });
 
             // Set the selected values for filters
             $('#status').val('@ViewBag.StatusFilter');
             $('#priority').val('@ViewBag.PriorityFilter');
             $('#type').val('@ViewBag.TypeFilter');
+
+            // Add Font Awesome CSS if not already loaded
+            if (!$('link[href*="font-awesome"]').length && !$('link[href*="fontawesome"]').length) {
+                $('head').append('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">');
+            }
         });
     </script>
 }

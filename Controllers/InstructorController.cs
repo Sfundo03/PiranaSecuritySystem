@@ -97,7 +97,7 @@ namespace PiranaSecuritySystem.Controllers
                     .AsEnumerable() // Switch to client-side evaluation
                     .Select(g => new {
                         id = g.GuardId,
-                        name = g.Guard_FName + " " + g.Guard_LName,
+                        name = g.Guard_FName + " " + g.Guard_LName, 
                         badge = g.GuardId.ToString()
                     })
                     .ToList();
@@ -162,7 +162,7 @@ namespace PiranaSecuritySystem.Controllers
                         Guard_FName = g.Guard_FName,
                         Guard_LName = g.Guard_LName,
                         Site = g.Site
-
+                        
                     })
                     .ToList();
 

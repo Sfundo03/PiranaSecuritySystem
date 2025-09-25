@@ -60,7 +60,13 @@
         margin-bottom: 15px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         position: relative;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+
+        .incident-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
 
     .incident-id {
         position: absolute;
@@ -71,13 +77,14 @@
         border-radius: 4px;
         font-size: 0.8em;
         color: #7f8c8d;
+        font-weight: bold;
     }
 
     .incident-type {
         font-weight: bold;
         color: #2c3e50;
         font-size: 1.2em;
-        margin-right: 100px; /* Space for incident ID */
+        margin-right: 120px;
     }
 
     .incident-date {
@@ -87,10 +94,12 @@
 
     .incident-status {
         display: inline-block;
-        padding: 3px 10px;
-        border-radius: 15px;
+        padding: 5px 15px;
+        border-radius: 20px;
         font-size: 0.9em;
         font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .status-pending {
@@ -108,46 +117,64 @@
         color: white;
     }
 
+    .status-critical {
+        background: #e74c3c;
+        color: white;
+    }
+
     .no-incidents {
         text-align: center;
         padding: 40px;
         background: white;
         border-radius: 5px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
     }
 
     .view-feedback-btn {
         background: #3498db;
         color: white;
         border: none;
-        padding: 5px 10px;
+        padding: 8px 15px;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 0.8em;
+        font-size: 0.9em;
         margin-left: 10px;
+        transition: background 0.3s ease;
     }
 
         .view-feedback-btn:hover {
             background: #2980b9;
         }
 
+        .view-feedback-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
     .download-attachment-btn {
         background: #27ae60;
         color: white;
         border: none;
-        padding: 5px 10px;
+        padding: 8px 15px;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 0.8em;
+        font-size: 0.9em;
         margin-left: 10px;
         text-decoration: none;
         display: inline-block;
+        transition: background 0.3s ease;
     }
 
         .download-attachment-btn:hover {
             background: #219653;
             color: white;
             text-decoration: none;
+        }
+
+        .download-attachment-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
         }
 
     .feedback-modal {
@@ -163,12 +190,14 @@
 
     .feedback-modal-content {
         background-color: #fefefe;
-        margin: 15% auto;
-        padding: 20px;
+        margin: 10% auto;
+        padding: 30px;
         border: 1px solid #888;
-        width: 50%;
-        border-radius: 5px;
+        width: 60%;
+        max-width: 600px;
+        border-radius: 10px;
         position: relative;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
     .close-modal {
@@ -177,35 +206,39 @@
         font-size: 28px;
         font-weight: bold;
         cursor: pointer;
+        line-height: 1;
     }
 
         .close-modal:hover {
-            color: black;
+            color: #333;
         }
 
     .feedback-text {
         margin-top: 15px;
-        padding: 10px;
+        padding: 15px;
         background: #f9f9f9;
-        border-radius: 4px;
+        border-radius: 5px;
         min-height: 100px;
+        border-left: 4px solid #3498db;
     }
 
     .no-feedback {
         color: #7f8c8d;
         font-style: italic;
+        text-align: center;
+        padding: 20px;
     }
 
     .attachment-container {
-        margin-top: 15px;
-        padding: 10px;
+        margin-top: 20px;
+        padding: 15px;
         background: #f0f8ff;
-        border-radius: 4px;
+        border-radius: 5px;
         border-left: 4px solid #3498db;
     }
 
     .action-buttons {
-        margin-top: 20px;
+        margin-top: 30px;
         text-align: center;
     }
 
@@ -216,16 +249,132 @@
         border: none;
         border-radius: 5px;
         text-decoration: none;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
         margin: 0 10px;
         transition: background 0.3s ease;
+        font-size: 1em;
     }
 
         .btn-primary:hover {
             background: #2980b9;
             color: white;
             text-decoration: none;
+            transform: translateY(-2px);
         }
+
+        .btn-primary i {
+            margin-right: 8px;
+        }
+
+    .incidents-list {
+        margin-bottom: 30px;
+    }
+
+    .incident-priority {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        font-weight: bold;
+        margin-left: 10px;
+        text-transform: uppercase;
+    }
+
+    .priority-low {
+        background: #27ae60;
+        color: white;
+    }
+
+    .priority-medium {
+        background: #f39c12;
+        color: white;
+    }
+
+    .priority-high {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .priority-critical {
+        background: #8e44ad;
+        color: white;
+    }
+
+    .incident-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .incident-details {
+        margin: 10px 0;
+        line-height: 1.6;
+    }
+
+    .incident-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        margin-top: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    @@media (max-width: 768px) {
+        .feedback-modal-content {
+            width: 90%;
+            margin: 5% auto;
+            padding: 20px;
+        }
+
+        .incident-meta {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .incident-actions {
+            justify-content: flex-start;
+            margin-top: 10px;
+        }
+
+        .navigation-header {
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            margin: 5px 0;
+        }
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .alert-success {
+        background: rgba(46, 204, 113, 0.2);
+        border: 1px solid #2ecc71;
+        color: #27ae60;
+    }
+
+    .alert-danger {
+        background: rgba(231, 76, 60, 0.2);
+        border: 1px solid #e74c3c;
+        color: #c0392b;
+    }
 </style>
 
 <div class="incidents-container">
@@ -237,76 +386,95 @@
         <h3 style="margin: 0;">My Incident Reports</h3>
     </div>
 
+    <!-- Display TempData messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+        </div>
+    }
+
     <div class="incidents-header">
-        <h2>My Reported Incidents</h2>
-        <p>View the status of your reported issues</p>
+        <h2><i class="fas fa-clipboard-list"></i> My Reported Incidents</h2>
+        <p>View the status and details of your reported security incidents</p>
     </div>
 
-    @if (Model != null && Model.Any())
-    {
-        foreach (var incident in Model)
+    <div class="incidents-list">
+        @if (Model != null && Model.Any())
         {
-            <div class="incident-card">
-                <span class="incident-id">ID: @incident.IncidentReportId</span>
+            foreach (var incident in Model.OrderByDescending(i => i.ReportDate))
+            {
+                <div class="incident-card">
+                    <span class="incident-id">ID: #@incident.IncidentReportId</span>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span class="incident-type">@incident.IncidentType</span>
-                    <span class="incident-date">@incident.ReportDate.ToString("MMM dd, yyyy hh:mm tt")</span>
-                </div>
-
-                <div style="margin-bottom: 10px;">
-                    <p>@incident.Description</p>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <span>Location: </span>
-                        <strong>@incident.Location</strong>
+                    <div class="incident-meta">
+                        <div>
+                            <span class="incident-type">@incident.IncidentType</span>
+                            @if (!string.IsNullOrEmpty(incident.Priority))
+                            {
+                                <span class="incident-priority priority-@incident.Priority.ToLower()">@incident.Priority</span>
+                            }
+                        </div>
+                        <div>
+                            <span class="incident-date">
+                                <i class="fas fa-calendar"></i> @incident.ReportDate.ToString("MMM dd, yyyy hh:mm tt")
+                            </span>
+                        </div>
                     </div>
-                    <div>
-                        <span class="incident-status status-@incident.Status.ToLower()">@incident.Status</span>
-                        <button class="view-feedback-btn" data-incident-id="@incident.IncidentReportId">View Feedback</button>
 
-                        <!-- Direct download button on the incident card -->
+                    <div class="incident-details">
+                        <p><strong>Description:</strong> @incident.Description</p>
+                        <p><strong>Location:</strong> @incident.Location</p>
+                        <p><strong>Reported By:</strong> @incident.ReportedBy</p>
+                    </div>
+
+                    <div class="incident-actions">
+                        <span class="incident-status status-@incident.Status.ToLower().Replace(" ", "")">
+                            <i class="fas fa-@(incident.Status == "Resolved" ? "check" : incident.Status == "In Progress" ? "sync" : "clock")"></i>
+                            @incident.Status
+                        </span>
+
+                        <button class="view-feedback-btn"
+                                data-incident-id="@incident.IncidentReportId"
+                                title="View feedback for this incident">
+                            <i class="fas fa-comment"></i> View Feedback
+                        </button>
+
                         @if (!string.IsNullOrEmpty(incident.FeedbackAttachment))
                         {
                             <a href="@Url.Action("DownloadFeedbackAttachment", "Resident", new { id = incident.IncidentReportId })"
                                class="download-attachment-btn"
-                               title="Download Feedback Attachment">
-                                Download PDF
+                               title="Download feedback attachment">
+                                <i class="fas fa-download"></i> Download PDF
                             </a>
                         }
                     </div>
                 </div>
-
-                @if (!string.IsNullOrEmpty(incident.Priority))
-                {
-                    <div style="margin-top: 10px;">
-                        <span>Priority: </span>
-                        <strong>@incident.Priority</strong>
-                    </div>
-                }
+            }
+        }
+        else
+        {
+            <div class="no-incidents">
+                <i class="fas fa-clipboard-list" style="font-size: 3em; color: #bdc3c7; margin-bottom: 15px;"></i>
+                <h3>No incidents reported yet</h3>
+                <p>You haven't reported any incidents yet. Click the button below to report your first incident.</p>
             </div>
         }
-    }
-    else
-    {
-        <div class="no-incidents">
-            <h3>No incidents reported yet</h3>
-            <p>You haven't reported any incidents yet.</p>
-            <div class="action-buttons">
-                <a href="@Url.Action("ReportIncident", "Resident")" class="btn btn-primary">Report an Incident</a>
-                <a href="@Url.Action("Dashboard", "Resident")" class="btn btn-primary">Back to Dashboard</a>
-            </div>
-        </div>
-    }
+    </div>
 
     <!-- Action buttons at the bottom -->
     <div class="action-buttons">
-        <a href="@Url.Action("ReportIncident", "Resident")" class="btn btn-primary">
+        <a href="@Url.Action("ReportIncident", "Resident")" class="btn-primary">
             <i class="fas fa-plus"></i> Report New Incident
         </a>
-        <a href="@Url.Action("Dashboard", "Resident")" class="btn btn-primary">
+        <a href="@Url.Action("Dashboard", "Resident")" class="btn-primary">
             <i class="fas fa-home"></i> Back to Dashboard
         </a>
     </div>
@@ -316,13 +484,15 @@
 <div id="feedbackModal" class="feedback-modal">
     <div class="feedback-modal-content">
         <span class="close-modal">&times;</span>
-        <h3>Feedback for Incident #<span id="incidentIdDisplay"></span></h3>
+        <h3><i class="fas fa-comment"></i> Feedback for Incident #<span id="incidentIdDisplay"></span></h3>
         <div class="feedback-text" id="feedbackContent">
             <p class="no-feedback">Loading feedback...</p>
         </div>
         <div id="attachmentContainer" class="attachment-container" style="display: none;">
-            <h4>Attachment</h4>
-            <a id="downloadAttachmentLink" href="#" class="download-attachment-btn">Download Attachment</a>
+            <h4><i class="fas fa-paperclip"></i> Attachment</h4>
+            <a id="downloadAttachmentLink" href="#" class="download-attachment-btn">
+                <i class="fas fa-download"></i> Download Attachment
+            </a>
         </div>
     </div>
 </div>
@@ -337,10 +507,15 @@
             // When user clicks on view feedback button
             $(".view-feedback-btn").click(function () {
                 var incidentId = $(this).data("incident-id");
+                var button = $(this);
+
+                // Disable button during loading
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Loading...');
+
                 $("#incidentIdDisplay").text(incidentId);
 
                 // Show loading message
-                $("#feedbackContent").html('<p class="no-feedback">Loading feedback...</p>');
+                $("#feedbackContent").html('<p class="no-feedback"><i class="fas fa-spinner fa-spin"></i> Loading feedback...</p>');
                 $("#attachmentContainer").hide();
 
                 // Show modal
@@ -350,9 +525,9 @@
                 $.get('@Url.Action("GetIncidentFeedback", "Resident")', { id: incidentId })
                     .done(function (data) {
                         if (data.error) {
-                            $("#feedbackContent").html('<p class="no-feedback">' + data.error + '</p>');
+                            $("#feedbackContent").html('<p class="no-feedback"><i class="fas fa-exclamation-triangle"></i> ' + data.error + '</p>');
                         } else if (data.feedback) {
-                            $("#feedbackContent").html('<p>' + data.feedback + '</p>');
+                            $("#feedbackContent").html('<p style="white-space: pre-wrap;">' + data.feedback + '</p>');
 
                             // Show attachment if available
                             if (data.hasAttachment && data.attachmentName) {
@@ -364,13 +539,18 @@
                                 $("#attachmentContainer").hide();
                             }
                         } else {
-                            $("#feedbackContent").html('<p class="no-feedback">No feedback available for this incident yet.</p>');
+                            $("#feedbackContent").html('<p class="no-feedback"><i class="fas fa-info-circle"></i> No feedback available for this incident yet. Please check back later.</p>');
                             $("#attachmentContainer").hide();
                         }
                     })
-                    .fail(function () {
-                        $("#feedbackContent").html('<p class="no-feedback">Error loading feedback. Please try again later.</p>');
+                    .fail(function (xhr, status, error) {
+                        console.error('Error loading feedback:', error);
+                        $("#feedbackContent").html('<p class="no-feedback"><i class="fas fa-exclamation-triangle"></i> Error loading feedback. Please try again later.</p>');
                         $("#attachmentContainer").hide();
+                    })
+                    .always(function () {
+                        // Re-enable button
+                        button.prop('disabled', false).html('<i class="fas fa-comment"></i> View Feedback');
                     });
             });
 
@@ -385,6 +565,27 @@
                     modal.style.display = "none";
                 }
             }
+
+            // Close modal with Escape key
+            $(document).keyup(function (e) {
+                if (e.keyCode === 27) { // Escape key
+                    modal.style.display = "none";
+                }
+            });
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function () {
+                $('.alert').fadeOut(1000, function () {
+                    $(this).remove();
+                });
+            }, 5000);
+
+            // Add click to close for alerts
+            $('.alert').click(function () {
+                $(this).fadeOut(300, function () {
+                    $(this).remove();
+                });
+            });
         });
     </script>
 }

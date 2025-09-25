@@ -1,4 +1,4 @@
-﻿@model PiranaSecuritySystem.Models.IncidentReport
+﻿@model PiranaSecuritySystem.Controllers.ReportIncidentViewModel
 
 @{
     ViewBag.Title = "Report Incident";
@@ -7,7 +7,6 @@
 }
 
 <style>
-
     html, body {
         height: 100%;
         margin: 0;
@@ -138,11 +137,6 @@
         background: rgba(231, 76, 60, 0.1) !important;
     }
 
-    .readonly-field {
-        background: rgba(255, 255, 255, 0.7) !important;
-        cursor: not-allowed;
-    }
-
     .navigation-header {
         background: rgba(255, 255, 255, 0.1);
         padding: 15px 20px;
@@ -200,6 +194,17 @@
         margin-bottom: 25px;
     }
 
+    .character-count {
+        text-align: right;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-top: 5px;
+    }
+
+    .character-count-warning {
+        color: #e74c3c;
+    }
+
     @@media (max-width: 768px) {
         .form-row {
             grid-template-columns: 1fr;
@@ -233,21 +238,22 @@
         @if (TempData["ErrorMessage"] != null)
         {
             <div class="alert alert-danger">
-                @TempData["ErrorMessage"]
+                <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
             </div>
         }
 
         @if (TempData["SuccessMessage"] != null)
         {
             <div class="alert alert-success">
-                @TempData["SuccessMessage"]
+                <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
             </div>
         }
 
         <div class="form-card">
-            @using (Html.BeginForm("ReportIncident", "Resident", FormMethod.Post))
+            @using (Html.BeginForm("ReportIncident", "Resident", FormMethod.Post, new { id = "incidentForm" }))
             {
                 @Html.AntiForgeryToken()
+                @Html.HiddenFor(model => model.ResidentId)
 
                 <div class="form-row">
                     <div class="form-group">
@@ -273,25 +279,28 @@
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.Description)
-                    @Html.TextAreaFor(model => model.Description, new { @class = "form-control", rows = 6, required = "required", placeholder = "Please describe the incident in detail including date, time, people involved, and any other relevant information..." })
+                    @Html.TextAreaFor(model => model.Description, new { @class = "form-control", rows = 6, required = "required", placeholder = "Please describe the incident in detail including date, time, people involved, and any other relevant information...", maxlength = "1000" })
+                    <div class="character-count">
+                        <span id="charCount">0</span> / 1000 characters
+                    </div>
                     @Html.ValidationMessageFor(model => model.Description)
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         @Html.LabelFor(model => model.Location)
-                        @Html.TextBoxFor(model => model.Location, new { @class = "form-control readonly-field", @readonly = "readonly", placeholder = "Location will be auto-filled" })
+                        @Html.DropDownListFor(model => model.Location, ViewBag.Locations as IEnumerable<SelectListItem>, "Select Location", new { @class = "form-control", required = "required" })
                         @Html.ValidationMessageFor(model => model.Location)
                     </div>
 
                     <div class="form-group">
                         @Html.LabelFor(model => model.EmergencyContact)
-                        @Html.TextBoxFor(model => model.EmergencyContact, new { @class = "form-control", placeholder = "Your emergency contact number" })
+                        @Html.TextBoxFor(model => model.EmergencyContact, new { @class = "form-control", required = "required", placeholder = "Your emergency contact number", type = "tel" })
                         @Html.ValidationMessageFor(model => model.EmergencyContact)
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary">
+                <button type="submit" class="btn-primary" id="submitBtn">
                     <i class="fas fa-paper-plane"></i> Submit Incident Report
                 </button>
             }
@@ -306,33 +315,89 @@
 @section scripts {
     <script>
         $(document).ready(function () {
-            // Add validation styling
-            $('form').submit(function () {
+            // Character count for description
+            function updateCharacterCount() {
+                var currentLength = $('#Description').val().length;
+                $('#charCount').text(currentLength);
+
+                if (currentLength > 900) {
+                    $('#charCount').addClass('character-count-warning');
+                } else {
+                    $('#charCount').removeClass('character-count-warning');
+                }
+            }
+
+            $('#Description').on('input', updateCharacterCount);
+            updateCharacterCount(); // Initial count
+
+            // Form validation and submission
+            $('#incidentForm').submit(function (e) {
                 var isValid = true;
-                $('select[required], textarea[required]').each(function () {
+
+                // Clear previous errors
+                $('.input-validation-error').removeClass('input-validation-error');
+                $('.field-validation-error').hide();
+
+                // Validate required fields
+                $('select[required], textarea[required], input[required]').each(function () {
                     if ($(this).val() === '' || $(this).val() === null) {
                         $(this).addClass('input-validation-error');
                         isValid = false;
-                    } else {
-                        $(this).removeClass('input-validation-error');
                     }
                 });
-                return isValid;
+
+                if (!isValid) {
+                    e.preventDefault();
+                    showMessage('Please fill in all required fields.', 'error');
+                    return false;
+                }
+
+                // Show loading state
+                $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Submitting...');
             });
 
             // Remove validation error on change
-            $('select, textarea').change(function () {
+            $('select, textarea, input').change(function () {
                 if ($(this).val() !== '') {
                     $(this).removeClass('input-validation-error');
                 }
             });
 
-            // Add character count for description
-            $('#Description').after('<div style="text-align: right; color: #7f8c8d; font-size: 0.9rem; margin-top: 5px;"><span id="charCount">0</span> characters</div>');
+            // Auto-format phone number
+            $('#EmergencyContact').on('input', function () {
+                var value = $(this).val().replace(/\D/g, '');
+                if (value.length > 10) {
+                    value = value.substring(0, 10);
+                }
+                $(this).val(value);
+            });
 
-            $('#Description').on('input', function () {
-                $('#charCount').text($(this).val().length);
-            }).trigger('input');
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function () {
+                $('.alert').fadeOut(1000, function () {
+                    $(this).remove();
+                });
+            }, 5000);
+
+            // Click to dismiss alerts
+            $('.alert').click(function () {
+                $(this).fadeOut(300, function () {
+                    $(this).remove();
+                });
+            });
+
+            function showMessage(message, type) {
+                var alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+                var icon = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+
+                $('.alert').remove(); // Remove existing alerts
+
+                var alertHtml = '<div class="alert ' + alertClass + '">' +
+                    '<i class="fas ' + icon + '"></i> ' + message +
+                    '</div>';
+
+                $('.form-header').after(alertHtml);
+            }
         });
     </script>
 }

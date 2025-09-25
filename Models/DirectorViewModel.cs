@@ -20,22 +20,7 @@ namespace PiranaSecuritySystem.ViewModels
         public List<IncidentTypeCount> IncidentTypes { get; set; }
     }
 
-    public class StatisticsViewModel
-    {
-        public int TotalIncidents { get; set; }
-        public int ResolvedIncidents { get; set; }
-        public int PendingIncidents { get; set; }
-        public int InProgressIncidents { get; set; }
-        public int HighPriorityIncidents { get; set; }
-        public int CriticalPriorityIncidents { get; set; }
-        public int ThisMonthIncidents { get; set; }
-        public List<IncidentTypeCount> IncidentByType { get; set; }
-        public List<IncidentStatusCount> IncidentByStatus { get; set; }
-        public List<IncidentPriorityCount> IncidentByPriority { get; set; }
-        public List<MonthlyIncidentCount> MonthlyIncidents { get; set; }
-        public List<dynamic> ResolutionTimes { get; set; }
-    }
-
+    
     public class ReportsViewModel
     {
         public int ReportYear { get; set; }

@@ -41,12 +41,25 @@ namespace PiranaSecuritySystem.Controllers
                 ViewBag.ResolvedIncidents = db.IncidentReports.Count(r => r.GuardId == guard.GuardId && r.Status == "Resolved");
                 ViewBag.UpcomingShifts = db.ShiftRosters.Count(s => s.GuardId == guard.GuardId && s.RosterDate >= DateTime.Today);
 
-                // Get recent incidents for dashboard
+                // Get recent incidents for dashboard using PROJECTION to avoid circular references
                 var recentIncidents = db.IncidentReports
-                .Where(r => r.GuardId == guard.GuardId) // Changed from ResidentId to GuardId
-                .OrderByDescending(r => r.ReportDate)
-                .Take(5)
-                .ToList();
+                    .Where(r => r.GuardId == guard.GuardId)
+                    .OrderByDescending(r => r.ReportDate)
+                    .Take(5)
+                    .Select(r => new // Using anonymous type projection
+                    {
+                        r.IncidentReportId,
+                        r.ReportDate,
+                        r.IncidentType,
+                        r.Location,
+                        r.Status,
+                        r.Description,
+                        r.Priority,
+                        // Only include scalar properties, avoid navigation properties
+                        // Don't include: r.Guard, r.Resident, etc.
+                    })
+                    .ToList();
+
                 ViewBag.RecentIncidents = recentIncidents;
 
                 // Return the view with guard model
