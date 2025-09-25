@@ -117,12 +117,13 @@
             </div>
             <div class="col-md-6 text-end">
                 <h2>Roster Preview for @Model.RosterDate.ToString("yyyy-MM-dd")</h2>
+                <p>Site: @Model.Site</p>
             </div>
         </div>
 
         <div class="row">
             <div class="col-md-4">
-                <h3>Day Shift (4 guards)</h3>
+                <h3>Day Shift (@Model.DayShiftGuards.Count guards)</h3>
                 <ul class="list-group">
                     @foreach (var guard in Model.DayShiftGuards)
                     {
@@ -132,7 +133,7 @@
             </div>
 
             <div class="col-md-4">
-                <h3>Night Shift (4 guards)</h3>
+                <h3>Night Shift (@Model.NightShiftGuards.Count guards)</h3>
                 <ul class="list-group">
                     @foreach (var guard in Model.NightShiftGuards)
                     {
@@ -142,7 +143,7 @@
             </div>
 
             <div class="col-md-4">
-                <h3>Off Duty (4 guards)</h3>
+                <h3>Off Duty (@Model.OffDutyGuards.Count guards)</h3>
                 <ul class="list-group">
                     @foreach (var guard in Model.OffDutyGuards)
                     {
@@ -154,14 +155,15 @@
 
         <div class="row" style="margin-top: 20px;">
             <div class="col-md-12 text-center">
-                @using (Html.BeginForm("ConfirmCreate", "ShiftRoster"))
+                @using (Html.BeginForm("ConfirmCreate", "ShiftRoster", FormMethod.Post))
                 {
                     @Html.AntiForgeryToken()
                     @Html.HiddenFor(model => model.RosterDate)
+                    @Html.HiddenFor(model => model.Site)
                     @Html.HiddenFor(model => model.SelectedGuardIds)
 
                     <button type="submit" class="btn btn-success">Confirm and Save</button>
-                    @Html.ActionLink("Go Back", "Create", null, new { @class = "btn btn-default" })
+                    @Html.ActionLink("Go Back", "Create", "ShiftRoster", null, new { @class = "btn btn-default" })
                 }
             </div>
         </div>

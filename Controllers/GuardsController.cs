@@ -488,7 +488,7 @@ namespace PiranaSecuritySystem.Controllers
                         ShiftType = s.ShiftType,
                         StartTime = GetShiftStartTime(s.ShiftType),
                         EndTime = GetShiftEndTime(s.ShiftType),
-                        Location = s.Location ?? "Main Gate",
+                        Location = (string)(s.Location ?? "Main Gate"),
                         Status = s.Status ?? "Scheduled",
                         HasCheckIn = checkIns.Any(c => c.GuardId == guard.GuardId &&
                                                      c.CheckInTime.Date == s.RosterDate.Date &&

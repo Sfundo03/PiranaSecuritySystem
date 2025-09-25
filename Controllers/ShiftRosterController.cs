@@ -49,12 +49,10 @@ namespace PiranaSecuritySystem.Controllers
                 .ToList();
 
             ViewBag.Sites = new SelectList(sites);
-            ViewBag.Guards = new MultiSelectList(new List<Guard>(), "GuardId", "FullName");
-
             return View(viewModel);
         }
 
-        // AJAX method to get guards by site - FIXED
+        // AJAX method to get guards by site
         [HttpPost]
         public JsonResult GetGuardsBySite(string site)
         {
@@ -65,7 +63,7 @@ namespace PiranaSecuritySystem.Controllers
                     .Select(g => new
                     {
                         id = g.GuardId,
-                        name = g.Guard_FName + " " + g.Guard_LName, // Concatenate instead of using FullName
+                        name = g.Guard_FName + " " + g.Guard_LName,
                         badge = g.PSIRAnumber
                     })
                     .ToList();
@@ -85,10 +83,10 @@ namespace PiranaSecuritySystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Validate exactly 12 guards selected
-                if (viewModel.SelectedGuardIds == null || viewModel.SelectedGuardIds.Count != 12)
+                // Use GuardIdList instead of SelectedGuardIds
+                if (viewModel.GuardIdList == null || viewModel.GuardIdList.Count != 12)
                 {
-                    ModelState.AddModelError("SelectedGuardIds", "Please select exactly 12 guards.");
+                    ModelState.AddModelError("", "Please select exactly 12 guards.");
                     PopulateSiteDropdown();
                     return View(viewModel);
                 }
@@ -102,9 +100,9 @@ namespace PiranaSecuritySystem.Controllers
                     return View(viewModel);
                 }
 
-                // Get selected guards
+                // Get selected guards using GuardIdList
                 var selectedGuards = db.Guards
-                    .Where(g => viewModel.SelectedGuardIds.Contains(g.GuardId))
+                    .Where(g => viewModel.GuardIdList.Contains(g.GuardId))
                     .ToList();
 
                 // Validate all guards belong to the selected site
@@ -116,8 +114,11 @@ namespace PiranaSecuritySystem.Controllers
                     return View(viewModel);
                 }
 
-                // Auto-generate shift assignments with improved algorithm
+                // Auto-generate shift assignments
                 AutoGenerateShifts(selectedGuards, viewModel);
+
+                // Ensure SelectedGuardIds is properly set for the preview
+                viewModel.SelectedGuardIds = string.Join(",", viewModel.GuardIdList);
 
                 // Show preview
                 return View("RosterPreview", viewModel);
@@ -132,28 +133,46 @@ namespace PiranaSecuritySystem.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult ConfirmCreate(RosterViewModel viewModel)
         {
-            if (viewModel.SelectedGuardIds == null || viewModel.SelectedGuardIds.Count != 12)
+            try
             {
-                TempData["ErrorMessage"] = "Invalid guard selection. Please try again.";
+                // Parse the guard IDs from the hidden field
+                var guardIds = new List<int>();
+                if (!string.IsNullOrEmpty(viewModel.SelectedGuardIds))
+                {
+                    guardIds = viewModel.SelectedGuardIds.Split(',')
+                        .Where(id => !string.IsNullOrEmpty(id))
+                        .Select(int.Parse)
+                        .ToList();
+                }
+
+                if (guardIds.Count != 12)
+                {
+                    TempData["ErrorMessage"] = "Invalid guard selection. Please select exactly 12 guards.";
+                    return RedirectToAction("Create");
+                }
+
+                // Get selected guards
+                var selectedGuards = db.Guards
+                    .Where(g => guardIds.Contains(g.GuardId))
+                    .ToList();
+
+                // Regenerate shifts
+                AutoGenerateShifts(selectedGuards, viewModel);
+
+                // Save to database
+                SaveRosterToDatabase(viewModel);
+
+                TempData["SuccessMessage"] = $"Roster for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error creating roster: " + ex.Message;
                 return RedirectToAction("Create");
             }
-
-            // Get selected guards
-            var selectedGuards = db.Guards
-                .Where(g => viewModel.SelectedGuardIds.Contains(g.GuardId))
-                .ToList();
-
-            // Regenerate shifts
-            AutoGenerateShifts(selectedGuards, viewModel);
-
-            // Save to database
-            SaveRosterToDatabase(viewModel);
-
-            TempData["SuccessMessage"] = $"Roster for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
-            return RedirectToAction("Index");
         }
 
-        // Improved auto-generate shift assignments
+        // Auto-generate shift assignments
         private void AutoGenerateShifts(List<Guard> selectedGuards, RosterViewModel viewModel)
         {
             // Get previous roster data for fair rotation
@@ -195,8 +214,9 @@ namespace PiranaSecuritySystem.Controllers
             // Remaining are off duty
             var offDuty = guardAssignments.Except(nightShiftCandidates).Except(remainingForDay).ToList();
 
-            viewModel.NightShiftGuards = nightShiftCandidates.Select(g => g.Guard).ToList();
+            // Assign to viewModel
             viewModel.DayShiftGuards = remainingForDay.Select(g => g.Guard).ToList();
+            viewModel.NightShiftGuards = nightShiftCandidates.Select(g => g.Guard).ToList();
             viewModel.OffDutyGuards = offDuty.Select(g => g.Guard).ToList();
         }
 
@@ -265,11 +285,15 @@ namespace PiranaSecuritySystem.Controllers
             {
                 RosterDate = date,
                 Site = site,
-                SelectedGuardIds = rosterItems.Select(r => r.GuardId).ToList(),
-                DayShiftGuards = rosterItems.Where(r => r.ShiftType == "Day").Select(r => r.Guard).ToList(),
-                NightShiftGuards = rosterItems.Where(r => r.ShiftType == "Night").Select(r => r.Guard).ToList(),
-                OffDutyGuards = rosterItems.Where(r => r.ShiftType == "Off").Select(r => r.Guard).ToList()
+                GuardIdList = rosterItems.Select(r => r.GuardId).ToList()
             };
+
+            // Set the SelectedGuardIds from the GuardIdList
+            viewModel.SelectedGuardIds = string.Join(",", viewModel.GuardIdList);
+
+            viewModel.DayShiftGuards = rosterItems.Where(r => r.ShiftType == "Day").Select(r => r.Guard).ToList();
+            viewModel.NightShiftGuards = rosterItems.Where(r => r.ShiftType == "Night").Select(r => r.Guard).ToList();
+            viewModel.OffDutyGuards = rosterItems.Where(r => r.ShiftType == "Off").Select(r => r.Guard).ToList();
 
             PopulateSiteDropdown();
             return View(viewModel);
@@ -283,9 +307,9 @@ namespace PiranaSecuritySystem.Controllers
             if (ModelState.IsValid)
             {
                 // Validate exactly 12 guards selected
-                if (viewModel.SelectedGuardIds == null || viewModel.SelectedGuardIds.Count != 12)
+                if (viewModel.GuardIdList == null || viewModel.GuardIdList.Count != 12)
                 {
-                    ModelState.AddModelError("SelectedGuardIds", "Please select exactly 12 guards.");
+                    ModelState.AddModelError("", "Please select exactly 12 guards.");
                     PopulateSiteDropdown();
                     return View(viewModel);
                 }
@@ -296,7 +320,7 @@ namespace PiranaSecuritySystem.Controllers
 
                 // Get selected guards
                 var selectedGuards = db.Guards
-                    .Where(g => viewModel.SelectedGuardIds.Contains(g.GuardId))
+                    .Where(g => viewModel.GuardIdList.Contains(g.GuardId))
                     .ToList();
 
                 // Auto-generate new shift assignments

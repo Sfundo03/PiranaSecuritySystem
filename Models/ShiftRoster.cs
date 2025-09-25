@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace PiranaSecuritySystem.Models
 {
+
     public class ShiftRoster
     {
         [Key]
-        [Display(Name = "Roster ID")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int RosterId { get; set; }
 
         [Required]
@@ -18,7 +20,13 @@ namespace PiranaSecuritySystem.Models
 
         [Required]
         [Display(Name = "Shift Type")]
+        [StringLength(10)]
         public string ShiftType { get; set; } // "Day", "Night", "Off"
+
+        [Required]
+        [Display(Name = "Site")]
+        [StringLength(100)]
+        public string Site { get; set; }
 
         [Required]
         [Display(Name = "Guard")]
@@ -27,26 +35,13 @@ namespace PiranaSecuritySystem.Models
         [ForeignKey("GuardId")]
         public virtual Guard Guard { get; set; }
 
-        [Required]
-        [Display(Name = "Site")]
-        public string Site { get; set; }
-
         [Display(Name = "Created Date")]
-        public DateTime CreatedDate { get; set; }
-
-        [Display(Name = "Modified Date")]
-        public DateTime? ModifiedDate { get; set; }
-
-        // Optional fields (can be removed if not needed)
-        public string Location { get; set; }
-        public string Status { get; set; }
-        public string InstructorName { get; set; }
-        public DateTime GeneratedDate { get; set; }
-        public string Specialization { get; set; }
-        public string RosterData { get; set; }
-        public DateTime StartDate { get; set; }
-        public string TrainingType { get; set; }
-        public DateTime EndDate { get; set; }
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public string InstructorName { get; internal set; }
+        public DateTime GeneratedDate { get; internal set; }
+        public string RosterData { get; internal set; }
+        public string Status { get; internal set; }
+        public object Location { get; internal set; }
     }
 
     public class RosterViewModel
@@ -56,22 +51,51 @@ namespace PiranaSecuritySystem.Models
         [DataType(DataType.Date)]
         public DateTime RosterDate { get; set; }
 
-        [Required(ErrorMessage = "Please select a site")]
+        [Required]
         [Display(Name = "Site")]
         public string Site { get; set; }
 
+        // This will store the comma-separated string from the form
+        public string SelectedGuardIds { get; set; }
+
+        // Helper property to get/set as List<int>
         [Required(ErrorMessage = "Please select exactly 12 guards")]
-        [Display(Name = "Selected Guards")]
-        public List<int> SelectedGuardIds { get; set; } = new List<int>();
+        public List<int> GuardIdList
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(SelectedGuardIds))
+                    return new List<int>();
 
-        // These will be auto-generated
-        public List<Guard> DayShiftGuards { get; set; } = new List<Guard>();
-        public List<Guard> NightShiftGuards { get; set; } = new List<Guard>();
-        public List<Guard> OffDutyGuards { get; set; } = new List<Guard>();
+                try
+                {
+                    return SelectedGuardIds.Split(',')
+                        .Where(id => !string.IsNullOrEmpty(id) && int.TryParse(id, out _))
+                        .Select(int.Parse)
+                        .ToList();
+                }
+                catch
+                {
+                    return new List<int>();
+                }
+            }
+            set
+            {
+                SelectedGuardIds = value != null ? string.Join(",", value) : "";
+            }
+        }
 
-        // For displaying available guards
-        [NotMapped]
-        public List<Guard> AvailableGuards { get; set; } = new List<Guard>();
+        public List<Guard> DayShiftGuards { get; set; }
+        public List<Guard> NightShiftGuards { get; set; }
+        public List<Guard> OffDutyGuards { get; set; }
+
+        public RosterViewModel()
+        {
+            DayShiftGuards = new List<Guard>();
+            NightShiftGuards = new List<Guard>();
+            OffDutyGuards = new List<Guard>();
+            SelectedGuardIds = "";
+        }
     }
 
     public class RosterDisplayViewModel
@@ -81,14 +105,12 @@ namespace PiranaSecuritySystem.Models
         public List<Guard> DayShiftGuards { get; set; }
         public List<Guard> NightShiftGuards { get; set; }
         public List<Guard> OffDutyGuards { get; set; }
-        public int RosterId { get; set; }
-    }
 
-    public class GuardSelectionViewModel
-    {
-        public int GuardId { get; set; }
-        public string FullName { get; set; }
-        public string BadgeNumber { get; set; }
-        public bool IsSelected { get; set; }
+        public RosterDisplayViewModel()
+        {
+            DayShiftGuards = new List<Guard>();
+            NightShiftGuards = new List<Guard>();
+            OffDutyGuards = new List<Guard>();
+        }
     }
 }
