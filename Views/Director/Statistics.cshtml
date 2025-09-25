@@ -1,37 +1,435 @@
-﻿@model PiranaSecuritySystem.Controllers.StatisticsViewModel
+﻿@model PiranaSecuritySystem.ViewModels.StatisticsViewModel
 
 @{
     ViewBag.Title = "Incident Statistics";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Incident Statistics</h2>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <header class="d-flex justify-content-between align-items-center mb-4 pt-3 border-bottom">
+                <div>
+                    <h1 class="h3 mb-1">Security Statistics Dashboard</h1>
+                    <p class="text-muted mb-0">Comprehensive overview of security incidents and guard activities</p>
+                </div>
+            </header>
 
-<div class="row">
-    <div class="col-md-3">
-        <div class="stat-card">
-            <h3>@Model.TotalIncidents</h3>
-            <p>Total Incidents</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <h3>@Model.ResolvedIncidents</h3>
-            <p>Resolved</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <h3>@Model.PendingIncidents</h3>
-            <p>Pending</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <h3>@Model.InProgressIncidents</h3>
-            <p>In Progress</p>
+            <!-- Incident Statistics Cards -->
+            <section class="row mb-4 g-3">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-primary h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-primary fw-semibold text-uppercase">Total Incidents</small>
+                                    <h3 class="mb-0 fw-bold">@Model.TotalIncidents</h3>
+                                </div>
+                                <i class="fas fa-clipboard-list fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-success h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-success fw-semibold text-uppercase">Resolved</small>
+                                    <h3 class="mb-0 fw-bold">@Model.ResolvedIncidents</h3>
+                                    <small class="text-success">
+                                        @(Model.TotalIncidents > 0 ? Math.Round((double)Model.ResolvedIncidents / Model.TotalIncidents * 100, 1) : 0)% resolution rate
+                                    </small>
+                                </div>
+                                <i class="fas fa-check-circle fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-warning h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-warning fw-semibold text-uppercase">Pending</small>
+                                    <h3 class="mb-0 fw-bold">@Model.PendingIncidents</h3>
+                                </div>
+                                <i class="fas fa-clock fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-info h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-info fw-semibold text-uppercase">In Progress</small>
+                                    <h3 class="mb-0 fw-bold">@Model.InProgressIncidents</h3>
+                                </div>
+                                <i class="fas fa-spinner fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Priority and Monthly Statistics -->
+            <section class="row mb-4 g-3">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-danger h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-danger fw-semibold text-uppercase">Critical Priority</small>
+                                    <h3 class="mb-0 fw-bold">@Model.CriticalPriorityIncidents</h3>
+                                </div>
+                                <i class="fas fa-exclamation-triangle fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-warning h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-warning fw-semibold text-uppercase">High Priority</small>
+                                    <h3 class="mb-0 fw-bold">@Model.HighPriorityIncidents</h3>
+                                </div>
+                                <i class="fas fa-exclamation-circle fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-secondary h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-secondary fw-semibold text-uppercase">This Month</small>
+                                    <h3 class="mb-0 fw-bold">@Model.ThisMonthIncidents</h3>
+                                </div>
+                                <i class="fas fa-calendar fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-success h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-success fw-semibold text-uppercase">Avg Resolution</small>
+                                    <h3 class="mb-0 fw-bold">@Math.Round(Model.AverageResolutionTime, 1)d</h3>
+                                    <small class="text-muted">Average days to resolve</small>
+                                </div>
+                                <i class="fas fa-clock fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Guard Statistics Section -->
+            <section class="row mb-4 g-3">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-primary h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-primary fw-semibold text-uppercase">Total Guards</small>
+                                    <h3 class="mb-0 fw-bold">@Model.TotalGuards</h3>
+                                    <small class="text-muted">Active security personnel</small>
+                                </div>
+                                <i class="fas fa-shield-alt fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-info h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-info fw-semibold text-uppercase">Total Check-ins</small>
+                                    <h3 class="mb-0 fw-bold">@Model.TotalCheckIns</h3>
+                                </div>
+                                <i class="fas fa-clipboard-check fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-success h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-success fw-semibold text-uppercase">Today's Check-ins</small>
+                                    <h3 class="mb-0 fw-bold">@Model.TodayCheckIns</h3>
+                                </div>
+                                <i class="fas fa-calendar-day fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-left-warning h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <small class="text-warning fw-semibold text-uppercase">Currently On Duty</small>
+                                    <h3 class="mb-0 fw-bold">@Model.CurrentOnDuty</h3>
+                                </div>
+                                <i class="fas fa-user-check fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts and Detailed Statistics -->
+            <section class="row mb-4">
+                <!-- Incidents by Type -->
+                <div class="col-xl-6 col-md-12 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 fw-bold">Incidents by Type</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.IncidentByType != null && Model.IncidentByType.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Incident Type</th>
+                                                <th>Count</th>
+                                                <th>Percentage</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in Model.IncidentByType)
+                                            {
+                                                <tr>
+                                                    <td>@item.Type</td>
+                                                    <td>@item.Count</td>
+                                                    <td>
+                                                        <div class="progress" style="height: 20px;">
+                                                            <div class="progress-bar" role="progressbar"
+                                                                 style="width: @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%;">
+                                                                @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info text-center py-3">
+                                    <i class="fas fa-info-circle me-2"></i>No incident type data available
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Incidents by Status -->
+                <div class="col-xl-6 col-md-12 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 fw-bold">Incidents by Status</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.IncidentByStatus != null && Model.IncidentByStatus.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Status</th>
+                                                <th>Count</th>
+                                                <th>Percentage</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in Model.IncidentByStatus)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge @GetStatusBadgeClass(item.Status)">@item.Status</span>
+                                                    </td>
+                                                    <td>@item.Count</td>
+                                                    <td>
+                                                        <div class="progress" style="height: 20px;">
+                                                            <div class="progress-bar @GetStatusProgressBarClass(item.Status)"
+                                                                 role="progressbar"
+                                                                 style="width: @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%;">
+                                                                @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info text-center py-3">
+                                    <i class="fas fa-info-circle me-2"></i>No status data available
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Monthly Trends -->
+            <section class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 fw-bold">Monthly Incident Trends - @DateTime.Now.Year</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.MonthlyIncidents != null && Model.MonthlyIncidents.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Month</th>
+                                                <th>Incident Count</th>
+                                                <th>Trend</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in Model.MonthlyIncidents)
+                                            {
+                                                <tr>
+                                                    <td>@GetMonthName(item.Month)</td>
+                                                    <td>@item.Count</td>
+                                                    <td>
+                                                        <div class="progress" style="height: 15px;">
+                                                            <div class="progress-bar bg-info" role="progressbar"
+                                                                 style="width: @(GetMonthlyPercentage(item.Count, Model.MonthlyIncidents.Max(m => m.Count)))%;">
+                                                                @item.Count incidents
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info text-center py-3">
+                                    <i class="fas fa-info-circle me-2"></i>No monthly data available for @DateTime.Now.Year
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Resolution Statistics -->
+            <section class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 fw-bold">Performance Metrics</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="alert alert-success">
+                                        <h5><i class="fas fa-clock me-2"></i>Average Resolution Time</h5>
+                                        <p class="mb-0 fs-4">@Math.Round(Model.AverageResolutionTime, 1) days</p>
+                                        <small class="text-muted">Based on @Model.ResolvedIncidents resolved incidents</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="alert alert-primary">
+                                        <h5><i class="fas fa-chart-line me-2"></i>Resolution Rate</h5>
+                                        <p class="mb-0 fs-4">
+                                            @(Model.TotalIncidents > 0 ? Math.Round((double)Model.ResolvedIncidents / Model.TotalIncidents * 100, 1) : 0)%
+                                        </p>
+                                        <small class="text-muted">@Model.ResolvedIncidents out of @Model.TotalIncidents incidents resolved</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="alert alert-info">
+                                        <h5><i class="fas fa-shield-alt me-2"></i>Guard Efficiency</h5>
+                                        <p class="mb-0 fs-4">
+                                            @(Model.TotalGuards > 0 ? Math.Round((double)Model.TodayCheckIns / Model.TotalGuards * 100, 0) : 0)%
+                                        </p>
+                                        <small class="text-muted">@Model.TodayCheckIns check-ins today from @Model.TotalGuards guards</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 </div>
 
-<!-- Add more statistics display as needed -->
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Future chart implementations can go here
+            console.log('Statistics dashboard loaded successfully');
+        });
+    </script>
+}
+
+@functions {
+    public string GetStatusBadgeClass(string status)
+    {
+        switch (status?.ToLower())
+        {
+            case "resolved": return "bg-success";
+            case "in progress": return "bg-primary";
+            case "pending": return "bg-warning";
+            default: return "bg-secondary";
+        }
+    }
+
+    public string GetStatusProgressBarClass(string status)
+    {
+        switch (status?.ToLower())
+        {
+            case "resolved": return "bg-success";
+            case "in progress": return "bg-primary";
+            case "pending": return "bg-warning";
+            default: return "bg-secondary";
+        }
+    }
+
+    public string GetMonthName(int month)
+    {
+        try
+        {
+            return new DateTime(DateTime.Now.Year, month, 1).ToString("MMMM");
+        }
+        catch
+        {
+            return "Invalid Month";
+        }
+    }
+
+    public double GetMonthlyPercentage(int count, int maxCount)
+    {
+        return maxCount > 0 ? (double)count / maxCount * 100 : 0;
+    }
+}
