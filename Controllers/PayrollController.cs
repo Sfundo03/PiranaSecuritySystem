@@ -51,12 +51,29 @@ namespace PiranaSecuritySystem.Controllers
 
                 if (payrollExists)
                 {
-                    ModelState.AddModelError("", $"Payroll for this guard has already been generated for {payPeriodStart:MMMM yyyy}. Please edit the existing payroll instead.");
+                    var existingPayroll = db.Payrolls
+                        .Include(p => p.Guard)
+                        .FirstOrDefault(p =>
+                            p.GuardId == guardId &&
+                            p.PayPeriodStart.Year == payPeriodStart.Year &&
+                            p.PayPeriodStart.Month == payPeriodStart.Month);
+
+                    var guardName = existingPayroll?.Guard?.FullName ?? "the guard";
+                    ModelState.AddModelError("", $"Payroll for {guardName} already exists for {payPeriodStart:MMMM yyyy}. Please edit the existing payroll instead.");
                     ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
                     return View();
                 }
 
-                // Get guard's current rate
+                // Get guard information for error messages
+                var guard = db.Guards.Find(guardId);
+                if (guard == null)
+                {
+                    ModelState.AddModelError("", "Guard not found.");
+                    ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+                    return View();
+                }
+
+                // Get guard's current ACTIVE rate
                 var guardRate = db.GuardRates
                     .Where(r => r.GuardId == guardId && r.IsActive)
                     .OrderByDescending(r => r.EffectiveDate)
@@ -64,7 +81,7 @@ namespace PiranaSecuritySystem.Controllers
 
                 if (guardRate == null)
                 {
-                    ModelState.AddModelError("", "No active rate found for this guard.");
+                    ModelState.AddModelError("", $"No active rate found for {guard.FullName}. Please activate or create a new rate.");
                     ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
                     return View();
                 }
@@ -78,6 +95,13 @@ namespace PiranaSecuritySystem.Controllers
                     .ToList();
 
                 double totalHours = attendances.Sum(a => a.HoursWorked);
+
+                if (totalHours <= 0)
+                {
+                    ModelState.AddModelError("", $"No valid attendance records found for {guard.FullName} in the selected period.");
+                    ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
+                    return View();
+                }
 
                 // Calculate pay
                 decimal grossPay = (decimal)totalHours * guardRate.Rate;
@@ -113,13 +137,17 @@ namespace PiranaSecuritySystem.Controllers
                 db.SaveChanges();
 
                 // Notify director about payroll creation
-                NotifyDirectorAboutPayroll(payroll.PayrollId, payroll.Guard.FullName);
+                NotifyDirectorAboutPayroll(payroll.PayrollId, guard.FullName);
 
+                TempData["SuccessMessage"] = $"Payroll for {guard.FullName} has been generated successfully!";
                 return RedirectToAction("Details", new { id = payroll.PayrollId });
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "An error occurred while generating payroll: " + ex.Message);
+                // Log the actual error for debugging
+                System.Diagnostics.Debug.WriteLine("Payroll generation error: " + ex.ToString());
+
+                ModelState.AddModelError("", "An error occurred while generating payroll. Please try again.");
                 ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
                 return View();
             }
@@ -158,7 +186,7 @@ namespace PiranaSecuritySystem.Controllers
                 return HttpNotFound();
             }
 
-            ViewBag.GuardId = new SelectList(db.Guards, "GuardId", "FullName", payroll.GuardId);
+            ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName", payroll.GuardId);
             return View(payroll);
         }
 
@@ -170,57 +198,50 @@ namespace PiranaSecuritySystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Check if editing would create a duplicate payroll for the same guard and month
-                bool duplicateExists = db.Payrolls.Any(p =>
-                    p.GuardId == payroll.GuardId &&
-                    p.PayPeriodStart.Year == payroll.PayPeriodStart.Year &&
-                    p.PayPeriodStart.Month == payroll.PayPeriodStart.Month &&
-                    p.PayrollId != payroll.PayrollId);
-
-                if (duplicateExists)
-                {
-                    ModelState.AddModelError("", $"A payroll for this guard already exists for {payroll.PayPeriodStart:MMMM yyyy}. Cannot create duplicate payrolls.");
-                    ViewBag.GuardId = new SelectList(db.Guards, "GuardId", "FullName", payroll.GuardId);
-                    return View(payroll);
-                }
-
                 db.Entry(payroll).State = EntityState.Modified;
                 db.SaveChanges();
-                return RedirectToAction("Index");
+
+                TempData["SuccessMessage"] = "Payroll updated successfully!";
+                return RedirectToAction("Details", new { id = payroll.PayrollId });
             }
 
-            ViewBag.GuardId = new SelectList(db.Guards, "GuardId", "FullName", payroll.GuardId);
-            return View(payroll);
-        }
-
-        // GET: Payroll/Delete/5
-        [Authorize(Roles = "Admin")]
-        public ActionResult Delete(int? id)
-        {
-            if (id == null)
-            {
-                return HttpNotFound();
-            }
-
-            Payroll payroll = db.Payrolls.Include(p => p.Guard).FirstOrDefault(p => p.PayrollId == id);
-            if (payroll == null)
-            {
-                return HttpNotFound();
-            }
-
+            ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName", payroll.GuardId);
             return View(payroll);
         }
 
         // POST: Payroll/Delete/5
-        [HttpPost, ActionName("Delete")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public ActionResult DeleteConfirmed(int id)
+        public ActionResult Delete(int id)
         {
-            Payroll payroll = db.Payrolls.Find(id);
-            db.Payrolls.Remove(payroll);
-            db.SaveChanges();
-            return RedirectToAction("Index");
+            try
+            {
+                Payroll payroll = db.Payrolls.Include(p => p.Guard).FirstOrDefault(p => p.PayrollId == id);
+                if (payroll == null)
+                {
+                    TempData["ErrorMessage"] = "Payroll record not found.";
+                    return RedirectToAction("Index");
+                }
+
+                // Store guard name and period for notification
+                string guardName = payroll.Guard?.FullName ?? "Unknown Guard";
+                string period = $"{payroll.PayPeriodStart:yyyy-MM-dd} to {payroll.PayPeriodEnd:yyyy-MM-dd}";
+
+                db.Payrolls.Remove(payroll);
+                db.SaveChanges();
+
+                // Notify about deletion
+                NotifyDirectorAboutPayrollDeletion(guardName, period);
+
+                TempData["SuccessMessage"] = $"Payroll for {guardName} ({period}) has been deleted successfully.";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while deleting the payroll: " + ex.Message;
+                return RedirectToAction("Details", new { id = id });
+            }
         }
 
         // GET: Payroll/ManageRates
@@ -262,11 +283,132 @@ namespace PiranaSecuritySystem.Controllers
                 db.GuardRates.Add(guardRate);
                 db.SaveChanges();
 
+                TempData["SuccessMessage"] = "Guard rate created successfully!";
                 return RedirectToAction("ManageRates");
             }
 
             ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName", guardRate.GuardId);
             return View(guardRate);
+        }
+
+        // GET: Payroll/EditRate/5
+        [Authorize(Roles = "Admin")]
+        public ActionResult EditRate(int? id)
+        {
+            if (id == null)
+            {
+                return HttpNotFound();
+            }
+
+            GuardRate guardRate = db.GuardRates.Find(id);
+            if (guardRate == null)
+            {
+                return HttpNotFound();
+            }
+
+            ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName", guardRate.GuardId);
+            return View(guardRate);
+        }
+
+        // POST: Payroll/EditRate/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public ActionResult EditRate(GuardRate guardRate)
+        {
+            if (ModelState.IsValid)
+            {
+                db.Entry(guardRate).State = EntityState.Modified;
+                db.SaveChanges();
+
+                TempData["SuccessMessage"] = "Guard rate updated successfully!";
+                return RedirectToAction("ManageRates");
+            }
+
+            ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName", guardRate.GuardId);
+            return View(guardRate);
+        }
+
+        // POST: Payroll/DeactivateRate/5
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public JsonResult DeactivateRate(int id)
+        {
+            try
+            {
+                var guardRate = db.GuardRates.Find(id);
+                if (guardRate == null)
+                {
+                    return Json(new { success = false, message = "Guard rate not found." });
+                }
+
+                guardRate.IsActive = false;
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Rate deactivated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error deactivating rate: " + ex.Message });
+            }
+        }
+
+        // POST: Payroll/ActivateRate/5
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public JsonResult ActivateRate(int id)
+        {
+            try
+            {
+                var guardRate = db.GuardRates.Find(id);
+                if (guardRate == null)
+                {
+                    return Json(new { success = false, message = "Guard rate not found." });
+                }
+
+                // Deactivate other active rates for the same guard
+                var otherActiveRates = db.GuardRates
+                    .Where(r => r.GuardId == guardRate.GuardId && r.GuardRateId != id && r.IsActive)
+                    .ToList();
+
+                foreach (var rate in otherActiveRates)
+                {
+                    rate.IsActive = false;
+                }
+
+                guardRate.IsActive = true;
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Rate activated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error activating rate: " + ex.Message });
+            }
+        }
+
+        // POST: Payroll/DeleteRate/5
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public JsonResult DeleteRate(int id)
+        {
+            try
+            {
+                var guardRate = db.GuardRates.Find(id);
+                if (guardRate == null)
+                {
+                    return Json(new { success = false, message = "Guard rate not found." });
+                }
+
+                db.GuardRates.Remove(guardRate);
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Rate deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error deleting rate: " + ex.Message });
+            }
         }
 
         // GET: Payroll/TaxConfig
@@ -320,7 +462,7 @@ namespace PiranaSecuritySystem.Controllers
 
                 db.SaveChanges();
 
-                ViewBag.Message = "Tax configuration updated successfully.";
+                TempData["SuccessMessage"] = "Tax configuration updated successfully!";
                 return View(taxConfig);
             }
 
@@ -345,10 +487,13 @@ namespace PiranaSecuritySystem.Controllers
                         p.PayPeriodStart.Year == payPeriodStart.Year &&
                         p.PayPeriodStart.Month == payPeriodStart.Month);
 
+                var guard = db.Guards.Find(guardId);
+                var guardName = guard?.FullName ?? "Unknown Guard";
+
                 return Json(new
                 {
                     exists = exists,
-                    message = exists ? $"Payroll for {existingPayroll?.Guard?.FullName} already exists for {payPeriodStart:MMMM yyyy}" : "No existing payroll found",
+                    message = exists ? $"Payroll for {guardName} already exists for {payPeriodStart:MMMM yyyy}" : "No existing payroll found",
                     payrollId = existingPayroll?.PayrollId
                 }, JsonRequestBehavior.AllowGet);
             }
@@ -363,28 +508,11 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                // Create a notification for the director
-                var notification = new Notification
-                {
-                    UserId = "Director", // This will be set to the actual director ID
-                    UserType = "Director",
-                    Title = "Payroll Created",
-                    Message = $"Payroll has been created for guard {guardName}",
-                    NotificationType = "Report",
-                    CreatedAt = DateTime.Now,
-                    IsImportant = true,
-                    RelatedUrl = Url.Action("Details", "Payroll", new { id = payrollId })
-                };
-
                 // Find all directors to notify them
                 var directors = db.Directors.ToList();
                 foreach (var director in directors)
                 {
-                    notification.UserId = director.DirectorId.ToString();
-                    db.Notifications.Add(notification);
-
-                    // Create a new instance for each director
-                    notification = new Notification
+                    var notification = new Notification
                     {
                         UserId = director.DirectorId.ToString(),
                         UserType = "Director",
@@ -395,6 +523,8 @@ namespace PiranaSecuritySystem.Controllers
                         IsImportant = true,
                         RelatedUrl = Url.Action("Details", "Payroll", new { id = payrollId })
                     };
+
+                    db.Notifications.Add(notification);
                 }
 
                 db.SaveChanges();
@@ -403,6 +533,39 @@ namespace PiranaSecuritySystem.Controllers
             {
                 // Log the error but don't break the payroll generation process
                 System.Diagnostics.Debug.WriteLine("Error creating payroll notification: " + ex.Message);
+            }
+        }
+
+        // Method to notify director about payroll deletion
+        private void NotifyDirectorAboutPayrollDeletion(string guardName, string period)
+        {
+            try
+            {
+                // Find all directors to notify them
+                var directors = db.Directors.ToList();
+                foreach (var director in directors)
+                {
+                    var notification = new Notification
+                    {
+                        UserId = director.DirectorId.ToString(),
+                        UserType = "Director",
+                        Title = "Payroll Deleted",
+                        Message = $"Payroll for guard {guardName} ({period}) has been deleted",
+                        NotificationType = "Report",
+                        CreatedAt = DateTime.Now,
+                        IsImportant = true,
+                        RelatedUrl = Url.Action("Index", "Payroll")
+                    };
+
+                    db.Notifications.Add(notification);
+                }
+
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't break the deletion process
+                System.Diagnostics.Debug.WriteLine("Error creating payroll deletion notification: " + ex.Message);
             }
         }
 

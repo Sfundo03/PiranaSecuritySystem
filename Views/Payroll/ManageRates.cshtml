@@ -161,16 +161,24 @@
             color: #721c24;
         }
 
-        .action-links a {
-            color: var(--primary-blue);
-            margin-right: 10px;
-            transition: all 0.2s;
+        .action-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
 
-            .action-links a:hover {
-                color: var(--secondary-blue);
-                text-decoration: underline;
+            .action-links a {
+                color: var(--primary-blue);
+                transition: all 0.2s;
+                cursor: pointer;
+                white-space: nowrap;
+                padding: 5px 0;
             }
+
+                .action-links a:hover {
+                    color: var(--secondary-blue);
+                    text-decoration: underline;
+                }
 
         /* Action buttons */
         .action-buttons {
@@ -214,6 +222,68 @@
             color: var(--primary-blue);
         }
 
+        /* Loading spinner */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 5px;
+        }
+
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Status toggle button styles */
+        .btn-status-toggle {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .btn-status-active {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+            .btn-status-active:hover {
+                background-color: #e0a800;
+            }
+
+        .btn-status-inactive {
+            background-color: #28a745;
+            color: white;
+        }
+
+            .btn-status-inactive:hover {
+                background-color: #218838;
+            }
+
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+
+            .btn-delete:hover {
+                background-color: #c82333;
+            }
+
         /* Responsive adjustments */
         @@media (max-width: 768px) {
             .summary-cards {
@@ -236,6 +306,18 @@
             .table-custom {
                 min-width: 600px;
             }
+
+            .action-links {
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-start;
+            }
+
+                .action-links a {
+                    width: 100%;
+                    text-align: center;
+                    padding: 8px 0;
+                }
         }
     </style>
 </head>
@@ -261,6 +343,9 @@
                 </div>
             </div>
             <div class="card-body">
+                <!-- Alert Container -->
+                <div id="alertContainer"></div>
+
                 <!-- Action Buttons -->
                 <div class="action-buttons">
                     @Html.ActionLink("Create New Rate", "CreateRate", null, new { @class = "btn btn-custom" })
@@ -310,11 +395,11 @@
                         <tbody>
                             @foreach (var item in Model)
                             {
-                                <tr>
+                                <tr id="rate-row-@item.GuardRateId">
                                     <td>@Html.DisplayFor(modelItem => item.Guard.FullName)</td>
                                     <td class="rate-value">@String.Format("{0:C}", item.Rate)</td>
                                     <td>@item.EffectiveDate.ToString("yyyy-MM-dd")</td>
-                                    <td>
+                                    <td id="status-@item.GuardRateId">
                                         @if (item.IsActive)
                                         {
                                             <span class="status-badge status-active">Active</span>
@@ -324,17 +409,25 @@
                                             <span class="status-badge status-inactive">Inactive</span>
                                         }
                                     </td>
-                                    <td class="action-links">
-                                        @Html.ActionLink("Edit", "EditRate", new { id = item.GuardRateId }, new { @class = "text-primary" })
-                                        @if (item.IsActive)
-                                        {
-                                            @Html.ActionLink("Deactivate", "DeactivateRate", new { id = item.GuardRateId }, new { @class = "text-warning" })
-                                        }
-                                        else
-                                        {
-                                            @Html.ActionLink("Activate", "ActivateRate", new { id = item.GuardRateId }, new { @class = "text-success" })
-                                        }
-                                        @Html.ActionLink("Delete", "DeleteRate", new { id = item.GuardRateId }, new { @class = "text-danger", onclick = "return confirm('Are you sure you want to delete this rate?');" })
+                                    <td>
+                                        <div class="action-links">
+                                            @if (item.IsActive)
+                                            {
+                                                <a class="btn-status-toggle deactivate-rate" data-id="@item.GuardRateId">
+                                                    <span class="loading-spinner"></span>Deactivate
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <a class="btn-status-toggle activate-rate" data-id="@item.GuardRateId">
+                                                    <span class="loading-spinner"></span>Activate
+                                                </a>
+                                            }
+
+                                            <a class="btn-status-toggle btn-delete delete-rate" data-id="@item.GuardRateId" data-name="@item.Guard.FullName">
+                                                <span class="loading-spinner"></span>Delete
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -360,8 +453,229 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("Manage guard rates page loaded");
 
-            // Add any custom JavaScript functionality here
-            // For example, you could add sorting or filtering capabilities
+            // Show alert function
+            function showAlert(message, type) {
+                const alertContainer = document.getElementById('alertContainer');
+                const alertHtml = `
+                    <div class="alert alert-${type} alert-dismissible fade show alert-custom" role="alert">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                alertContainer.innerHTML = alertHtml;
+
+                // Auto-remove alert after 5 seconds
+                setTimeout(() => {
+                    const alert = alertContainer.querySelector('.alert');
+                    if (alert) {
+                        alert.remove();
+                    }
+                }, 5000);
+            }
+
+            // Toggle loading spinner
+            function toggleLoading(element, show) {
+                const spinner = element.querySelector('.loading-spinner');
+                if (show) {
+                    spinner.style.display = 'inline-block';
+                    element.style.pointerEvents = 'none';
+                    element.style.opacity = '0.6';
+                } else {
+                    spinner.style.display = 'none';
+                    element.style.pointerEvents = 'auto';
+                    element.style.opacity = '1';
+                }
+            }
+
+            // Update action buttons to maintain consistent layout
+            function updateActionButtons(rateId, isActive) {
+                const actionCell = document.querySelector(`#rate-row-${rateId} td:last-child .action-links`);
+
+                if (isActive) {
+                    actionCell.innerHTML = `
+                        <a class="btn-status-toggle deactivate-rate" data-id="${rateId}">
+                            <span class="loading-spinner"></span>Deactivate
+                        </a>
+                        <a class="btn-status-toggle btn-delete delete-rate" data-id="${rateId}" data-name="${actionCell.querySelector('.delete-rate').getAttribute('data-name')}">
+                            <span class="loading-spinner"></span>Delete
+                        </a>
+                    `;
+                } else {
+                    actionCell.innerHTML = `
+                        <a class="btn-status-toggle activate-rate" data-id="${rateId}">
+                            <span class="loading-spinner"></span>Activate
+                        </a>
+                        <a class="btn-status-toggle btn-delete delete-rate" data-id="${rateId}" data-name="${actionCell.querySelector('.delete-rate').getAttribute('data-name')}">
+                            <span class="loading-spinner"></span>Delete
+                        </a>
+                    `;
+                }
+
+                // Re-attach event listeners
+                attachEventListeners();
+            }
+
+            // Attach event listeners to buttons
+            function attachEventListeners() {
+                // Deactivate rate
+                document.querySelectorAll('.deactivate-rate').forEach(link => {
+                    link.addEventListener('click', function() {
+                        const rateId = this.getAttribute('data-id');
+                        const linkElement = this;
+
+                        if (confirm('Are you sure you want to deactivate this rate?')) {
+                            toggleLoading(linkElement, true);
+
+                            fetch('@Url.Action("DeactivateRate", "Payroll")/' + rateId, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                toggleLoading(linkElement, false);
+
+                                if (data.success) {
+                                    // Update status badge
+                                    const statusElement = document.getElementById('status-' + rateId);
+                                    statusElement.innerHTML = '<span class="status-badge status-inactive">Inactive</span>';
+
+                                    // Update action buttons
+                                    updateActionButtons(rateId, false);
+
+                                    showAlert(data.message, 'success');
+
+                                    // Update summary counts
+                                    updateSummaryCounts();
+                                } else {
+                                    showAlert(data.message, 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                toggleLoading(linkElement, false);
+                                showAlert('Error deactivating rate: ' + error, 'danger');
+                            });
+                        }
+                    });
+                });
+
+                // Activate rate
+                document.querySelectorAll('.activate-rate').forEach(link => {
+                    link.addEventListener('click', function() {
+                        const rateId = this.getAttribute('data-id');
+                        const linkElement = this;
+
+                        if (confirm('Are you sure you want to activate this rate?')) {
+                            toggleLoading(linkElement, true);
+
+                            fetch('@Url.Action("ActivateRate", "Payroll")/' + rateId, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                toggleLoading(linkElement, false);
+
+                                if (data.success) {
+                                    // Update status badge
+                                    const statusElement = document.getElementById('status-' + rateId);
+                                    statusElement.innerHTML = '<span class="status-badge status-active">Active</span>';
+
+                                    // Update action buttons
+                                    updateActionButtons(rateId, true);
+
+                                    showAlert(data.message, 'success');
+
+                                    // Update summary counts
+                                    updateSummaryCounts();
+                                } else {
+                                    showAlert(data.message, 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                toggleLoading(linkElement, false);
+                                showAlert('Error activating rate: ' + error, 'danger');
+                            });
+                        }
+                    });
+                });
+
+                // Delete rate
+                document.querySelectorAll('.delete-rate').forEach(link => {
+                    link.addEventListener('click', function() {
+                        const rateId = this.getAttribute('data-id');
+                        const guardName = this.getAttribute('data-name');
+                        const linkElement = this;
+
+                        if (confirm(`Are you sure you want to delete the rate for ${guardName}? This action cannot be undone.`)) {
+                            toggleLoading(linkElement, true);
+
+                            fetch('@Url.Action("DeleteRate", "Payroll")/' + rateId, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                toggleLoading(linkElement, false);
+
+                                if (data.success) {
+                                    // Remove the row from the table
+                                    const row = document.getElementById('rate-row-' + rateId);
+                                    row.remove();
+
+                                    showAlert(data.message, 'success');
+
+                                    // Update summary counts
+                                    updateSummaryCounts();
+
+                                    // Show empty state if no rates left
+                                    if (document.querySelectorAll('.table-custom tbody tr').length === 0) {
+                                        location.reload(); // Reload to show empty state
+                                    }
+                                } else {
+                                    showAlert(data.message, 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                toggleLoading(linkElement, false);
+                                showAlert('Error deleting rate: ' + error, 'danger');
+                            });
+                        }
+                    });
+                });
+            }
+
+            // Initial attachment of event listeners
+            attachEventListeners();
+
+            // Update summary counts (simplified - in real app you might want to recalculate from server)
+            function updateSummaryCounts() {
+                // This is a simplified version - in a real application, you might want to
+                // make an AJAX call to get updated counts or recalculate from the current table data
+                console.log("Summary counts would be updated here");
+
+                // Simple client-side update for demo purposes
+                const totalRates = document.querySelectorAll('.table-custom tbody tr').length;
+                const activeRates = document.querySelectorAll('.status-active').length;
+                const inactiveRates = totalRates - activeRates;
+
+                // Update the summary cards if they exist
+                const totalElement = document.querySelector('.summary-cards .summary-card:nth-child(1) .value');
+                const activeElement = document.querySelector('.summary-cards .summary-card:nth-child(2) .value');
+                const inactiveElement = document.querySelector('.summary-cards .summary-card:nth-child(3) .value');
+
+                if (totalElement) totalElement.textContent = totalRates;
+                if (activeElement) activeElement.textContent = activeRates;
+                if (inactiveElement) inactiveElement.textContent = inactiveRates;
+            }
 
             // Auto-refresh page every 5 minutes to get updated data
             setInterval(function() {

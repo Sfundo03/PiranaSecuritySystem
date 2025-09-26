@@ -164,6 +164,14 @@
             display: none;
         }
 
+        .alert-error-custom {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
         .currency-note {
             background-color: #f8f9fa;
             border-left: 4px solid var(--accent-orange);
@@ -195,6 +203,15 @@
                 <p class="text-muted">Create payroll records for security guards</p>
             </div>
         </div>
+
+        <!-- Display error messages from server -->
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert-error-custom">
+                <i class="fas fa-exclamation-circle"></i>
+                @Html.ValidationSummary(false, "", new { @class = "text-danger mb-0" })
+            </div>
+        }
 
         <div class="dashboard-card">
             <div class="card-header-custom">
@@ -232,12 +249,11 @@
                 {
                     @Html.AntiForgeryToken()
 
-                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-
                     <div class="form-group">
                         @Html.Label("Guard", htmlAttributes: new { @class = "control-label" })
                         <div>
                             @Html.DropDownList("guardId", null, "Select Guard", htmlAttributes: new { @class = "form-control", required = "required", id = "guardId" })
+                            @Html.ValidationMessage("guardId", "", new { @class = "text-danger" })
                         </div>
                     </div>
 
@@ -247,6 +263,7 @@
                                 @Html.Label("Pay Period Start", htmlAttributes: new { @class = "control-label" })
                                 <div>
                                     @Html.Editor("payPeriodStart", new { htmlAttributes = new { @class = "form-control", type = "date", required = "required", id = "payPeriodStart" } })
+                                    @Html.ValidationMessage("payPeriodStart", "", new { @class = "text-danger" })
                                 </div>
                             </div>
                         </div>
@@ -255,6 +272,7 @@
                                 @Html.Label("Pay Period End", htmlAttributes: new { @class = "control-label" })
                                 <div>
                                     @Html.Editor("payPeriodEnd", new { htmlAttributes = new { @class = "form-control", type = "date", required = "required", id = "payPeriodEnd" } })
+                                    @Html.ValidationMessage("payPeriodEnd", "", new { @class = "text-danger" })
                                 </div>
                             </div>
                         </div>
@@ -306,7 +324,7 @@
                 const guardId = guardSelect.value;
                 const startDate = startDateInput.value;
 
-                if (!guardId || !startDate) {
+                if (!guardId || guardId === '' || !startDate) {
                     alert('Please select both a guard and a start date');
                     return;
                 }
@@ -316,8 +334,19 @@
                 checkExistingBtn.disabled = true;
 
                 fetch(`/Payroll/CheckExisting?guardId=${guardId}&payPeriodStart=${startDate}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        if (data.error) {
+                            console.error('Server error:', data.error);
+                            alert('Error checking for existing payroll: ' + data.error);
+                            return;
+                        }
+
                         if (data.exists) {
                             existingMessage.textContent = data.message;
                             existingLink.href = `/Payroll/Details/${data.payrollId}`;
@@ -332,7 +361,7 @@
                     })
                     .catch(error => {
                         console.error('Error checking existing payroll:', error);
-                        alert('Error checking for existing payroll');
+                        alert('Error checking for existing payroll. Please try again.');
                     })
                     .finally(() => {
                         checkExistingBtn.innerHTML = '<i class="fas fa-search me-1"></i>Check for Existing Payroll';
@@ -345,7 +374,7 @@
 
             // Auto-check when dates change
             startDateInput.addEventListener('change', function () {
-                if (guardSelect.value) {
+                if (guardSelect.value && guardSelect.value !== '') {
                     checkExistingPayroll();
                 }
             });
@@ -389,10 +418,14 @@
                     alert('Pay period must be within the same month');
                     return false;
                 }
+
+                // Disable button to prevent double submission
+                generateBtn.disabled = true;
+                generateBtn.value = 'Generating...';
             });
 
             // Initial check if values are already selected
-            if (guardSelect.value && startDateInput.value) {
+            if (guardSelect.value && guardSelect.value !== '' && startDateInput.value) {
                 checkExistingPayroll();
             }
         });
