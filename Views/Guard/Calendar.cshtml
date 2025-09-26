@@ -297,6 +297,39 @@
                 font-size: 14px;
             }
 
+        .status-indicator {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-not-applicable {
+            background-color: #e9ecef;
+            color: #6c757d;
+        }
+
+        .status-not-checked-in {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-checked-in {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
         @@media (max-width: 768px) {
             .table-responsive {
                 overflow-x: auto;
@@ -332,7 +365,7 @@
                 <i class="fas fa-calendar-alt"></i>
             </div>
             <h2 class="page-title text-center">My Shift Calendar</h2>
-            <p class="text-center text-muted">Welcome, @Model.GuardName! Manage your shifts and check-ins.</p>
+            <p class="text-center text-muted">Welcome, @Model.GuardName! View your shifts and attendance status.</p>
 
             <!-- Stats Cards -->
             <div class="stats-cards">
@@ -371,10 +404,9 @@
                                 <th>Date</th>
                                 <th>Shift Type</th>
                                 <th>Time</th>
-                                <th>Location</th>
                                 <th>Status</th>
-                                <th>Check-In</th>
-                                <th>Actions</th>
+                                <th>Check-In Status</th>
+                                <th>Attendance</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -397,7 +429,6 @@
                                         }
                                     </td>
                                     <td>@shift.StartTime - @shift.EndTime</td>
-                                    <td>@shift.Location</td>
                                     <td>
                                         @if (shift.Status == "Completed")
                                         {
@@ -435,25 +466,33 @@
                                         }
                                     </td>
                                     <td>
-                                        @if (shift.ShiftDate.Date <= DateTime.Today && !shift.HasCheckIn && shift.ShiftType != "Off")
+                                        @if (shift.ShiftType == "Off")
                                         {
-                                            <button class="btn btn-success btn-sm checkin-btn" data-shift-id="@shift.ShiftId">
-                                                <i class="fas fa-sign-in-alt me-1"></i>Check In
-                                            </button>
+                                            <span class="status-indicator status-not-applicable">Not Applicable</span>
                                         }
-                                        else if (shift.HasCheckIn && !shift.HasCheckOut && shift.ShiftType != "Off")
+                                        else if (shift.HasCheckIn && shift.HasCheckOut)
                                         {
-                                            <button class="btn btn-danger btn-sm checkout-btn" data-shift-id="@shift.ShiftId">
-                                                <i class="fas fa-sign-out-alt me-1"></i>Check Out
-                                            </button>
+                                            <span class="status-indicator status-completed">Shift Completed</span>
                                         }
-                                        else if (shift.ShiftType == "Off")
+                                        else if (shift.HasCheckIn && !shift.HasCheckOut)
                                         {
-                                            <span class="text-muted">Day Off</span>
+                                            <span class="status-indicator status-checked-in">Checked In</span>
+                                        }
+                                        else if (shift.ShiftDate.Date < DateTime.Today && !shift.HasCheckIn)
+                                        {
+                                            <span class="status-indicator status-not-checked-in">Not Checked In</span>
+                                        }
+                                        else if (shift.ShiftDate.Date == DateTime.Today && !shift.HasCheckIn)
+                                        {
+                                            <span class="status-indicator status-not-checked-in">Not Checked In</span>
+                                        }
+                                        else if (shift.ShiftDate.Date > DateTime.Today)
+                                        {
+                                            <span class="status-indicator status-pending">Pending</span>
                                         }
                                         else
                                         {
-                                            <span class="text-muted">Completed</span>
+                                            <span class="status-indicator status-not-checked-in">Not Checked In</span>
                                         }
                                     </td>
                                 </tr>
@@ -483,13 +522,17 @@
                                     <tr>
                                         <td>@checkIn.CheckInTime.ToString("MMM dd, yyyy HH:mm")</td>
                                         <td>
-                                            @if (checkIn.Status == "Present")
+                                            @if (checkIn.Status == "Present" || checkIn.Status == "Late Arrival")
                                             {
                                                 <span class="checkin-status status-present">@checkIn.Status</span>
                                             }
-                                            else
+                                            else if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
                                             {
                                                 <span class="checkin-status status-checkedout">@checkIn.Status</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="checkin-status status-absent">@checkIn.Status</span>
                                             }
                                         </td>
                                         <td>
@@ -519,55 +562,13 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function () {
-            // Check-in button click
-            $('.checkin-btn').click(function () {
-                var shiftId = $(this).data('shift-id');
-                var button = $(this);
+            // Auto-refresh the page every 60 seconds to show real-time status updates
+            setInterval(function () {
+                location.reload();
+            }, 60000); // Refresh every 60 seconds
 
-                if (confirm('Are you sure you want to check in for this shift?')) {
-                    $.ajax({
-                        url: '@Url.Action("CheckIn", "Guard")',
-                        type: 'POST',
-                        data: { shiftId: shiftId },
-                        success: function (response) {
-                            if (response.success) {
-                                alert(response.message);
-                                location.reload(); // Reload page to update status
-                            } else {
-                                alert('Error: ' + response.message);
-                            }
-                        },
-                        error: function () {
-                            alert('An error occurred during check-in. Please try again.');
-                        }
-                    });
-                }
-            });
-
-            // Check-out button click
-            $('.checkout-btn').click(function () {
-                var shiftId = $(this).data('shift-id');
-                var button = $(this);
-
-                if (confirm('Are you sure you want to check out from this shift?')) {
-                    $.ajax({
-                        url: '@Url.Action("CheckOut", "Guard")',
-                        type: 'POST',
-                        data: { shiftId: shiftId },
-                        success: function (response) {
-                            if (response.success) {
-                                alert(response.message);
-                                location.reload(); // Reload page to update status
-                            } else {
-                                alert('Error: ' + response.message);
-                            }
-                        },
-                        error: function () {
-                            alert('An error occurred during check-out. Please try again.');
-                        }
-                    });
-                }
-            });
+            // You can also implement a more sophisticated AJAX refresh if needed
+            // but for simplicity, page reload ensures data consistency
         });
     </script>
 </body>
