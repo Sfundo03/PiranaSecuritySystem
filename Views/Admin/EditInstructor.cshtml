@@ -1,47 +1,23 @@
 ﻿@model PiranaSecuritySystem.ViewModels.EditInstructorViewModel
+@using System.Web.Mvc.Html
+
 @{
     ViewBag.Title = "Edit Instructor";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container-fluid">
+<div class="dashboard-container">
     <div class="row">
-        <div class="col-12">
-            <!-- Page Header -->
-            <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                <h1 class="h3 mb-0 text-gray-800">Edit Instructor</h1>
-                <div>
-                    <a href="@Url.Action("ManageInstructors", "Admin")" class="btn btn-secondary btn-sm">
-                        <i class="fas fa-arrow-left"></i> Back to Instructors
-                    </a>
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <div class="card-header-custom">
+                    <div class="security-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <h2 class="mb-0">Edit Instructor</h2>
                 </div>
-            </div>
-
-            <!-- Success/Error Messages -->
-            @if (TempData["SuccessMessage"] != null)
-            {
-                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    @TempData["SuccessMessage"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    @TempData["ErrorMessage"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Instructor Information</h6>
-                </div>
-                <div class="card-body">
-                    @using (Html.BeginForm("EditInstructor", "Admin", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+                <div class="card-body" style="padding: 30px;">
+                    @using (Html.BeginForm("EditInstructor", "Admin", FormMethod.Post))
                     {
                         @Html.AntiForgeryToken()
                         @Html.HiddenFor(model => model.Id)
@@ -49,33 +25,15 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    @Html.LabelFor(model => model.FullName, htmlAttributes: new { @class = "control-label font-weight-bold" })
-                                    @Html.TextBoxFor(model => model.FullName, new { @class = "form-control", placeholder = "Enter full name" })
-                                    @Html.ValidationMessageFor(model => model.FullName, "", new { @class = "text-danger" })
+                                    @Html.LabelFor(model => model.FullName)
+                                    @Html.TextBoxFor(model => model.FullName, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(model => model.FullName)
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    @Html.LabelFor(model => model.Group, htmlAttributes: new { @class = "control-label font-weight-bold" })
-                                    @Html.DropDownListFor(model => model.Group, Model.GroupOptions, "Select Group", new { @class = "form-control" })
-                                    @Html.ValidationMessageFor(model => model.Group, "", new { @class = "text-danger" })
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    @Html.LabelFor(model => model.Email, htmlAttributes: new { @class = "control-label font-weight-bold" })
-                                    @Html.TextBoxFor(model => model.Email, new { @class = "form-control", type = "email", placeholder = "Enter email address" })
-                                    @Html.ValidationMessageFor(model => model.Email, "", new { @class = "text-danger" })
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    @Html.LabelFor(model => model.PhoneNumber, htmlAttributes: new { @class = "control-label font-weight-bold" })
-                                    @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control", placeholder = "Enter phone number" })
-                                    @Html.ValidationMessageFor(model => model.PhoneNumber, "", new { @class = "text-danger" })
+                                    @Html.LabelFor(model => model.EmployeeId)
+                                    @Html.TextBoxFor(model => model.EmployeeId, new { @class = "form-control", @readonly = "readonly" })
                                 </div>
                             </div>
                         </div>
@@ -83,34 +41,58 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    @Html.LabelFor(model => model.Specialization, htmlAttributes: new { @class = "control-label font-weight-bold" })
-                                    @Html.TextBoxFor(model => model.Specialization, new { @class = "form-control", placeholder = "Enter specialization" })
-                                    @Html.ValidationMessageFor(model => model.Specialization, "", new { @class = "text-danger" })
+                                    @Html.LabelFor(model => model.Email)
+                                    @Html.TextBoxFor(model => model.Email, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(model => model.Email)
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    @Html.LabelFor(model => model.Site, htmlAttributes: new { @class = "control-label font-weight-bold" })
+                                    @Html.LabelFor(model => model.PhoneNumber)
+                                    @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(model => model.PhoneNumber)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.Specialization)
+                                    @Html.TextBoxFor(model => model.Specialization, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(model => model.Specialization)
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.Site)
                                     @Html.DropDownListFor(model => model.Site, Model.SiteOptions, "Select Site", new { @class = "form-control" })
-                                    @Html.ValidationMessageFor(model => model.Site, "", new { @class = "text-danger" })
+                                    @Html.ValidationMessageFor(model => model.Site)
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <div class="form-check">
-                                @Html.CheckBoxFor(model => model.IsActive, new { @class = "form-check-input" })
-                                @Html.LabelFor(model => model.IsActive, htmlAttributes: new { @class = "form-check-label font-weight-bold" })
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    @Html.LabelFor(model => model.Group)
+                                    @Html.DropDownListFor(model => model.Group, Model.GroupOptions, "Select Group", new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(model => model.Group)
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <div class="form-check mt-4">
+                                        @Html.CheckBoxFor(model => model.IsActive, new { @class = "form-check-input" })
+                                        @Html.LabelFor(model => model.IsActive, new { @class = "form-check-label" })
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Update Instructor
-                            </button>
-                            <a href="@Url.Action("ManageInstructors", "Admin")" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Cancel
-                            </a>
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-custom">Update Instructor</button>
+                            @Html.ActionLink("Cancel", "ManageInstructors", null, new { @class = "btn btn-secondary" })
                         </div>
                     }
                 </div>
@@ -118,58 +100,3 @@
         </div>
     </div>
 </div>
-
-@section Scripts {
-    @Scripts.Render("~/bundles/jqueryval")
-    <script>
-        $(document).ready(function () {
-            // Initialize form validation
-            $('form').validate({
-                rules: {
-                    FullName: {
-                        required: true,
-                        minlength: 2
-                    },
-                    Email: {
-                        required: true,
-                        email: true
-                    },
-                    PhoneNumber: {
-                        required: true
-                    },
-                    Specialization: {
-                        required: true
-                    },
-                    Group: {
-                        required: true
-                    },
-                    Site: {
-                        required: true
-                    }
-                },
-                messages: {
-                    FullName: {
-                        required: "Please enter full name",
-                        minlength: "Full name must be at least 2 characters"
-                    },
-                    Email: {
-                        required: "Please enter email address",
-                        email: "Please enter a valid email address"
-                    },
-                    PhoneNumber: {
-                        required: "Please enter phone number"
-                    },
-                    Specialization: {
-                        required: "Please enter specialization"
-                    },
-                    Group: {
-                        required: "Please select a group"
-                    },
-                    Site: {
-                        required: "Please select a site"
-                    }
-                }
-            });
-        });
-    </script>
-}

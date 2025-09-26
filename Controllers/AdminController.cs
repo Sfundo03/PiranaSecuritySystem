@@ -619,13 +619,29 @@ namespace PiranaSecuritySystem.Controllers
             {
                 return HttpNotFound();
             }
-            return View(instructor);
+
+            // Map Instructor to EditInstructorViewModel
+            var viewModel = new EditInstructorViewModel
+            {
+                Id = instructor.Id,
+                FullName = instructor.FullName,
+                EmployeeId = instructor.EmployeeId, // Add this line
+                Email = instructor.Email,
+                PhoneNumber = instructor.PhoneNumber,
+                Specialization = instructor.Specialization,
+                Site = instructor.Site,
+                Group = instructor.Group,
+                IsActive = instructor.IsActive
+                // SiteOptions and GroupOptions are already set in the constructor
+            };
+
+            return View(viewModel);
         }
 
         // POST: Admin/EditInstructor/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult EditInstructor(Instructor model)
+        public ActionResult EditInstructor(EditInstructorViewModel model)
         {
             try
             {
@@ -639,13 +655,13 @@ namespace PiranaSecuritySystem.Controllers
 
                     // Update instructor properties
                     instructor.FullName = model.FullName;
-                    instructor.EmployeeId = model.EmployeeId;
+                    instructor.EmployeeId = model.EmployeeId; // Add this line
                     instructor.Email = model.Email;
                     instructor.PhoneNumber = model.PhoneNumber;
                     instructor.Specialization = model.Specialization;
                     instructor.IsActive = model.IsActive;
                     instructor.Site = model.Site;
-                    instructor.Group = model.Group; // Make sure this line is present
+                    instructor.Group = model.Group;
 
                     // Update user email if changed
                     var user = db.Users.FirstOrDefault(u => u.Id == instructor.UserId);
