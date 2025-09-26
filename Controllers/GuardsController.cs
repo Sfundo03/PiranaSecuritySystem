@@ -126,6 +126,55 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // GET: Guard/GetTodaysShift
+        [HttpGet]
+        public JsonResult GetTodaysShift(int guardId, string date)
+        {
+            try
+            {
+                if (guardId <= 0)
+                {
+                    return Json(new { success = false, message = "Invalid guard ID" }, JsonRequestBehavior.AllowGet);
+                }
+
+                DateTime targetDate;
+                if (!DateTime.TryParse(date, out targetDate))
+                {
+                    targetDate = DateTime.Today;
+                }
+
+                var shift = db.ShiftRosters
+                    .FirstOrDefault(s => s.GuardId == guardId &&
+                                       DbFunctions.TruncateTime(s.RosterDate) == targetDate.Date);
+
+                if (shift != null)
+                {
+                    return Json(new
+                    {
+                        success = true,
+                        shift = new
+                        {
+                            rosterId = shift.RosterId,
+                            shiftType = shift.ShiftType,
+                            location = shift.Location ?? "Main Gate",
+                            date = shift.RosterDate,
+                            status = shift.Status ?? "Scheduled"
+                        }
+                    }, JsonRequestBehavior.AllowGet);
+                }
+                else
+                {
+
+                    return Json(new { success = true, shift = (object)null }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetTodaysShift: {ex.Message}");
+                return Json(new { success = false, message = "Error retrieving shift data" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         // POST: Guard/SaveCheckIn
         [HttpPost]
         public JsonResult SaveCheckIn(GuardCheckInViewModel checkInData)
@@ -144,6 +193,16 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Guard not found or inactive" });
                 }
 
+                // Validate if guard is off duty
+                if (checkInData.RosterId.HasValue)
+                {
+                    var shift = db.ShiftRosters.Find(checkInData.RosterId.Value);
+                    if (shift != null && shift.ShiftType == "Off")
+                    {
+                        return Json(new { success = false, message = "You are off duty today. Cannot check in/out." });
+                    }
+                }
+
                 // Create a new check-in record
                 var checkIn = new GuardCheckIn
                 {
@@ -154,10 +213,29 @@ namespace PiranaSecuritySystem.Controllers
                     IsLate = checkInData.IsLate,
                     ExpectedTime = checkInData.ExpectedTime,
                     ActualTime = checkInData.ActualTime,
-                    SiteUsername = checkInData.SiteUsername
+                    SiteUsername = checkInData.SiteUsername,
+                    RosterId = checkInData.RosterId
                 };
 
                 db.GuardCheckIns.Add(checkIn);
+
+                // Update shift status if RosterId is provided
+                if (checkInData.RosterId.HasValue)
+                {
+                    var shift = db.ShiftRosters.Find(checkInData.RosterId.Value);
+                    if (shift != null)
+                    {
+                        if (checkInData.Status == "Present" || checkInData.Status == "Late Arrival")
+                        {
+                            shift.Status = "In Progress";
+                        }
+                        else if (checkInData.Status == "Checked Out" || checkInData.Status == "Late Departure")
+                        {
+                            shift.Status = "Completed";
+                        }
+                    }
+                }
+
                 db.SaveChanges();
 
                 // Create a notification
@@ -217,7 +295,8 @@ namespace PiranaSecuritySystem.Controllers
                         date = c.CheckInTime.Date,
                         isLate = c.IsLate,
                         expectedTime = c.ExpectedTime,
-                        actualTime = c.ActualTime
+                        actualTime = c.ActualTime,
+                        rosterId = c.RosterId
                     })
                     .ToList();
 
@@ -229,6 +308,49 @@ namespace PiranaSecuritySystem.Controllers
                 return Json(new { success = false, message = "Error retrieving check-ins" }, JsonRequestBehavior.AllowGet);
             }
         }
+
+        // GET: Guard/GetGuardAttendanceStatus
+        [HttpGet]
+        public JsonResult GetGuardAttendanceStatus(int guardId)
+        {
+            try
+            {
+                if (guardId <= 0)
+                {
+                    return Json(new { success = false, message = "Invalid guard ID" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var today = DateTime.Today;
+                var shifts = db.ShiftRosters
+                    .Where(s => s.GuardId == guardId && s.RosterDate >= today.AddDays(-7) && s.RosterDate <= today.AddDays(30))
+                    .OrderBy(s => s.RosterDate)
+                    .ToList();
+
+                var checkIns = db.GuardCheckIns
+                    .Where(c => c.GuardId == guardId && c.CheckInTime >= today.AddDays(-7))
+                    .ToList();
+
+                var attendanceStatus = shifts.Select(shift => new
+                {
+                    date = shift.RosterDate,
+                    shiftType = shift.ShiftType,
+                    location = shift.Location ?? "Main Gate",
+                    status = shift.Status ?? "Scheduled",
+                    checkIn = checkIns.FirstOrDefault(c => c.RosterId == shift.RosterId &&
+                                                         (c.Status == "Present" || c.Status == "Late Arrival")),
+                    checkOut = checkIns.FirstOrDefault(c => c.RosterId == shift.RosterId &&
+                                                          (c.Status == "Checked Out" || c.Status == "Late Departure"))
+                }).ToList();
+
+                return Json(new { success = true, attendance = attendanceStatus }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetGuardAttendanceStatus: {ex.Message}");
+                return Json(new { success = false, message = "Error retrieving attendance status" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         // GET: Guard/Create
         public ActionResult Create()
         {
@@ -394,6 +516,7 @@ namespace PiranaSecuritySystem.Controllers
                 return View("~/Views/Guard/Create.cshtml", incidentReport);
             }
         }
+
         // GET: Guard/MyIncidentReports
         public ActionResult MyIncidentReports()
         {
@@ -437,7 +560,6 @@ namespace PiranaSecuritySystem.Controllers
             // Redirect to the static attendance page
             return Redirect("~/Content/Guard/Index.html");
         }
-
 
         // GET: Guard/Calendar
         public ActionResult Calendar()
@@ -492,11 +614,12 @@ namespace PiranaSecuritySystem.Controllers
                         Status = s.Status ?? "Scheduled",
                         HasCheckIn = checkIns.Any(c => c.GuardId == guard.GuardId &&
                                                      c.CheckInTime.Date == s.RosterDate.Date &&
-                                                     c.Status == "Present"),
+                                                     (c.Status == "Present" || c.Status == "Late Arrival")),
                         HasCheckOut = checkIns.Any(c => c.GuardId == guard.GuardId &&
                                                       c.CheckInTime.Date == s.RosterDate.Date &&
-                                                      c.Status == "Checked Out"),
-                        IsToday = s.RosterDate.Date == today
+                                                      (c.Status == "Checked Out" || c.Status == "Late Departure")),
+                        IsToday = s.RosterDate.Date == today,
+                        RosterId = s.RosterId
                     }).ToList(),
                     CheckIns = checkIns
                 };
@@ -530,12 +653,18 @@ namespace PiranaSecuritySystem.Controllers
                 if (shift == null)
                     return Json(new { success = false, message = "Shift not found" });
 
+                // Check if guard is off duty
+                if (shift.ShiftType == "Off")
+                {
+                    return Json(new { success = false, message = "You are off duty today. Cannot check in." });
+                }
+
                 // derive expected time based on shift type
                 string expectedTime = shift.ShiftType == "Day" ? "06:00" :
                                       shift.ShiftType == "Night" ? "18:00" : null;
 
                 if (expectedTime == null)
-                    return Json(new { success = false, message = "Off-duty shift. No check-in required." });
+                    return Json(new { success = false, message = "Invalid shift type." });
 
                 string actualTime = DateTime.Now.ToString("HH:mm");
                 bool isLate = TimeSpan.Parse(actualTime) > TimeSpan.Parse(expectedTime);
@@ -550,7 +679,8 @@ namespace PiranaSecuritySystem.Controllers
                     IsLate = isLate,
                     ExpectedTime = expectedTime,
                     ActualTime = actualTime,
-                    SiteUsername = guard.SiteUsername
+                    SiteUsername = guard.SiteUsername,
+                    RosterId = RosterId
                 };
 
                 db.GuardCheckIns.Add(checkIn);
@@ -602,12 +732,18 @@ namespace PiranaSecuritySystem.Controllers
                 if (shift == null)
                     return Json(new { success = false, message = "Shift not found" });
 
+                // Check if guard is off duty
+                if (shift.ShiftType == "Off")
+                {
+                    return Json(new { success = false, message = "You are off duty today. Cannot check out." });
+                }
+
                 // derive expected checkout time
                 string expectedTime = shift.ShiftType == "Day" ? "18:00" :
                                       shift.ShiftType == "Night" ? "06:00" : null;
 
                 if (expectedTime == null)
-                    return Json(new { success = false, message = "Off-duty shift. No check-out required." });
+                    return Json(new { success = false, message = "Invalid shift type." });
 
                 string actualTime = DateTime.Now.ToString("HH:mm");
                 bool isLate = TimeSpan.Parse(actualTime) > TimeSpan.Parse(expectedTime);
@@ -621,7 +757,8 @@ namespace PiranaSecuritySystem.Controllers
                     IsLate = isLate,
                     ExpectedTime = expectedTime,
                     ActualTime = actualTime,
-                    SiteUsername = guard.SiteUsername
+                    SiteUsername = guard.SiteUsername,
+                    RosterId = RosterId
                 };
 
                 db.GuardCheckIns.Add(checkOut);
@@ -942,6 +1079,8 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         // Helper method to format notification messages
+
+        // Helper method to format notification messages
         private string FormatNotificationMessage(string message)
         {
             if (string.IsNullOrEmpty(message))
@@ -978,7 +1117,7 @@ namespace PiranaSecuritySystem.Controllers
                 default: return "badge bg-secondary";
             }
         }
-        
+
         public ActionResult Details(int id)
         {
             var incident = db.IncidentReports.Find(id);
@@ -989,7 +1128,7 @@ namespace PiranaSecuritySystem.Controllers
             return View(incident);
         }
 
-        
+
 
         // Helper method to get incident types for dropdown
         private List<SelectListItem> GetIncidentTypes()

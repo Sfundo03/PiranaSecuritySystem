@@ -26,5 +26,6 @@ namespace PiranaSecuritySystem.ViewModels
         public DateTime? CheckInTime { get; set; }
         public DateTime? CheckOutTime { get; set; }
         public bool IsToday { get; set; }
+        public int RosterId { get; internal set; }
     }
 }

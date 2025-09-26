@@ -41,7 +41,12 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Site Username")]
         public string SiteUsername { get; set; }
 
-        // Navigation property
+        // New field to link with shift roster
+        [ForeignKey("ShiftRoster")]
+        public int? RosterId { get; set; }
+
+        // Navigation properties
         public virtual Guard Guard { get; set; }
+        public virtual ShiftRoster ShiftRoster { get; set; }
     }
 }

@@ -15,5 +15,6 @@ namespace PiranaSecuritySystem.ViewModels
         public string ActualTime { get; set; }
         public bool IsLate { get; set; }
         public string Token { get; set; }
+        public int? RosterId { get; set; }
     }
 }
