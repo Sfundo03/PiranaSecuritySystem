@@ -142,6 +142,24 @@
             font-size: 0.875rem;
         }
 
+        /* Status badge styles */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active-badge {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive-badge {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
         /* Site badge styles */
         .site-badge {
             display: inline-block;
@@ -237,6 +255,25 @@
             color: white !important;
             font-weight: 600;
         }
+
+        /* Button styles for activate/deactivate */
+        .btn-status-active {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn-status-inactive {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -325,19 +362,30 @@
                                                     <td>@guard.PhoneNumber</td>
                                                     <td>@guard.SiteUsername</td>
                                                     <td>
-                                                        @if (guard.IsActive)
-                                                        {
-                                                            <span class="status-active">Active</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="status-inactive">Inactive</span>
-                                                        }
+                                                        <span class="status-badge @(guard.IsActive ? "status-active-badge" : "status-inactive-badge")" id="status-@guard.GuardId">
+                                                            @(guard.IsActive ? "Active" : "Inactive")
+                                                        </span>
                                                     </td>
                                                     <td>
                                                         <div class="action-buttons">
                                                             @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
-                                                            @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
+
+                                                            @if (guard.IsActive)
+                                                            {
+                                                                <button type="button" class="btn btn-sm btn-status-inactive deactivate-btn"
+                                                                        data-guard-id="@guard.GuardId"
+                                                                        data-guard-name="@guard.Guard_FName @guard.Guard_LName">
+                                                                    <i class="fas fa-times me-1"></i>Deactivate
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <button type="button" class="btn btn-sm btn-status-active activate-btn"
+                                                                        data-guard-id="@guard.GuardId"
+                                                                        data-guard-name="@guard.Guard_FName @guard.Guard_LName">
+                                                                    <i class="fas fa-check me-1"></i>Activate
+                                                                </button>
+                                                            }
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -389,19 +437,30 @@
                                                     <td>@guard.PhoneNumber</td>
                                                     <td>@guard.SiteUsername</td>
                                                     <td>
-                                                        @if (guard.IsActive)
-                                                        {
-                                                            <span class="status-active">Active</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="status-inactive">Inactive</span>
-                                                        }
+                                                        <span class="status-badge @(guard.IsActive ? "status-active-badge" : "status-inactive-badge")" id="status-@guard.GuardId">
+                                                            @(guard.IsActive ? "Active" : "Inactive")
+                                                        </span>
                                                     </td>
                                                     <td>
                                                         <div class="action-buttons">
                                                             @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
-                                                            @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
+
+                                                            @if (guard.IsActive)
+                                                            {
+                                                                <button type="button" class="btn btn-sm btn-status-inactive deactivate-btn"
+                                                                        data-guard-id="@guard.GuardId"
+                                                                        data-guard-name="@guard.Guard_FName @guard.Guard_LName">
+                                                                    <i class="fas fa-times me-1"></i>Deactivate
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <button type="button" class="btn btn-sm btn-status-active activate-btn"
+                                                                        data-guard-id="@guard.GuardId"
+                                                                        data-guard-name="@guard.Guard_FName @guard.Guard_LName">
+                                                                    <i class="fas fa-check me-1"></i>Activate
+                                                                </button>
+                                                            }
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -453,19 +512,30 @@
                                                     <td>@guard.PhoneNumber</td>
                                                     <td>@guard.SiteUsername</td>
                                                     <td>
-                                                        @if (guard.IsActive)
-                                                        {
-                                                            <span class="status-active">Active</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="status-inactive">Inactive</span>
-                                                        }
+                                                        <span class="status-badge @(guard.IsActive ? "status-active-badge" : "status-inactive-badge")" id="status-@guard.GuardId">
+                                                            @(guard.IsActive ? "Active" : "Inactive")
+                                                        </span>
                                                     </td>
                                                     <td>
                                                         <div class="action-buttons">
                                                             @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
-                                                            @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
+
+                                                            @if (guard.IsActive)
+                                                            {
+                                                                <button type="button" class="btn btn-sm btn-status-inactive deactivate-btn"
+                                                                        data-guard-id="@guard.GuardId"
+                                                                        data-guard-name="@guard.Guard_FName @guard.Guard_LName">
+                                                                    <i class="fas fa-times me-1"></i>Deactivate
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <button type="button" class="btn btn-sm btn-status-active activate-btn"
+                                                                        data-guard-id="@guard.GuardId"
+                                                                        data-guard-name="@guard.Guard_FName @guard.Guard_LName">
+                                                                    <i class="fas fa-check me-1"></i>Activate
+                                                                </button>
+                                                            }
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -523,19 +593,30 @@
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        @if (guard.IsActive)
-                                                        {
-                                                            <span class="status-active">Active</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="status-inactive">Inactive</span>
-                                                        }
+                                                        <span class="status-badge @(guard.IsActive ? "status-active-badge" : "status-inactive-badge")" id="status-@guard.GuardId">
+                                                            @(guard.IsActive ? "Active" : "Inactive")
+                                                        </span>
                                                     </td>
                                                     <td>
                                                         <div class="action-buttons">
                                                             @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
-                                                            @Html.ActionLink("Update Status", "UpdateGuardStatus", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-outline-warning" })
+
+                                                            @if (guard.IsActive)
+                                                            {
+                                                                <button type="button" class="btn btn-sm btn-status-inactive deactivate-btn"
+                                                                        data-guard-id="@guard.GuardId"
+                                                                        data-guard-name="@guard.Guard_FName @guard.Guard_LName">
+                                                                    <i class="fas fa-times me-1"></i>Deactivate
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <button type="button" class="btn btn-sm btn-status-active activate-btn"
+                                                                        data-guard-id="@guard.GuardId"
+                                                                        data-guard-name="@guard.Guard_FName @guard.Guard_LName">
+                                                                    <i class="fas fa-check me-1"></i>Activate
+                                                                </button>
+                                                            }
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -556,7 +637,10 @@
         </div>
     </div>
 
+    <!-- Bootstrap JS and dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <script>
         // Auto-dismiss alerts after 5 seconds
         setTimeout(function () {
@@ -566,6 +650,92 @@
                 bsAlert.close();
             });
         }, 5000);
+
+        // Deactivate button click handler
+        $(document).on('click', '.deactivate-btn', function () {
+            var guardId = $(this).data('guard-id');
+            var guardName = $(this).data('guard-name');
+
+            if (confirm('Are you sure you want to deactivate ' + guardName + '? They will not be able to login.')) {
+                updateGuardStatus(guardId, false);
+            }
+        });
+
+        // Activate button click handler
+        $(document).on('click', '.activate-btn', function () {
+            var guardId = $(this).data('guard-id');
+            var guardName = $(this).data('guard-name');
+
+            if (confirm('Are you sure you want to activate ' + guardName + '? They will be able to login again.')) {
+                updateGuardStatus(guardId, true);
+            }
+        });
+
+        function updateGuardStatus(guardId, isActive) {
+            // Show loading state
+            var button = $('[data-guard-id="' + guardId + '"]');
+            var originalText = button.html();
+            button.html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...');
+            button.prop('disabled', true);
+
+            // Get anti-forgery token
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            $.ajax({
+                url: '@Url.Action("UpdateGuardStatusAjax", "Admin")',
+                type: 'POST',
+                data: {
+                    id: guardId,
+                    isActive: isActive,
+                    __RequestVerificationToken: token
+                },
+                success: function (response) {
+                    if (response.success) {
+                        // Update status badge
+                        var statusBadge = $('#status-' + guardId);
+                        if (isActive) {
+                            statusBadge.removeClass('status-inactive-badge').addClass('status-active-badge').text('Active');
+                        } else {
+                            statusBadge.removeClass('status-active-badge').addClass('status-inactive-badge').text('Inactive');
+                        }
+
+                        // Show success message
+                        showAlert('success', response.message);
+
+                        // Reload the page after 2 seconds to reflect all changes
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showAlert('danger', 'Error: ' + response.message);
+                        button.html(originalText).prop('disabled', false);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    showAlert('danger', 'Error updating guard status. Please try again.');
+                    console.error('Error:', error);
+                    button.html(originalText).prop('disabled', false);
+                }
+            });
+        }
+
+        function showAlert(type, message) {
+            var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            var iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+            var alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                '<i class="fas ' + iconClass + ' me-2"></i>' +
+                message +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                '</div>';
+
+            $('.card-body').prepend(alertHtml);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
     </script>
 </body>
 </html>

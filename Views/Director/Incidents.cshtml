@@ -7,39 +7,50 @@
 <style>
     /* Custom badge styles for better visibility */
     .badge-custom {
-        color: white !important;
         font-weight: bold;
         padding: 0.35em 0.65em;
         font-size: 0.75em;
+        border-radius: 0.25rem;
     }
 
     .badge-priority-critical {
         background-color: #dc3545;
+        color: white !important;
     }
 
     .badge-priority-high {
         background-color: #fd7e14;
+        color: white !important;
     }
 
     .badge-priority-medium {
         background-color: #20c997;
+        color: white !important;
     }
 
     .badge-priority-low {
         background-color: #6c757d;
+        color: white !important;
     }
 
     .badge-status-resolved {
         background-color: #198754;
+        color: white !important;
     }
 
     .badge-status-inprogress {
         background-color: #0d6efd;
+        color: white !important;
     }
 
     .badge-status-pending {
         background-color: #ffc107;
         color: #000 !important;
+    }
+
+    .badge-status-pendingreview {
+        background-color: #17a2b8;
+        color: white !important;
     }
 
     /* Ensure Font Awesome loads properly */
@@ -56,6 +67,31 @@
     /* Action buttons styling */
     .action-buttons {
         white-space: nowrap;
+    }
+
+    /* Table styling improvements */
+    .table th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    /* Description column styling */
+    .description-cell {
+        max-width: 200px;
+        word-wrap: break-word;
+    }
+
+    /* Ensure all badges have proper contrast */
+    .badge {
+        color: white !important;
+    }
+
+    .badge-warning {
+        color: #212529 !important;
     }
 </style>
 
@@ -121,7 +157,6 @@
                             <th>Priority</th>
                             <th>Status</th>
                             <th>Report Date</th>
-                            <th>Resident</th>
                             <th>Location</th>
                             <th>Actions</th>
                         </tr>
@@ -130,10 +165,17 @@
                         @foreach (var item in Model)
                         {
                             <tr>
-                                <td>@item.IncidentReportId.ToString("D4")</td>
+                                <td>INC-@item.IncidentReportId.ToString("D4")</td>
                                 <td>@item.IncidentType</td>
-                                <td title="@item.Description">
-                                    @(item.Description.Length > 50 ? item.Description.Substring(0, 50) + "..." : item.Description)
+                                <td class="description-cell" title="@item.Description">
+                                    @if (!string.IsNullOrEmpty(item.Description))
+                                    {
+                                        @(item.Description.Length > 50 ? item.Description.Substring(0, 50) + "..." : item.Description)
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No description</span>
+                                    }
                                 </td>
                                 <td>
                                     @GetPriorityBadge(item.Priority)
@@ -141,8 +183,16 @@
                                 <td>
                                     @GetStatusBadge(item.Status)
                                 </td>
-                                <td>@item.ReportDate.ToString("MM/dd/yyyy HH:mm")</td>
-                                <td>@(item.Resident?.FullName ?? "N/A")</td>
+                                <td>
+                                    @if (item.ReportDate != DateTime.MinValue)
+                                    {
+                                        @item.ReportDate.ToString("MM/dd/yyyy HH:mm")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Date not available</span>
+                                    }
+                                </td>
                                 <td>@item.Location</td>
                                 <td class="action-buttons">
                                     <a href="@Url.Action("IncidentDetails", "Director", new { id = item.IncidentReportId })"
@@ -182,6 +232,7 @@
                 break;
             default:
                 badgeClass += "badge-secondary";
+                displayText = "Not set";
                 break;
         }
         return new HtmlString($"<span class='{badgeClass}'>{displayText}</span>");
@@ -203,8 +254,12 @@
             case "pending":
                 badgeClass += "badge-status-pending";
                 break;
+            case "pending review":
+                badgeClass += "badge-status-pendingreview";
+                break;
             default:
                 badgeClass += "badge-secondary";
+                displayText = "Pending";
                 break;
         }
         return new HtmlString($"<span class='{badgeClass}'>{displayText}</span>");
@@ -217,23 +272,38 @@
             // Initialize DataTable
             $('#dataTable').DataTable({
                 "pageLength": 25,
-                "order": [[5, "desc"]], // Sort by report date descending
+                "order": [[5, "desc"]], // Sort by report date descending (column index 5)
                 "columnDefs": [
-                    { "orderable": false, "targets": [2, 8] } // Make description and actions columns not sortable
+                    { "orderable": false, "targets": [2, 7] }, // Make description and actions columns not sortable
+                    { "width": "20%", "targets": 2 }, // Description column width
+                    { "width": "10%", "targets": 7 } // Actions column width
                 ],
                 "language": {
                     "search": "Search incidents:",
                     "lengthMenu": "Show _MENU_ incidents per page",
                     "info": "Showing _START_ to _END_ of _TOTAL_ incidents",
                     "infoEmpty": "No incidents available",
-                    "infoFiltered": "(filtered from _MAX_ total incidents)"
-                }
+                    "infoFiltered": "(filtered from _MAX_ total incidents)",
+                    "paginate": {
+                        "first": "First",
+                        "last": "Last",
+                        "next": "Next",
+                        "previous": "Previous"
+                    }
+                },
+                "responsive": true
             });
 
             // Set the selected values for filters
             $('#status').val('@ViewBag.StatusFilter');
             $('#priority').val('@ViewBag.PriorityFilter');
             $('#type').val('@ViewBag.TypeFilter');
+
+            // Add tooltips for description hover
+            $('[title]').tooltip({
+                placement: 'top',
+                trigger: 'hover'
+            });
 
             // Add Font Awesome CSS if not already loaded
             if (!$('link[href*="font-awesome"]').length && !$('link[href*="fontawesome"]').length) {

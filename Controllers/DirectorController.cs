@@ -20,20 +20,32 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                // Get current user's ID from Identity instead of session
+                // Get current user's ID from Identity
                 var currentUserId = User.Identity.Name;
 
                 // Find director by email
                 var director = db.Directors.FirstOrDefault(d => d.Email == currentUserId);
                 if (director == null)
                 {
+                    // Still return view but with empty data
+                    ViewBag.TotalIncidents = 0;
+                    ViewBag.ResolvedIncidents = 0;
+                    ViewBag.PendingIncidents = 0;
+                    ViewBag.InProgressIncidents = 0;
+                    ViewBag.HighPriorityIncidents = 0;
+                    ViewBag.CriticalPriorityIncidents = 0;
+                    ViewBag.ThisMonthIncidents = 0;
+                    ViewBag.TotalGuardCheckIns = 0;
+                    ViewBag.TodayCheckIns = 0;
+                    ViewBag.CurrentOnDuty = 0;
+                    ViewBag.RecentIncidents = new List<IncidentReport>();
                     return View();
                 }
 
                 // Set session for future use
                 Session["DirectorId"] = director.DirectorId.ToString();
 
-                // Get notifications for this director
+                // Get notifications
                 var notifications = db.Notifications
                     .Where(n => n.UserId == director.DirectorId.ToString() && n.UserType == "Director")
                     .OrderByDescending(n => n.CreatedAt)
@@ -42,7 +54,7 @@ namespace PiranaSecuritySystem.Controllers
                 ViewBag.Notifications = notifications;
                 ViewBag.UnreadNotificationCount = notifications.Count(n => !n.IsRead);
 
-                // Check if we should show login success message
+                // Check login success message
                 var loginNotification = notifications.FirstOrDefault(n => n.Message.Contains("logged in successfully"));
                 if (loginNotification != null && !loginNotification.IsRead)
                 {
@@ -51,7 +63,7 @@ namespace PiranaSecuritySystem.Controllers
                     db.SaveChanges();
                 }
 
-                // Calculate statistics with null checks
+                // **FIXED: Calculate statistics with proper database queries**
                 ViewBag.TotalIncidents = db.IncidentReports.Count();
                 ViewBag.ResolvedIncidents = db.IncidentReports.Count(i => i.Status == "Resolved");
                 ViewBag.PendingIncidents = db.IncidentReports.Count(i => i.Status == "Pending");
@@ -59,28 +71,35 @@ namespace PiranaSecuritySystem.Controllers
                 ViewBag.HighPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "High");
                 ViewBag.CriticalPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "Critical");
 
-                // Fix for month comparison
+                // Fix for month comparison - current month incidents
                 var now = DateTime.Now;
                 ViewBag.ThisMonthIncidents = db.IncidentReports
                     .Count(i => i.ReportDate.Month == now.Month && i.ReportDate.Year == now.Year);
 
-                // Guard statistics with null checks
+                // Guard statistics
                 ViewBag.TotalGuardCheckIns = db.GuardCheckIns.Count();
 
+                // Today's check-ins (current date only)
+                var today = DateTime.Today;
                 ViewBag.TodayCheckIns = db.GuardCheckIns
-                    .Count(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now));
+                    .Count(g => DbFunctions.TruncateTime(g.CheckInTime) == today);
 
+                // Current on duty (today and status present)
                 ViewBag.CurrentOnDuty = db.GuardCheckIns
-                    .Where(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now) &&
-                               g.Status == "Present")
-                    .GroupBy(g => g.GuardId)
+                    .Where(g => DbFunctions.TruncateTime(g.CheckInTime) == today && g.Status == "Present")
+                    .Select(g => g.GuardId)
+                    .Distinct()
                     .Count();
 
-                // Recent incidents
+                // **FIXED: Recent incidents - ensure we're getting data**
                 ViewBag.RecentIncidents = db.IncidentReports
                     .OrderByDescending(i => i.ReportDate)
                     .Take(10)
                     .ToList();
+
+                // Debug information
+                System.Diagnostics.Debug.WriteLine($"Total incidents: {ViewBag.TotalIncidents}");
+                System.Diagnostics.Debug.WriteLine($"Recent incidents count: {((List<IncidentReport>)ViewBag.RecentIncidents).Count}");
 
                 return View();
             }
@@ -89,6 +108,10 @@ namespace PiranaSecuritySystem.Controllers
                 System.Diagnostics.Debug.WriteLine("Dashboard error: " + ex.Message);
                 System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
                 TempData["ErrorMessage"] = "Error loading dashboard statistics: " + ex.Message;
+
+                // Set default values on error
+                ViewBag.TotalIncidents = 0;
+                ViewBag.RecentIncidents = new List<IncidentReport>();
                 return View();
             }
         }
@@ -98,9 +121,10 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                // Create StatisticsViewModel with all required data including the missing properties
+                // **FIXED: Create StatisticsViewModel with proper data retrieval**
                 var statistics = new StatisticsViewModel
                 {
+                    // Basic incident counts
                     TotalIncidents = db.IncidentReports.Count(),
                     ResolvedIncidents = db.IncidentReports.Count(i => i.Status == "Resolved"),
                     PendingIncidents = db.IncidentReports.Count(i => i.Status == "Pending"),
@@ -108,9 +132,10 @@ namespace PiranaSecuritySystem.Controllers
                     HighPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "High"),
                     CriticalPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "Critical"),
 
-                    // Monthly incidents for current year
+                    // **FIXED: Monthly incidents with proper grouping**
                     MonthlyIncidents = db.IncidentReports
                         .Where(i => i.ReportDate.Year == DateTime.Now.Year)
+                        .AsEnumerable() // Switch to client-side for grouping
                         .GroupBy(i => i.ReportDate.Month)
                         .Select(g => new MonthlyIncidentData
                         {
@@ -120,42 +145,57 @@ namespace PiranaSecuritySystem.Controllers
                         .OrderBy(x => x.Month)
                         .ToList(),
 
-                    // Incidents by type
+                    // **FIXED: Incidents by type with null check**
                     IncidentByType = db.IncidentReports
+                        .Where(i => i.IncidentType != null) // Ensure no null types
                         .GroupBy(i => i.IncidentType)
                         .Select(g => new IncidentTypeData
                         {
-                            Type = g.Key,
+                            Type = g.Key ?? "Unknown",
                             Count = g.Count()
                         })
                         .OrderByDescending(x => x.Count)
                         .ToList(),
 
-                    // Incidents by status
+                    // **FIXED: Incidents by status with null check**
                     IncidentByStatus = db.IncidentReports
+                        .Where(i => i.Status != null) // Ensure no null statuses
                         .GroupBy(i => i.Status)
                         .Select(g => new IncidentStatusData
                         {
-                            Status = g.Key,
+                            Status = g.Key ?? "Unknown",
                             Count = g.Count()
                         })
                         .ToList(),
 
-                    // Guard statistics - INCLUDING THE MISSING PROPERTIES
+                    // Guard statistics
                     TotalGuards = db.Guards.Count(g => g.IsActive),
                     TotalCheckIns = db.GuardCheckIns.Count(),
-                    TodayCheckIns = db.GuardCheckIns.Count(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now)),
+
+                    // **FIXED: Today's check-ins with proper date comparison**
+                    TodayCheckIns = db.GuardCheckIns.Count(g =>
+                        DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now)),
+
                     CurrentOnDuty = db.GuardCheckIns
-                        .Where(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now) && g.Status == "Present")
-                        .GroupBy(g => g.GuardId)
+                        .Where(g => DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now) &&
+                                   g.Status == "Present")
+                        .Select(g => g.GuardId)
+                        .Distinct()
                         .Count(),
 
-                    // Average resolution time - INCLUDING THE MISSING PROPERTY
+                    // **FIXED: Average resolution time with proper calculation**
                     AverageResolutionTime = db.IncidentReports
                         .Where(i => i.Status == "Resolved" && i.FeedbackDate != null && i.ReportDate != null)
-                        .AsEnumerable() // Switch to client-side evaluation for TimeSpan operations
-                        .Average(i => (i.FeedbackDate.Value - i.ReportDate).TotalDays)
+                        .AsEnumerable()
+                        .Select(i => (i.FeedbackDate.Value - i.ReportDate).TotalDays)
+                        .DefaultIfEmpty(0)
+                        .Average()
                 };
+
+                // Debug information
+                System.Diagnostics.Debug.WriteLine($"Statistics - Total incidents: {statistics.TotalIncidents}");
+                System.Diagnostics.Debug.WriteLine($"Statistics - IncidentByType count: {statistics.IncidentByType.Count}");
+                System.Diagnostics.Debug.WriteLine($"Statistics - IncidentByStatus count: {statistics.IncidentByStatus.Count}");
 
                 return View(statistics);
             }
@@ -163,11 +203,12 @@ namespace PiranaSecuritySystem.Controllers
             {
                 System.Diagnostics.Debug.WriteLine("Statistics error: " + ex.Message);
                 System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
+
+                // Return empty view model on error
                 TempData["ErrorMessage"] = "Error loading statistics: " + ex.Message;
                 return View(new StatisticsViewModel());
             }
         }
-
         // GET: Director/IncidentDetails
         public ActionResult IncidentDetails(int? id)
         {
@@ -180,7 +221,7 @@ namespace PiranaSecuritySystem.Controllers
                 }
 
                 var incident = db.IncidentReports
-                    .Include("Resident")
+                    .Include("Guard") // Include Guard information
                     .FirstOrDefault(i => i.IncidentReportId == id.Value);
 
                 if (incident == null)
@@ -189,12 +230,19 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Incidents");
                 }
 
+                // Load resident user information if ResidentId exists
+                if (!string.IsNullOrEmpty(incident.ResidentId))
+                {
+                    var residentUser = db.Users.FirstOrDefault(u => u.Id == incident.ResidentId);
+                    ViewBag.ResidentUser = residentUser;
+                }
+
                 // Add status options to ViewBag
                 ViewBag.StatusOptions = new SelectList(new[] {
-                    new { Value = "Pending", Text = "Pending" },
-                    new { Value = "In Progress", Text = "In Progress" },
-                    new { Value = "Resolved", Text = "Resolved" }
-                }, "Value", "Text", incident.Status);
+            new { Value = "Pending", Text = "Pending" },
+            new { Value = "In Progress", Text = "In Progress" },
+            new { Value = "Resolved", Text = "Resolved" }
+        }, "Value", "Text", incident.Status);
 
                 return View(incident);
             }
@@ -205,7 +253,6 @@ namespace PiranaSecuritySystem.Controllers
                 return RedirectToAction("Incidents");
             }
         }
-
         // GET: Director/AllIncidents
         public ActionResult AllIncidents()
         {
@@ -260,15 +307,26 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // GET: Director/GetRecentIncidents
+        // GET: Director/GetRecentIncidents - FIXED VERSION
         [HttpGet]
         public JsonResult GetRecentIncidents()
         {
             try
             {
+                // **FIXED: Proper database query with explicit field selection and error handling**
                 var recentIncidents = db.IncidentReports
                     .OrderByDescending(i => i.ReportDate)
                     .Take(10)
+                    .Select(i => new
+                    {
+                        IncidentReportId = i.IncidentReportId,
+                        IncidentType = i.IncidentType ?? "Unknown",
+                        Location = i.Location ?? "Unknown",
+                        Status = i.Status ?? "Unknown",
+                        Priority = i.Priority ?? "Unknown",
+                        ReportDate = i.ReportDate
+                    })
+                    .ToList()
                     .Select(i => new
                     {
                         i.IncidentReportId,
@@ -276,19 +334,28 @@ namespace PiranaSecuritySystem.Controllers
                         i.Location,
                         i.Status,
                         i.Priority,
-                        ReportDate = i.ReportDate
+                        ReportDate = i.ReportDate.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") // ISO format
                     })
                     .ToList();
+
+                System.Diagnostics.Debug.WriteLine($"GetRecentIncidents found: {recentIncidents.Count} incidents");
 
                 return Json(new { Success = true, Incidents = recentIncidents }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("GetRecentIncidents error: " + ex.Message);
-                return Json(new { Success = false, Error = ex.Message }, JsonRequestBehavior.AllowGet);
+                System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
+
+                // Return empty list on error instead of failing completely
+                return Json(new
+                {
+                    Success = false,
+                    Error = ex.Message,
+                    Incidents = new List<object>()
+                }, JsonRequestBehavior.AllowGet);
             }
         }
-
         // GET: Director/Notifications
         public ActionResult Notifications(string typeFilter = "", string statusFilter = "", int page = 1, int pageSize = 20)
         {
@@ -516,7 +583,7 @@ namespace PiranaSecuritySystem.Controllers
                 return View(new List<IncidentReport>());
             }
         }
-        
+
         // POST: Director/UpdateIncidentStatus
         [HttpPost]
         [ValidateAntiForgeryToken]

@@ -8,7 +8,60 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <style>
-        /* Your existing CSS remains unchanged */
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            width: 350px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+        }
+
+            .notification-item:hover {
+                background-color: #f8f9fa;
+            }
+
+            .notification-item.unread {
+                background-color: #f0f8ff;
+                border-left: 3px solid #007bff;
+            }
+
+            .notification-item:last-child {
+                border-bottom: none;
+            }
     </style>
 </head>
 <body>
@@ -183,7 +236,7 @@
                         <div class="card shadow-sm">
                             <div class="card-header d-flex justify-content-between align-items-center px-4 py-3">
                                 <h6 class="m-0 fw-bold">Recent Incident Activity</h6>
-                                <a href="@Url.Action("IncidentDetails", "Director")" class="btn btn-sm btn-primary">View All</a>
+                                <a href="@Url.Action("Incidents", "Director")" class="btn btn-sm btn-primary">View All</a>
                             </div>
                             <div class="card-body px-4" id="recentIncidentsContainer">
                                 <div class="alert alert-info text-center py-5 mb-0">
@@ -304,41 +357,77 @@
         }
 
         function loadRecentIncidents() {
+            console.log('Loading recent incidents...');
+
             fetch('@Url.Action("GetRecentIncidents", "Director")')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Recent incidents data:', data);
                     const container = document.getElementById('recentIncidentsContainer');
 
                     if (data.Success && data.Incidents && data.Incidents.length > 0) {
-                        let html = '<div class="table-responsive"><table class="table table-hover">';
+                        let html = '<div class="table-responsive"><table class="table table-hover table-sm">';
                         html += '<thead><tr><th>Type</th><th>Location</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>';
                         html += '<tbody>';
 
                         data.Incidents.forEach(incident => {
                             const priorityClass = getPriorityClass(incident.Priority);
                             const statusClass = getStatusClass(incident.Status);
-                            const date = new Date(incident.ReportDate).toLocaleDateString();
+
+                            // Proper date handling with error checking
+                            let dateDisplay = 'Date unavailable';
+                            try {
+                                if (incident.ReportDate) {
+                                    const reportDate = new Date(incident.ReportDate);
+                                    if (!isNaN(reportDate.getTime())) {
+                                        dateDisplay = reportDate.toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit'
+                                        }) + ' ' + reportDate.toLocaleTimeString('en-US', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: true
+                                        });
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Date parsing error:', e);
+                            }
 
                             html += `<tr>
-                                <td>${incident.IncidentType}</td>
-                                <td>${incident.Location}</td>
-                                <td><span class="badge ${priorityClass}">${incident.Priority}</span></td>
-                                <td><span class="badge ${statusClass}">${incident.Status}</span></td>
-                                <td>${date}</td>
+                                <td>${escapeHtml(incident.IncidentType || 'Unknown')}</td>
+                                <td>${escapeHtml(incident.Location || 'Unknown')}</td>
+                                <td><span class="badge ${priorityClass}">${escapeHtml(incident.Priority || 'Unknown')}</span></td>
+                                <td><span class="badge ${statusClass}">${escapeHtml(incident.Status || 'Unknown')}</span></td>
+                                <td>${dateDisplay}</td>
                             </tr>`;
                         });
 
                         html += '</tbody></table></div>';
                         container.innerHTML = html;
+                        console.log('Recent incidents loaded successfully. Count:', data.Incidents.length);
                     } else {
-                        container.innerHTML = '<div class="alert alert-info text-center py-5 mb-0"><i class="fas fa-info-circle me-2"></i>No recent incidents found</div>';
+                        container.innerHTML = '<div class="alert alert-info text-center py-5 mb-0"><i class="fas fa-info-circle me-2"></i>No recent incidents found in the system</div>';
+                        console.log('No recent incidents found');
                     }
                 })
                 .catch(error => {
                     console.error('Error loading recent incidents:', error);
                     document.getElementById('recentIncidentsContainer').innerHTML =
-                        '<div class="alert alert-danger text-center py-5 mb-0"><i class="fas fa-exclamation-circle me-2"></i>Failed to load recent incidents</div>';
+                        '<div class="alert alert-warning text-center py-5 mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Unable to load recent incidents. Please try again later.</div>';
                 });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function loadNotifications() {
@@ -472,6 +561,7 @@
         }
 
         function getPriorityClass(priority) {
+            if (!priority) return 'bg-secondary';
             switch (priority.toLowerCase()) {
                 case 'high': return 'bg-warning';
                 case 'critical': return 'bg-danger';
@@ -482,6 +572,7 @@
         }
 
         function getStatusClass(status) {
+            if (!status) return 'bg-secondary';
             switch (status.toLowerCase()) {
                 case 'resolved': return 'bg-success';
                 case 'in progress': return 'bg-primary';
@@ -491,6 +582,7 @@
         }
 
         function getNotificationTypeClass(type) {
+            if (!type) return 'bg-secondary';
             switch (type.toLowerCase()) {
                 case 'alert': return 'bg-danger';
                 case 'warning': return 'bg-warning';
