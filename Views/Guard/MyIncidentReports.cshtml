@@ -447,10 +447,9 @@
                                         }
                                     </td>
                                     <td style="text-align: center;">
-                                        <button class="btn btn-info view-details" data-id="@incident.IncidentReportId">
+                                        <a href="@Url.Action("Details", "Guard", new { id = incident.IncidentReportId })" class="btn btn-info">
                                             <i class="fas fa-eye me-1"></i>Details
-                                        </button>
-                                        
+                                        </a>
                                     </td>
                                 </tr>
                             }
@@ -458,24 +457,6 @@
                     </table>
                 </div>
             }
-        </div>
-    </div>
-
-    <!-- Details Modal -->
-    <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Incident Details</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="modalBody">
-                    <!-- Details will be loaded here via AJAX -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -499,8 +480,8 @@
                     const statusMatch = !statusFilter || status.includes(statusFilter);
                     const priorityMatch = !priorityFilter || priority.includes(priorityFilter);
                     const searchMatch = !searchText ||
-                                        incidentType.includes(searchText) ||
-                                        location.includes(searchText);
+                        incidentType.includes(searchText) ||
+                        location.includes(searchText);
 
                     if (statusMatch && priorityMatch && searchMatch) {
                         row.style.display = '';
@@ -513,41 +494,15 @@
             // Reset filters when filter values are changed
             const filterInputs = document.querySelectorAll('#statusFilter, #priorityFilter, #searchInput');
             filterInputs.forEach(input => {
-                input.addEventListener('change', function() {
+                input.addEventListener('change', function () {
                     document.getElementById('applyFilters').click();
                 });
             });
 
             // Trigger search when typing in search box
-            document.getElementById('searchInput').addEventListener('keyup', function() {
+            document.getElementById('searchInput').addEventListener('keyup', function () {
                 document.getElementById('applyFilters').click();
             });
-
-            // Details button functionality
-            document.querySelectorAll('.view-details').forEach(button => {
-                button.addEventListener('click', function() {
-                    const incidentId = this.getAttribute('data-id');
-                    fetchIncidentDetails(incidentId);
-                });
-            });
-
-            // Function to fetch incident details via AJAX
-            function fetchIncidentDetails(id) {
-                fetch('@Url.Action("Details", "Guard")/' + id)
-                    .then(response => response.text())
-                    .then(data => {
-                        document.getElementById('modalBody').innerHTML = data;
-                        const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
-                        detailsModal.show();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        document.getElementById('modalBody').innerHTML =
-                            '<div class="alert alert-danger">Error loading incident details.</div>';
-                        const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
-                        detailsModal.show();
-                    });
-            }
         });
     </script>
 </body>

@@ -28,16 +28,16 @@
         .card {
             border-radius: 8px;
             box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-            border: none; /* Changed from border: 1px solid var(--border-color); */
+            border: none;
             margin-bottom: 20px;
         }
 
         .card-header {
             background: white;
             color: var(--primary-blue);
-            border-bottom: none; /* Changed from border-bottom: 2px solid var(--primary-blue); */
+            border-bottom: none;
             font-weight: 600;
-            padding-bottom: 1rem; /* Added to maintain spacing */
+            padding-bottom: 1rem;
         }
 
         .btn-primary {
@@ -52,9 +52,9 @@
         .alert {
             border-radius: 6px;
             border-left: 3px solid;
-            border-top: none; /* Added to remove top border */
-            border-right: none; /* Added to remove right border */
-            border-bottom: none; /* Added to remove bottom border */
+            border-top: none;
+            border-right: none;
+            border-bottom: none;
         }
 
         .alert-success {
@@ -72,7 +72,7 @@
         .badge {
             font-weight: 500;
             padding: 0.5em 0.8em;
-            text-decoration: none; /* Added to remove any text underline */
+            text-decoration: none;
         }
 
         .notification-bell {
@@ -96,7 +96,7 @@
 
         .notification-item {
             padding: 1rem;
-            border-bottom: none; /* Changed from border-bottom: 1px solid #e9ecef; */
+            border-bottom: none;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -149,18 +149,18 @@
         h1, h2, h3, h4, h5, h6 {
             color: var(--primary-blue);
             font-weight: 600;
-            text-decoration: none; /* Added to remove any text underline */
+            text-decoration: none;
         }
 
         .table th {
             color: var(--primary-blue);
             font-weight: 500;
-            text-decoration: none; /* Added to remove any text underline */
-            border-bottom: none; /* Added to remove table header underline */
+            text-decoration: none;
+            border-bottom: none;
         }
 
         .table td {
-            border-bottom: none; /* Added to remove table cell underline */
+            border-bottom: none;
         }
 
         .loading-spinner {
@@ -203,12 +203,12 @@
             background-color: #fefefe;
             margin: 15% auto;
             padding: 20px;
-            border: none; /* Changed from border: 1px solid #888; */
+            border: none;
             width: 80%;
             max-width: 500px;
             border-radius: 8px;
             position: relative;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); /* Added to maintain visual hierarchy */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         }
 
         .close-modal {
@@ -217,7 +217,7 @@
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
-            text-decoration: none; /* Added to remove any text underline */
+            text-decoration: none;
         }
 
         /* Site badge styles */
@@ -231,7 +231,7 @@
             white-space: nowrap;
             vertical-align: baseline;
             border-radius: 0.375rem;
-            text-decoration: none; /* Added to remove any text underline */
+            text-decoration: none;
         }
 
         .site-a {
@@ -251,24 +251,24 @@
 
         /* Additional styles to remove borders/underlines */
         .table {
-            border: none; /* Remove table border */
+            border: none;
         }
 
         .notification-header {
-            border-bottom: none; /* Remove notification header border */
-            padding-bottom: 0.5rem; /* Adjust padding to maintain spacing */
+            border-bottom: none;
+            padding-bottom: 0.5rem;
         }
 
         .notification-footer {
-            border-top: none; /* Remove notification footer border */
+            border-top: none;
         }
 
         a {
-            text-decoration: none; /* Remove underline from all links */
+            text-decoration: none;
         }
 
             a:hover {
-                text-decoration: none; /* Ensure no underline on hover */
+                text-decoration: none;
             }
     </style>
 </head>
@@ -678,31 +678,30 @@
             document.getElementById('upcomingShifts').textContent = '@ViewBag.UpcomingShifts';
         }
 
-       // Function to load recent incidents
-function loadRecentIncidents() {
-    const container = document.getElementById('recentIncidentsContainer');
+        // Function to load recent incidents
+        function loadRecentIncidents() {
+            const container = document.getElementById('recentIncidentsContainer');
 
-    // Check if we have recent incidents from ViewBag
-    const recentIncidents = @Html.Raw(Json.Encode(ViewBag.RecentIncidents));
+            // Check if we have recent incidents from ViewBag
+            const recentIncidents = @Html.Raw(Json.Encode(ViewBag.RecentIncidents));
 
-    if (recentIncidents && recentIncidents.length > 0) {
-        let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Status</th></tr></thead><tbody>';
+            if (recentIncidents && recentIncidents.length > 0) {
+                let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Type</th><th>Location</th><th>Status</th></tr></thead><tbody>';
 
-        recentIncidents.forEach(incident => {
-            html += `<tr>
-                <td>${new Date(incident.ReportDate).toLocaleDateString()}</td>
-                <td>${incident.IncidentType || 'N/A'}</td>
-                <td>${incident.Location || 'N/A'}</td>
-                <td><span class="badge ${getStatusBadgeClass(incident.Status)}">${incident.Status}</span></td>
-            </tr>`;
-        });
+                recentIncidents.forEach(incident => {
+                    html += `<tr>
+                        <td>${incident.IncidentType || 'N/A'}</td>
+                        <td>${incident.Location || 'N/A'}</td>
+                        <td><span class="badge ${getStatusBadgeClass(incident.Status)}">${incident.Status}</span></td>
+                    </tr>`;
+                });
 
-        html += '</tbody></table></div>';
-        container.innerHTML = html;
-    } else {
-        container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No recent incidents found.</div>';
-    }
-}
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No recent incidents found.</div>';
+            }
+        }
 
         // Function to submit attendance
         function submitAttendance(status) {

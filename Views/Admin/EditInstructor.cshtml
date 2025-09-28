@@ -6,6 +6,242 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<style>
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 30px auto;
+        padding: 0 15px;
+    }
+
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 1px solid #eaeaea;
+    }
+
+        .dashboard-card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+    .card-header-custom {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 25px 30px;
+        display: flex;
+        align-items: center;
+        border-bottom: none;
+        position: relative;
+    }
+
+        .card-header-custom::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, #1abc9c);
+        }
+
+    .security-icon {
+        background: rgba(255, 255, 255, 0.15);
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 20px;
+        font-size: 24px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-header-custom h2 {
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.8rem;
+        letter-spacing: -0.5px;
+    }
+
+    .card-body {
+        padding: 35px;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+        position: relative;
+    }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+        }
+
+    .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 15px;
+        transition: all 0.3s ease;
+        font-size: 15px;
+        background-color: #fff;
+    }
+
+        .form-control:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            background-color: #fff;
+        }
+
+        .form-control[readonly] {
+            background-color: #f8f9fa;
+            border-color: #e9ecef;
+            color: #6c757d;
+        }
+
+    .form-check-input {
+        width: 20px;
+        height: 20px;
+        margin-top: 0.2rem;
+        border: 2px solid #dee2e6;
+    }
+
+        .form-check-input:checked {
+            background-color: #1abc9c;
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.2);
+        }
+
+    .form-check-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-left: 8px;
+        font-size: 15px;
+    }
+
+    .btn-custom {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    }
+
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+            background: linear-gradient(135deg, #2980b9, #3498db);
+            color: white;
+        }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        margin-left: 10px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+            background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+            color: white;
+            text-decoration: none;
+        }
+
+    .field-validation-error {
+        color: #e74c3c;
+        font-size: 13px;
+        margin-top: 6px;
+        display: block;
+        font-weight: 500;
+    }
+
+    .form-check {
+        padding-left: 0;
+        display: flex;
+        align-items: center;
+        margin-top: 2rem;
+    }
+
+    .mt-4 {
+        margin-top: 2rem !important;
+    }
+
+    .mb-0 {
+        margin-bottom: 0 !important;
+    }
+
+    .row {
+        margin-bottom: 10px;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .card-header-custom {
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .security-icon {
+            margin-right: 0;
+            margin-bottom: 15px;
+        }
+
+        .dashboard-container {
+            margin: 20px auto;
+        }
+
+        .card-body {
+            padding: 25px 20px;
+        }
+
+        .btn-custom, .btn-secondary {
+            width: 100%;
+            margin-bottom: 10px;
+            margin-left: 0;
+        }
+    }
+
+    /* Animation for form elements */
+    .form-group {
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
 <div class="dashboard-container">
     <div class="row">
         <div class="col-md-12">

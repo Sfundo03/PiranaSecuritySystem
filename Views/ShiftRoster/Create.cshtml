@@ -2,79 +2,481 @@
 
 @{
     ViewBag.Title = "Create Shift Roster";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Create Shift Roster</h2>
+<style>
+    .container-fluid {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
 
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        background: #fff;
+        margin-bottom: 30px;
+        transition: all 0.3s ease;
+    }
 
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-}
+        .card:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
 
-@using (Html.BeginForm("Create", "ShiftRoster", FormMethod.Post))
-{
-    @Html.AntiForgeryToken()
+    .card-header {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        border-bottom: none;
+        padding: 25px 30px;
+        border-radius: 12px 12px 0 0 !important;
+        position: relative;
+    }
 
-    <div class="form-horizontal">
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, #1abc9c);
+        }
 
-        <!-- Add the 30-day option -->
-        <div class="form-group">
-            <label class="control-label col-md-2">Roster Period</label>
-            <div class="col-md-10">
-                <div class="checkbox">
-                    <label>
-                        @Html.CheckBoxFor(model => model.GenerateFor30Days)
-                        Generate roster for 30 days starting from selected date
-                    </label>
+        .card-header h2 {
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.8rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+        }
+
+            .card-header h2:before {
+                content: '';
+                width: 4px;
+                height: 24px;
+                background: linear-gradient(135deg, #3498db, #1abc9c);
+                margin-right: 12px;
+                border-radius: 2px;
+            }
+
+    .card-body {
+        padding: 35px;
+    }
+
+    .alert {
+        border: none;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .alert-danger {
+        background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+
+    .alert-success {
+        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+
+    .form-horizontal {
+        padding: 0;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+        position: relative;
+    }
+
+    .control-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+    }
+
+    .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 15px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        background: #fff;
+        color: #495057;
+    }
+
+        .form-control:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            background: #fff;
+        }
+
+    .checkbox {
+        margin-top: 8px;
+    }
+
+        .checkbox label {
+            font-weight: 500;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+    .form-check-input {
+        width: 18px;
+        height: 18px;
+        margin-right: 10px;
+        border: 2px solid #dee2e6;
+        border-radius: 4px;
+    }
+
+        .form-check-input:checked {
+            background-color: #1abc9c;
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.2);
+        }
+
+    .text-muted {
+        font-size: 13px;
+        color: #6c757d !important;
+        margin-top: 6px;
+        display: block;
+    }
+
+    #guardsContainer {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+
+        #guardsContainer:hover {
+            border-color: #3498db;
+        }
+
+    #guardsLoading {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    #guardsList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 12px;
+    }
+
+    .form-check {
+        background: white;
+        padding: 12px 15px;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+        margin-bottom: 0;
+    }
+
+        .form-check:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+    .form-check-label {
+        font-weight: 500;
+        color: #495057;
+        cursor: pointer;
+    }
+
+    .badge {
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 12px;
+        margin-left: 10px;
+    }
+
+    .badge-warning {
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+        color: white;
+    }
+
+    .badge-success {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+    }
+
+    .badge-danger {
+        background: linear-gradient(135deg, #dc3545, #e83e8c);
+        color: white;
+    }
+
+    .text-danger {
+        color: #e74c3c !important;
+        font-size: 13px;
+        font-weight: 500;
+        margin-top: 6px;
+        display: block;
+    }
+
+    .btn {
+        border: none;
+        border-radius: 8px;
+        padding: 12px 25px;
+        font-weight: 600;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+            background: linear-gradient(135deg, #2980b9, #3498db);
+            color: white;
+        }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        color: white;
+    }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+            background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+            color: white;
+        }
+
+    .btn-default {
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        color: white;
+    }
+
+        .btn-default:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+            background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+            color: white;
+        }
+
+    .col-md-2 {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .col-md-10 {
+        width: 100%;
+    }
+
+    .col-md-offset-2 {
+        margin-left: 0;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 30px;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .container-fluid {
+            padding: 20px 15px;
+        }
+
+        .card-body {
+            padding: 25px 20px;
+        }
+
+        .card-header {
+            padding: 20px 25px;
+        }
+
+            .card-header h2 {
+                font-size: 1.5rem;
+            }
+
+        #guardsList {
+            grid-template-columns: 1fr;
+        }
+
+        .btn {
+            width: 100%;
+            margin-bottom: 10px;
+            margin-right: 0;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+
+    /* Animation for form elements */
+    .form-group {
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Scrollbar styling */
+    #guardsContainer::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #guardsContainer::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    #guardsContainer::-webkit-scrollbar-thumb {
+        background: #3498db;
+        border-radius: 3px;
+    }
+
+        #guardsContainer::-webkit-scrollbar-thumb:hover {
+            background: #2980b9;
+        }
+
+    /* Selection count animation */
+    #selectedCount {
+        transition: all 0.3s ease;
+    }
+
+    /* Focus animation for checkboxes */
+    .form-check-input:focus {
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">Create Shift Roster</h2>
                 </div>
-                <small class="text-muted">If unchecked, roster will be generated for selected date only</small>
-            </div>
-        </div>
+                <div class="card-body">
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>@TempData["ErrorMessage"]</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.RosterDate, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.RosterDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
-                @Html.ValidationMessageFor(model => model.RosterDate, "", new { @class = "text-danger" })
-            </div>
-        </div>
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>@TempData["SuccessMessage"]</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.Site, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.DropDownListFor(model => model.Site, ViewBag.Sites as SelectList, "-- Select Site --", new { @class = "form-control", id = "siteDropdown", required = "required" })
-                @Html.ValidationMessageFor(model => model.Site, "", new { @class = "text-danger" })
-            </div>
-        </div>
+                    @using (Html.BeginForm("Create", "ShiftRoster", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
 
-        <div class="form-group">
-            <label class="control-label col-md-2">Available Guards</label>
-            <div class="col-md-10">
-                <div id="guardsContainer" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; padding: 10px; display: none;">
-                    <div id="guardsLoading" style="display: none; text-align: center; padding: 10px;">Loading guards...</div>
-                    <div id="guardsList"></div>
+                        <div class="form-horizontal">
+                            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                            <!-- Add the 30-day option -->
+                            <div class="form-group">
+                                <label class="control-label col-md-2">Roster Period</label>
+                                <div class="col-md-10">
+                                    <div class="checkbox">
+                                        <label>
+                                            @Html.CheckBoxFor(model => model.GenerateFor30Days)
+                                            Generate roster for 30 days starting from selected date
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">If unchecked, roster will be generated for selected date only</small>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.RosterDate, htmlAttributes: new { @class = "control-label col-md-2" })
+                                <div class="col-md-10">
+                                    @Html.EditorFor(model => model.RosterDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
+                                    @Html.ValidationMessageFor(model => model.RosterDate, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.Site, htmlAttributes: new { @class = "control-label col-md-2" })
+                                <div class="col-md-10">
+                                    @Html.DropDownListFor(model => model.Site, ViewBag.Sites as SelectList, "-- Select Site --", new { @class = "form-control", id = "siteDropdown", required = "required" })
+                                    @Html.ValidationMessageFor(model => model.Site, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="control-label col-md-2">Available Guards</label>
+                                <div class="col-md-10">
+                                    <div id="guardsContainer" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; padding: 10px; display: none;">
+                                        <div id="guardsLoading" style="display: none; text-align: center; padding: 10px;">Loading guards...</div>
+                                        <div id="guardsList"></div>
+                                    </div>
+                                    <small class="text-muted">Select exactly 12 guards</small>
+                                    <span id="selectedCount" class="badge badge-warning">0 selected</span>
+                                    <span id="selectionError" class="text-danger" style="display: none;"></span>
+                                    @Html.HiddenFor(model => model.SelectedGuardIds, new { id = "selectedGuardIds" })
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-actions">
+                                    <input type="submit" value="Generate Roster" class="btn btn-primary" id="submitBtn" />
+                                    @Html.ActionLink("Back", "Index", "ShiftRoster", null, new { @class = "btn btn-secondary" })
+                                    @Html.ActionLink("Cancel", "Index", "ShiftRoster", null, new { @class = "btn btn-default" })
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
-                <small class="text-muted">Select exactly 12 guards</small>
-                <span id="selectedCount" class="badge badge-warning">0 selected</span>
-                <span id="selectionError" class="text-danger" style="display: none;"></span>
-                @Html.HiddenFor(model => model.SelectedGuardIds, new { id = "selectedGuardIds" })
-            </div>
-        </div>
-
-        <div class="form-group">
-            <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Generate Roster" class="btn btn-primary" id="submitBtn" />
-                @Html.ActionLink("Cancel", "Index", "ShiftRoster", null, new { @class = "btn btn-default" })
             </div>
         </div>
     </div>
-}
+</div>
 
 @section Scripts {
     <script>

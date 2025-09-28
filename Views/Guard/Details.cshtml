@@ -1,63 +1,288 @@
 ﻿@model PiranaSecuritySystem.Models.IncidentReport
 
-<div class="detail-item">
-    <div class="detail-label">Incident ID</div>
-    <div class="detail-value">INC-@Model.IncidentReportId.ToString("D4")</div>
-</div>
+@{
+    ViewBag.Title = "Incident Details";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Make sure this matches your layout
+}
 
-<div class="detail-item">
-    <div class="detail-label">Type</div>
-    <div class="detail-value">@Model.IncidentType</div>
-</div>
-
-<div class="detail-item">
-    <div class="detail-label">Location</div>
-    <div class="detail-value">@Model.Location</div>
-</div>
-
-<div class="detail-item">
-    <div class="detail-label">Date Reported</div>
-    <div class="detail-value">@Model.ReportDate.ToString("MM/dd/yyyy hh:mm tt")</div>
-</div>
-
-<div class="detail-item">
-    <div class="detail-label">Status</div>
-    <div class="detail-value">
-        @if (Model.Status == "Resolved")
-        {
-            <span class="badge badge-success">@Model.Status</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Details - PIRANA GUARDING</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #0069aa;
+            --secondary-blue: #004a7c;
+            --light-bg: #f8f9fa;
+            --dark-text: #333333;
+            --border-color: #dee2e6;
         }
-        else if (Model.Status == "In Progress")
-        {
-            <span class="badge badge-primary">@Model.Status</span>
+
+        body {
+            background-color: var(--light-bg);
+            padding: 20px;
         }
-        else
-        {
-            <span class="badge badge-warning">@Model.Status</span>
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
         }
+
+        .header-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        .card-header {
+            background: white;
+            color: var(--primary-blue);
+            padding: 20px;
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--primary-blue);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 400;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            padding: 30px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+            .back-link:hover {
+                color: var(--secondary-blue);
+                text-decoration: underline;
+            }
+
+        .page-title {
+            color: var(--primary-blue);
+            font-weight: 600;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .security-icon {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--primary-blue);
+        }
+
+            .security-icon i {
+                font-size: 32px;
+                background: #e8f4ff;
+                padding: 20px;
+                border-radius: 50%;
+            }
+
+        .detail-item {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .detail-value {
+            color: var(--dark-text);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .badge {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .badge-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-primary {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .badge-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .description-box {
+            background-color: #f8fbff;
+            border: 1px solid #e3f2fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="@Url.Action("MyIncidentReports", "Guard")" class="back-link">
+            <i class="fas fa-arrow-left me-2"></i>Back to My Incidents
+        </a>
+
+        <div class="header-card">
+            <div class="card-header">
+                <div class="logo">PIRANA GUARDING</div>
+                <p class="subtitle mb-0">Incident Management System</p>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <div class="security-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <h2 class="page-title">Incident Details</h2>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="detail-item">
+                        <div class="detail-label">Incident ID</div>
+                        <div class="detail-value">INC-@Model.IncidentReportId.ToString("D4")</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Type</div>
+                        <div class="detail-value">@Model.IncidentType</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value">@Model.Location</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Date Reported</div>
+                        <div class="detail-value">@Model.ReportDate.ToString("MM/dd/yyyy hh:mm tt")</div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="detail-item">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value">
+                            @if (Model.Status == "Resolved")
+                            {
+                                <span class="badge badge-success">@Model.Status</span>
+                            }
+                            else if (Model.Status == "In Progress")
+                            {
+                                <span class="badge badge-primary">@Model.Status</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-warning">@Model.Status</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Priority</div>
+                        <div class="detail-value">
+                            @if (Model.Priority == "High")
+                            {
+                                <span class="badge badge-danger">@Model.Priority</span>
+                            }
+                            else if (Model.Priority == "Medium")
+                            {
+                                <span class="badge badge-warning">@Model.Priority</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-info">@Model.Priority</span>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.ReportedBy))
+                    {
+                        <div class="detail-item">
+                            <div class="detail-label">Reported By</div>
+                            <div class="detail-value">@Model.ReportedBy</div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.CreatedBy))
+                    {
+                        <div class="detail-item">
+                            <div class="detail-label">Created By</div>
+                            <div class="detail-value">@Model.CreatedBy</div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="detail-item">
+                <div class="detail-label">Description</div>
+                <div class="description-box">
+                    @if (!string.IsNullOrEmpty(Model.Description))
+                    {
+                        <div class="detail-value">@Model.Description</div>
+                    }
+                    else
+                    {
+                        <div class="detail-value text-muted">No description provided.</div>
+                    }
+                </div>
+            </div>
+
+            
+
+            <div class="text-center mt-4">
+                <a href="@Url.Action("MyIncidentReports", "Guard")" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Incidents
+                </a>
+            </div>
+        </div>
     </div>
-</div>
 
-<div class="detail-item">
-    <div class="detail-label">Priority</div>
-    <div class="detail-value">
-        @if (Model.Priority == "High")
-        {
-            <span class="badge badge-danger">@Model.Priority</span>
-        }
-        else if (Model.Priority == "Medium")
-        {
-            <span class="badge badge-warning">@Model.Priority</span>
-        }
-        else
-        {
-            <span class="badge badge-info">@Model.Priority</span>
-        }
-    </div>
-</div>
-
-<div class="detail-item">
-    <div class="detail-label">Description</div>
-    <div class="detail-value">@Model.Description</div>
-</div>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
