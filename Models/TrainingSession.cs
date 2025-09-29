@@ -1,8 +1,8 @@
-﻿using System;
+﻿// Models/TrainingSession.cs
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Web;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PiranaSecuritySystem.Models
 {
@@ -11,26 +11,47 @@ namespace PiranaSecuritySystem.Models
         [Key]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Session title is required")]
+        [Required]
         [StringLength(100)]
-        public string Title { get; set; } = "";
+        public string Title { get; set; }
 
-        [Required(ErrorMessage = "Start date is required")]
-        [DataType(DataType.DateTime)]
+        [Required]
+        [Display(Name = "Start Date")]
         public DateTime StartDate { get; set; }
 
-        [Required(ErrorMessage = "End date is required")]
-        [DataType(DataType.DateTime)]
+        [Required]
+        [Display(Name = "End Date")]
         public DateTime EndDate { get; set; }
 
-        [Range(1, 100, ErrorMessage = "Capacity must be between 1 and 100")]
+        [Required]
         public int Capacity { get; set; }
 
         [Required]
-        [StringLength(100)]
-        public string Location { get; set; } = "";
+        [StringLength(50)]
+        public string Site { get; set; }
 
+        // Navigation property for enrolled guards
+        public virtual ICollection<TrainingEnrollment> Enrollments { get; set; }
 
+        public TrainingSession()
+        {
+            Enrollments = new HashSet<TrainingEnrollment>();
+        }
+    }
 
+    public class TrainingEnrollment
+    {
+        [Key]
+        public int Id { get; set; }
+
+        public int TrainingSessionId { get; set; }
+        public int GuardId { get; set; }
+        public DateTime EnrollmentDate { get; set; }
+
+        [ForeignKey("TrainingSessionId")]
+        public virtual TrainingSession TrainingSession { get; set; }
+
+        [ForeignKey("GuardId")]
+        public virtual Guard Guard { get; set; }
     }
 }
