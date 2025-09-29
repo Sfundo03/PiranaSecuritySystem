@@ -155,6 +155,37 @@
             width: 3rem;
             height: 3rem;
         }
+
+        /* Address autocomplete styles */
+        #autocomplete-results {
+            border: 1px solid #ccc;
+            max-width: 100%;
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            width: calc(100% - 30px);
+            margin-top: 2px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+            #autocomplete-results div {
+                padding: 10px 15px;
+                cursor: pointer;
+                border-bottom: 1px solid #eee;
+                transition: background-color 0.2s;
+            }
+
+                #autocomplete-results div:hover {
+                    background-color: #f8f9fa;
+                }
+
+        .address-input-container {
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -200,7 +231,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="input-icon">
                                 <i class="fas fa-id-card"></i>
-                                @Html.TextBoxFor(m => m.IdentityNumber, new { @class = "form-control", placeholder = "ID Number (13 digits)", maxlength = "13", required = "required" })
+                                @Html.TextBoxFor(m => m.IdentityNumber, new { @class = "form-control", placeholder = "ID Number (13 digits)", maxlength = "13", required = "required", id = "idNumber" })
                             </div>
                             @Html.ValidationMessageFor(m => m.IdentityNumber, "", new { @class = "field-validation-error" })
                         </div>
@@ -235,7 +266,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="input-icon">
                                 <i class="fas fa-phone"></i>
-                                @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = "Phone Number (10 digits)", maxlength = "10", required = "required" })
+                                @Html.TextBoxFor(m => m.PhoneNumber, new { @class = "form-control", placeholder = "Phone Number (10 digits)", maxlength = "10", required = "required", id = "phoneNumber" })
                             </div>
                             @Html.ValidationMessageFor(m => m.PhoneNumber, "", new { @class = "field-validation-error" })
                         </div>
@@ -244,17 +275,32 @@
                     <div class="mb-3">
                         <div class="input-icon">
                             <i class="fas fa-phone-alt"></i>
-                            @Html.TextBoxFor(m => m.Emergency_CellNo, new { @class = "form-control", placeholder = "Emergency Contact Number", maxlength = "10", required = "required" })
+                            @Html.TextBoxFor(m => m.Emergency_CellNo, new { @class = "form-control", placeholder = "Emergency Contact Number", maxlength = "10", required = "required", id = "emergencyCell" })
                         </div>
                         @Html.ValidationMessageFor(m => m.Emergency_CellNo, "", new { @class = "field-validation-error" })
                     </div>
 
                     <div class="mb-3">
-                        <div class="input-icon">
-                            <i class="fas fa-home"></i>
-                            @Html.TextBoxFor(m => m.Address, new { @class = "form-control", placeholder = "Full Address", required = "required" })
+                        <div class="address-input-container">
+                            <div class="input-icon">
+                                <i class="fas fa-home"></i>
+                                @Html.TextBoxFor(m => m.Address, new
+                                {
+                                    @class = "form-control",
+                                    placeholder = "Enter street number and street name",
+                                    required = "required",
+                                    id = "addressInput",
+                                    autocomplete = "off"
+                                })
+                            </div>
+                            <div id="autocomplete-results"></div>
                         </div>
                         @Html.ValidationMessageFor(m => m.Address, "", new { @class = "field-validation-error" })
+
+                        @Html.HiddenFor(m => m.Street, new { id = "street" })
+                        @Html.HiddenFor(m => m.HouseNumber, new { id = "houseNumber" })
+                        @Html.HiddenFor(m => m.City, new { id = "city" })
+                        @Html.HiddenFor(m => m.PostalCode, new { id = "postalCode" })
                     </div>
                 </div>
 
@@ -309,119 +355,204 @@
         @Scripts.Render("~/bundles/jqueryval")
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.7/jquery.inputmask.min.js"></script>
         <script>
-        $(document).ready(function () {
-            // Show success/error messages
-            var successMessage = '@(TempData["SuccessMessage"] ?? "")';
-            var errorMessage = '@(TempData["ErrorMessage"] ?? "")';
+            $(document).ready(function () {
+                // Show success/error messages
+                var successMessage = '@(TempData["SuccessMessage"] ?? "")';
+                var errorMessage = '@(TempData["ErrorMessage"] ?? "")';
 
-            if (successMessage) {
-                showAlert('success', successMessage);
-            }
-            if (errorMessage) {
-                showAlert('danger', errorMessage);
-            }
-
-            // Input masks
-            $("#IdentityNumber").inputmask("9999999999999");
-            $("#PhoneNumber").inputmask("9999999999");
-            $("#Emergency_CellNo").inputmask("9999999999");
-
-            // AJAX form submission
-            $('#registerForm').on('submit', function (e) {
-                e.preventDefault(); // Prevent default form submission
-
-                if (!$(this).valid()) {
-                    return false;
+                if (successMessage) {
+                    showAlert('success', successMessage);
+                }
+                if (errorMessage) {
+                    showAlert('danger', errorMessage);
                 }
 
-                // Show loading overlay
-                $('#loadingOverlay').show();
-                $('#submitButton').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Registering...');
+                // Input masks
+                $("#idNumber").inputmask("9999999999999", { placeholder: "" });
+                $("#phoneNumber, #emergencyCell").inputmask("9999999999", {
+                    placeholder: "",
+                    greedy: false
+                });
 
-                // Get form data
-                var formData = $(this).serialize();
+                // Address autocomplete functionality
+                const apiKey = 'db1f2ec180bd423eadf3af1d333ff4d8'; // Your Geoapify API key
+                const input = document.getElementById('addressInput');
+                const resultsDiv = document.getElementById('autocomplete-results');
 
-                // Submit via AJAX
-                $.ajax({
-                    url: $(this).attr('action'),
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        // Hide loading overlay
-                        $('#loadingOverlay').hide();
-                        $('#submitButton').prop('disabled', false).html('<i class="fas fa-user-plus me-2"></i>Register Guard');
+                input.addEventListener('input', debounce(async function () {
+                    const query = input.value;
 
-                        // Redirect to dashboard immediately
-                        window.location.href = '/Admin/ManageGuards';
-                    },
-                    error: function (xhr, status, error) {
-                        // Hide loading overlay
-                        $('#loadingOverlay').hide();
-                        $('#submitButton').prop('disabled', false).html('<i class="fas fa-user-plus me-2"></i>Register Guard');
+                    if (query.length < 3) {
+                        resultsDiv.style.display = 'none';
+                        resultsDiv.innerHTML = '';
+                        return;
+                    }
 
-                        // Show error message but still redirect
-                        showAlert('danger', 'Guard registered but there was an issue. Redirecting...');
+                    const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&limit=5&filter=countrycode:za&format=json&apiKey=${apiKey}`;
 
-                        // Redirect after a short delay
-                        setTimeout(function() {
+                    try {
+                        const response = await fetch(url);
+                        const data = await response.json();
+
+                        resultsDiv.innerHTML = '';
+
+                        if (data.results && data.results.length > 0) {
+                            resultsDiv.style.display = 'block';
+
+                            data.results.forEach(result => {
+                                let addressLine = result.address_line1 || "";
+                                let city = result.city || "";
+                                let postcode = result.postcode || "";
+
+                                const div = document.createElement('div');
+                                div.innerText = `${addressLine}, ${city}, ${postcode}`;
+                                div.style.padding = "8px";
+                                div.style.cursor = "pointer";
+                                div.style.borderBottom = "1px solid #eee";
+
+                                div.onmouseover = () => div.style.backgroundColor = "#f0f0f0";
+                                div.onmouseout = () => div.style.backgroundColor = "transparent";
+
+                                div.onclick = () => {
+                                    input.value = div.innerText;
+
+                                    // Fill hidden form fields
+                                    document.getElementById('street').value = result.street || "";
+                                    document.getElementById('houseNumber').value = result.housenumber || "";
+                                    document.getElementById('city').value = result.city || "";
+                                    document.getElementById('postalCode').value = result.postcode || "";
+
+                                    resultsDiv.style.display = 'none';
+                                    resultsDiv.innerHTML = '';
+                                };
+
+                                resultsDiv.appendChild(div);
+                            });
+                        } else {
+                            resultsDiv.style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.error('Error fetching address suggestions:', error);
+                        resultsDiv.style.display = 'none';
+                    }
+                }, 300));
+
+                // Hide results when clicking outside
+                document.addEventListener('click', function (e) {
+                    if (!resultsDiv.contains(e.target) && e.target !== input) {
+                        resultsDiv.style.display = 'none';
+                    }
+                });
+
+                // Debounce function to limit API calls
+                function debounce(func, wait) {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                }
+
+                // AJAX form submission
+                $('#registerForm').on('submit', function (e) {
+                    e.preventDefault(); // Prevent default form submission
+
+                    if (!$(this).valid()) {
+                        return false;
+                    }
+
+                    // Show loading overlay
+                    $('#loadingOverlay').show();
+                    $('#submitButton').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Registering...');
+
+                    // Get form data
+                    var formData = $(this).serialize();
+
+                    // Submit via AJAX
+                    $.ajax({
+                        url: $(this).attr('action'),
+                        type: 'POST',
+                        data: formData,
+                        success: function (response) {
+                            // Hide loading overlay
+                            $('#loadingOverlay').hide();
+                            $('#submitButton').prop('disabled', false).html('<i class="fas fa-user-plus me-2"></i>Register Guard');
+
+                            // Redirect to dashboard immediately
                             window.location.href = '/Admin/ManageGuards';
-                        }, 2000);
+                        },
+                        error: function (xhr, status, error) {
+                            // Hide loading overlay
+                            $('#loadingOverlay').hide();
+                            $('#submitButton').prop('disabled', false).html('<i class="fas fa-user-plus me-2"></i>Register Guard');
+
+                            // Show error message but still redirect
+                            showAlert('danger', 'Guard registered but there was an issue. Redirecting...');
+
+                            // Redirect after a short delay
+                            setTimeout(function() {
+                                window.location.href = '/Admin/ManageGuards';
+                            }, 2000);
+                        }
+                    });
+                });
+
+                // Phone number validation
+                $('#phoneNumber, #emergencyCell').on('input', function () {
+                    var value = $(this).val().replace(/\D/g, '');
+                    $(this).val(value);
+                });
+
+                // Real-time validation for ID number
+                $('#idNumber').on('input', function () {
+                    var value = $(this).val().replace(/\D/g, '');
+                    $(this).val(value);
+
+                    if (value.length === 13) {
+                        $(this).removeClass('is-invalid').addClass('is-valid');
+                    } else if (value.length > 0) {
+                        $(this).removeClass('is-valid').addClass('is-invalid');
+                    }
+                });
+
+                // Email validation
+                $('#Email').on('blur', function() {
+                    var email = $(this).val();
+                    if (email && !isValidEmail(email)) {
+                        $(this).addClass('is-invalid');
+                    } else {
+                        $(this).removeClass('is-invalid');
                     }
                 });
             });
 
-            // Phone number validation
-            $('#PhoneNumber, #Emergency_CellNo').on('input', function () {
-                var value = $(this).val().replace(/\D/g, '');
-                $(this).val(value);
-            });
+            // Fixed email validation function - using String.fromCharCode to avoid @@ symbol issues
+            function isValidEmail(email) {
+                var atSymbol = String.fromCharCode(64); // @@ symbol
+                var regex = new RegExp('^[^\\s' + atSymbol + ']+' + atSymbol + '[^\\s' + atSymbol + ']+\\.[^\\s' + atSymbol + ']+$');
+                return regex.test(email);
+            }
 
-            // Real-time validation for ID number
-            $('#IdentityNumber').on('input', function () {
-                var value = $(this).val().replace(/\D/g, '');
-                $(this).val(value);
+            function showAlert(type, message) {
+                // Remove existing alerts
+                $('.alert').remove();
 
-                if (value.length === 13) {
-                    $(this).removeClass('is-invalid').addClass('is-valid');
-                } else if (value.length > 0) {
-                    $(this).removeClass('is-valid').addClass('is-invalid');
-                }
-            });
+                var alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show';
+                alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+                alertDiv.innerHTML = '<strong>' + (type === 'success' ? 'Success!' : 'Error!') + '</strong> ' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                document.body.appendChild(alertDiv);
 
-            // Email validation
-            $('#Email').on('blur', function() {
-                var email = $(this).val();
-                if (email && !isValidEmail(email)) {
-                    $(this).addClass('is-invalid');
-                } else {
-                    $(this).removeClass('is-invalid');
-                }
-            });
-        });
-
-        // Fixed email validation function - using String.fromCharCode to avoid @@ symbol issues
-        function isValidEmail(email) {
-            var atSymbol = String.fromCharCode(64); // @@ symbol
-            var regex = new RegExp('^[^\\s' + atSymbol + ']+' + atSymbol + '[^\\s' + atSymbol + ']+\\.[^\\s' + atSymbol + ']+$');
-            return regex.test(email);
-        }
-
-        function showAlert(type, message) {
-            // Remove existing alerts
-            $('.alert').remove();
-
-            var alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show';
-            alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
-            alertDiv.innerHTML = '<strong>' + (type === 'success' ? 'Success!' : 'Error!') + '</strong> ' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-            document.body.appendChild(alertDiv);
-
-            setTimeout(function() {
-                if (alertDiv.parentNode) {
-                    alertDiv.parentNode.removeChild(alertDiv);
-                }
-            }, 5000);
-        }
+                setTimeout(function() {
+                    if (alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }, 5000);
+            }
         </script>
     }
 </body>
