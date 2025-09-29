@@ -115,6 +115,15 @@ namespace PiranaSecuritySystem.Controllers
         {
             if (ModelState.IsValid)
             {
+                // Get the original incident to check if status changed
+                var originalIncident = db.IncidentReports.AsNoTracking().FirstOrDefault(i => i.IncidentReportId == incidentReport.IncidentReportId);
+
+                if (originalIncident != null && originalIncident.Status != incidentReport.Status)
+                {
+                    // Status has changed - notify the resident
+                    CreateStatusChangeNotification(incidentReport, originalIncident.Status);
+                }
+
                 db.Entry(incidentReport).State = EntityState.Modified;
                 db.SaveChanges();
 
@@ -192,6 +201,32 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error creating incident notification: {ex.Message}");
+                // Don't throw, just log the error
+            }
+        }
+
+        private void CreateStatusChangeNotification(IncidentReport incident, string oldStatus)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    UserId = incident.ResidentId,
+                    UserType = "Resident",
+                    Title = "Incident Status Updated",
+                    Message = $"There has been a status change in your incident report #{incident.IncidentReportId}. Status changed from {oldStatus} to {incident.Status}.",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    RelatedUrl = Url.Action("IncidentDetails", "Resident", new { id = incident.IncidentReportId }),
+                    NotificationType = "Incident"
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating status change notification: {ex.Message}");
                 // Don't throw, just log the error
             }
         }

@@ -143,10 +143,12 @@ namespace PiranaSecuritySystem.Controllers
                         {
                             UserId = resident.Id,
                             UserType = "Resident",
+                            Title = "Welcome to Pirana Security System",
                             Message = "Welcome to Pirana Security System! Your account has been created successfully.",
                             IsRead = false,
                             CreatedAt = DateTime.Now,
-                            RelatedUrl = Url.Action("Dashboard", "Resident")
+                            RelatedUrl = Url.Action("Dashboard", "Resident"),
+                            NotificationType = "System"
                         };
                         db.Notifications.Add(notification);
 
@@ -160,10 +162,12 @@ namespace PiranaSecuritySystem.Controllers
                                 {
                                     UserId = director.DirectorId.ToString(),
                                     UserType = "Director",
+                                    Title = "New Resident Registration",
                                     Message = $"New resident registered: {resident.FullName} ({resident.Email})",
                                     IsRead = false,
                                     CreatedAt = DateTime.Now,
-                                    RelatedUrl = Url.Action("ResidentDetails", "Director", new { id = resident.Id })
+                                    RelatedUrl = Url.Action("ResidentDetails", "Director", new { id = resident.Id }),
+                                    NotificationType = "System"
                                 };
                                 db.Notifications.Add(directorNotification);
                             }
@@ -307,6 +311,13 @@ namespace PiranaSecuritySystem.Controllers
                     .Take(5)
                     .ToList();
 
+                // Get notifications for the resident
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == residentId && n.UserType == "Resident")
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(10)
+                    .ToList();
+
                 // Create dashboard view model
                 var viewModel = new ResidentDashboardViewModel
                 {
@@ -316,7 +327,8 @@ namespace PiranaSecuritySystem.Controllers
                     TotalIncidents = db.IncidentReports.Count(i => i.ResidentId == residentId),
                     PendingIncidents = db.IncidentReports.Count(i => i.ResidentId == residentId && i.Status == "Pending"),
                     InProgressIncidents = db.IncidentReports.Count(i => i.ResidentId == residentId && i.Status == "In Progress"),
-                    ResolvedIncidents = db.IncidentReports.Count(i => i.ResidentId == residentId && i.Status == "Resolved")
+                    ResolvedIncidents = db.IncidentReports.Count(i => i.ResidentId == residentId && i.Status == "Resolved"),
+                    Notifications = notifications
                 };
 
                 return View(viewModel);
@@ -427,10 +439,12 @@ namespace PiranaSecuritySystem.Controllers
                     {
                         UserId = residentId,
                         UserType = "Resident",
+                        Title = "Profile Updated",
                         Message = "Your profile details have been updated successfully.",
                         IsRead = false,
                         CreatedAt = DateTime.Now,
-                        RelatedUrl = Url.Action("Dashboard", "Resident")
+                        RelatedUrl = Url.Action("Dashboard", "Resident"),
+                        NotificationType = "System"
                     };
                     db.Notifications.Add(notification);
                     await db.SaveChangesAsync();
@@ -555,15 +569,17 @@ namespace PiranaSecuritySystem.Controllers
                     db.IncidentReports.Add(incident);
                     await db.SaveChangesAsync();
 
-                    // Create notification for the resident
+                    // Create notification for the resident - "You filed a report at that specific time"
                     var residentNotification = new Notification
                     {
                         UserId = model.ResidentId,
                         UserType = "Resident",
-                        Message = $"Your incident report (#{incident.IncidentReportId}) has been submitted successfully.",
+                        Title = "Incident Report Filed",
+                        Message = $"You filed an incident report (#{incident.IncidentReportId}) at {DateTime.Now.ToString("hh:mm tt")} on {DateTime.Now.ToString("MMM dd, yyyy")}.",
                         IsRead = false,
                         CreatedAt = DateTime.Now,
-                        RelatedUrl = Url.Action("MyIncidents", "Resident")
+                        RelatedUrl = Url.Action("MyIncidents", "Resident"),
+                        NotificationType = "Incident"
                     };
                     db.Notifications.Add(residentNotification);
 
@@ -577,10 +593,12 @@ namespace PiranaSecuritySystem.Controllers
                             {
                                 UserId = director.DirectorId.ToString(),
                                 UserType = "Director",
+                                Title = "New Incident Reported",
                                 Message = $"New incident reported by {resident.FullName}: {model.IncidentType} (Priority: {incident.Priority})",
                                 IsRead = false,
                                 CreatedAt = DateTime.Now,
-                                RelatedUrl = Url.Action("IncidentDetails", "Director", new { id = incident.IncidentReportId })
+                                RelatedUrl = Url.Action("IncidentDetails", "Director", new { id = incident.IncidentReportId }),
+                                NotificationType = "Incident"
                             };
                             db.Notifications.Add(directorNotification);
                         }
@@ -622,7 +640,6 @@ namespace PiranaSecuritySystem.Controllers
                 return View(model);
             }
         }
-
 
         // GET: Resident/MyIncidents
         [Authorize(Roles = "Resident")]
@@ -715,6 +732,98 @@ namespace PiranaSecuritySystem.Controllers
                 .ToList();
 
             return PartialView("_NotificationBell", notifications);
+        }
+
+        // GET: Resident/GetNotifications
+        [Authorize(Roles = "Resident")]
+        public JsonResult GetNotifications()
+        {
+            try
+            {
+                var residentId = User.Identity.GetUserId();
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == residentId && n.UserType == "Resident")
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(10)
+                    .Select(n => new
+                    {
+                        Id = n.NotificationId,
+                        Title = n.Title,
+                        Message = n.Message,
+                        IsRead = n.IsRead,
+                        CreatedAt = n.CreatedAt,
+                        RelatedUrl = n.RelatedUrl,
+                        Type = n.NotificationType,
+                        TimeAgo = n.GetTimeAgo()
+                    })
+                    .ToList();
+
+                var unreadCount = db.Notifications
+                    .Count(n => n.UserId == residentId && n.UserType == "Resident" && !n.IsRead);
+
+                return Json(new
+                {
+                    notifications = notifications,
+                    unreadCount = unreadCount
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // POST: Resident/MarkNotificationAsRead
+        [HttpPost]
+        [Authorize(Roles = "Resident")]
+        public JsonResult MarkNotificationAsRead(int id)
+        {
+            try
+            {
+                var residentId = User.Identity.GetUserId();
+                var notification = db.Notifications
+                    .FirstOrDefault(n => n.NotificationId == id && n.UserId == residentId && n.UserType == "Resident");
+
+                if (notification != null)
+                {
+                    notification.IsRead = true;
+                    notification.DateRead = DateTime.Now;
+                    db.SaveChanges();
+                    return Json(new { success = true });
+                }
+                return Json(new { success = false, error = "Notification not found" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        // POST: Resident/MarkAllNotificationsAsRead
+        [HttpPost]
+        [Authorize(Roles = "Resident")]
+        public JsonResult MarkAllNotificationsAsRead()
+        {
+            try
+            {
+                var residentId = User.Identity.GetUserId();
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == residentId && n.UserType == "Resident" && !n.IsRead)
+                    .ToList();
+
+                foreach (var notification in notifications)
+                {
+                    notification.IsRead = true;
+                    notification.DateRead = DateTime.Now;
+                }
+
+                db.SaveChanges();
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
         }
 
         // GET: Resident/GetIncidentFeedback
@@ -893,8 +1002,6 @@ namespace PiranaSecuritySystem.Controllers
     {
         [Required]
         public string ResidentId { get; set; }
-
-
 
         [Required(ErrorMessage = "Incident type is required")]
         [Display(Name = "Incident Type")]

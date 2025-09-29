@@ -358,9 +358,15 @@
                                  data-id="@notification.NotificationId"
                                  data-url="@(notification.RelatedUrl ?? "#")">
                                 <div class="notification-content">
-                                    <div class="notification-title">Notification</div>
+                                    <div class="notification-title">@notification.Title</div>
                                     <div class="notification-message">@notification.Message</div>
                                     <div class="notification-time">@notification.CreatedAt.ToString("g")</div>
+                                    @if (!string.IsNullOrEmpty(notification.NotificationType))
+                                    {
+                                        <span class="notification-type badge @GetNotificationTypeBadge(notification.NotificationType)">
+                                            @notification.NotificationType
+                                        </span>
+                                    }
                                 </div>
                             </div>
                         }
@@ -504,6 +510,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 $('#residentNotificationDropdown').toggle();
+                loadResidentNotifications();
             });
 
             // Close dropdown when clicking outside
@@ -520,6 +527,7 @@
                 var url = $(this).data('url');
 
                 if (notificationId) {
+                    markNotificationAsRead(notificationId);
                     $(this).removeClass('unread');
 
                     // Navigate to related URL if available
@@ -533,10 +541,117 @@
             $('#markAllAsRead').click(function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $('.notification-item').removeClass('unread');
-                $('#residentNotificationBell .badge').hide();
-                $('#residentNotificationDropdown').hide();
+                markAllNotificationsAsRead();
             });
+
+            // Load notifications function
+            function loadResidentNotifications() {
+                $.get('@Url.Action("GetNotifications", "Resident")', function (data) {
+                    if (data.error) {
+                        console.error('Error loading notifications:', data.error);
+                        return;
+                    }
+
+                    updateNotificationUI(data);
+                }).fail(function(xhr, status, error) {
+                    console.error('Failed to load notifications:', error);
+                });
+            }
+
+            function updateNotificationUI(data) {
+                var notificationList = $('#residentNotificationList');
+                notificationList.empty();
+
+                if (data.notifications && data.notifications.length > 0) {
+                    $.each(data.notifications, function (index, notification) {
+                        var item = $('<div>').addClass('notification-item ' + (notification.IsRead ? '' : 'unread'))
+                            .attr('data-id', notification.Id)
+                            .attr('data-url', notification.RelatedUrl || '#')
+                            .html('<div class="notification-content">' +
+                                  '<div class="notification-title">' + (notification.Title || 'Notification') + '</div>' +
+                                  '<div class="notification-message">' + notification.Message + '</div>' +
+                                  '<div class="notification-time">' +
+                                  new Date(notification.CreatedAt).toLocaleString() + '</div>' +
+                                  (notification.Type ?
+                                  '<span class="notification-type badge ' + getNotificationTypeClass(notification.Type) + '">' +
+                                  notification.Type + '</span>' : '') +
+                                  '</div>');
+
+                        notificationList.append(item);
+                    });
+
+                    // Add view all link if there are more than 10 notifications
+                    if (data.notifications.length > 10) {
+                        notificationList.append('<div class="notification-footer text-center py-2">' +
+                            '<a href="#" class="text-primary">View all notifications</a></div>');
+                    }
+                } else {
+                    notificationList.append('<div class="notification-item text-center py-3">' +
+                        '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
+                }
+
+                // Update notification count
+                updateNotificationCount(data.unreadCount || 0);
+            }
+
+            function getNotificationTypeClass(type) {
+                switch (type.toLowerCase()) {
+                    case 'login': return 'bg-success';
+                    case 'incident': return 'bg-danger';
+                    case 'system': return 'bg-info';
+                    case 'security': return 'bg-warning';
+                    case 'guard': return 'bg-primary';
+                    case 'instructor': return 'bg-purple';
+                    case 'checkin': return 'bg-teal';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            function updateNotificationCount(count) {
+                var badge = $('#residentNotificationBell .badge');
+                var markAllLink = $('#markAllAsRead');
+
+                if (count > 0) {
+                    badge.text(count).show();
+                    markAllLink.show();
+                } else {
+                    badge.hide();
+                    markAllLink.hide();
+                }
+            }
+
+            function markNotificationAsRead(notificationId) {
+                $.post('@Url.Action("MarkNotificationAsRead", "Resident")', { id: notificationId })
+                    .done(function(response) {
+                        if (response.success) {
+                            // Update unread count
+                            var currentCount = parseInt($('#residentNotificationBell .badge').text()) || 0;
+                            if (currentCount > 0) {
+                                updateNotificationCount(currentCount - 1);
+                            }
+                        }
+                    })
+                    .fail(function() {
+                        console.error('Failed to mark notification as read');
+                    });
+            }
+
+            function markAllNotificationsAsRead() {
+                $.post('@Url.Action("MarkAllNotificationsAsRead", "Resident")')
+                    .done(function(response) {
+                        if (response.success) {
+                            $('.notification-item').removeClass('unread');
+                            updateNotificationCount(0);
+                            $('#residentNotificationDropdown').hide();
+                        }
+                    })
+                    .fail(function() {
+                        console.error('Failed to mark all notifications as read');
+                    });
+            }
+
+            // Auto-refresh notifications every 30 seconds
+            setInterval(loadResidentNotifications, 30000);
 
             // Show success/error messages from TempData
             if ('@TempData["SuccessMessage"]') {
@@ -553,3 +668,28 @@
     </script>
 </body>
 </html>
+
+@functions {
+    public string GetNotificationTypeBadge(string type)
+    {
+        switch (type?.ToLower())
+        {
+            case "login":
+                return "bg-success";
+            case "incident":
+                return "bg-danger";
+            case "system":
+                return "bg-info";
+            case "security":
+                return "bg-warning";
+            case "guard":
+                return "bg-primary";
+            case "instructor":
+                return "bg-purple";
+            case "checkin":
+                return "bg-teal";
+            default:
+                return "bg-secondary";
+        }
+    }
+}
