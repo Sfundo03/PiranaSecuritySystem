@@ -370,20 +370,24 @@
                 $('#guardsContainer').addClass('d-none');
                 $('#guardsError').addClass('d-none');
 
-                // Use the same AJAX approach as the roster
-                $.post('@Url.Action("GetGuardsBySite", "TrainingSession")', { site: site })
+                console.log('Loading guards for site:', site);
+
+                $.post('@Url.Action("GetGuardsBySite", "TrainingSessions")', { site: site })
                     .done(function (response) {
+                        console.log('Response received:', response);
                         $('#guardsLoading').addClass('d-none');
+
                         if (response.success) {
                             displayGuards(response.guards);
                             $('#capacityField').val(response.guards.length);
                             $('#guardsError').addClass('d-none');
                         } else {
-                            $('#guardsError').text(response.message).removeClass('d-none');
+                            $('#guardsError').text(response.message || 'Unknown error occurred').removeClass('d-none');
                             $('#guardsContainer').removeClass('d-none').html('<p class="text-muted text-center mb-0">Error loading guards</p>');
                         }
                     })
                     .fail(function (xhr, status, error) {
+                        console.log('AJAX error:', error);
                         $('#guardsLoading').addClass('d-none');
                         $('#guardsError').text('An error occurred while loading guards: ' + error).removeClass('d-none');
                         $('#guardsContainer').removeClass('d-none').html('<p class="text-muted text-center mb-0">Error loading guards. Please try again.</p>');
@@ -438,4 +442,5 @@
             }
         });
     </script>
+}
 }

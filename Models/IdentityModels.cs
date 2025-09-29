@@ -92,7 +92,7 @@ namespace PiranaSecuritySystem.Models
         public DbSet<GuardCheckIn> GuardCheckIns { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Director> Directors { get; set; }
-        public DbSet<TrainingEnrollment> TrainingEnrollments { get; set; } 
+        public DbSet<TrainingEnrollment> TrainingEnrollments { get; set; }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {

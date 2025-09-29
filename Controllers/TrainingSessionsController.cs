@@ -1,5 +1,4 @@
-﻿// Controllers/TrainingSessionsController.cs
-using Microsoft.AspNet.Identity;
+﻿using Microsoft.AspNet.Identity;
 using PiranaSecuritySystem.Models;
 using System;
 using System.Collections.Generic;
@@ -11,7 +10,7 @@ using System.Web.Mvc;
 namespace PiranaSecuritySystem.Controllers
 {
     [Authorize(Roles = "Instructor")]
-    public class TrainingSessionsController : Controller  // Changed to plural
+    public class TrainingSessionsController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
 
@@ -21,26 +20,37 @@ namespace PiranaSecuritySystem.Controllers
             try
             {
                 var sessions = db.TrainingSessions
+                    .Include(t => t.Enrollments)
                     .OrderByDescending(t => t.StartDate)
                     .ToList();
 
                 return View(sessions);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in Index: {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading training sessions.";
                 return View(new List<TrainingSession>());
             }
         }
 
         // GET: TrainingSessions/Details/5
-        public ActionResult Details(int id)
+        // In your TrainingSessionsController, update the Details method:
+
+        // GET: TrainingSessions/Details/5
+        public ActionResult Details(int? id)  // Changed to nullable int
         {
             try
             {
+                if (!id.HasValue)
+                {
+                    TempData["ErrorMessage"] = "Training session ID is required.";
+                    return RedirectToAction("Index");
+                }
+
                 var session = db.TrainingSessions
                     .Include(t => t.Enrollments.Select(e => e.Guard))
-                    .FirstOrDefault(t => t.Id == id);
+                    .FirstOrDefault(t => t.Id == id.Value);
 
                 if (session == null)
                 {
@@ -50,8 +60,9 @@ namespace PiranaSecuritySystem.Controllers
 
                 return View(session);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in Details: {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading the training session details.";
                 return RedirectToAction("Index");
             }
@@ -71,8 +82,18 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Login", "Account");
                 }
 
-                // Define available sites
-                var sites = new List<string> { "Site A", "Site B", "Site C" };
+                // Get available sites from existing guards
+                var sites = db.Guards
+                    .Where(g => g.Site != null && g.IsActive)
+                    .Select(g => g.Site)
+                    .Distinct()
+                    .ToList();
+
+                if (!sites.Any())
+                {
+                    sites = new List<string> { "Site A", "Site B", "Site C" };
+                }
+
                 ViewBag.Sites = new SelectList(sites);
 
                 var model = new TrainingSessionViewModel
@@ -83,19 +104,22 @@ namespace PiranaSecuritySystem.Controllers
 
                 return View(model);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in Create (GET): {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading the create page.";
                 return RedirectToAction("Index");
             }
         }
 
-        // AJAX method to get guards by site
+        // AJAX method to get guards by site - FIXED VERSION
         [HttpPost]
         public JsonResult GetGuardsBySite(string site)
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"GetGuardsBySite called with site: {site}");
+
                 if (string.IsNullOrEmpty(site))
                 {
                     return Json(new { success = false, message = "Site is required" });
@@ -104,18 +128,32 @@ namespace PiranaSecuritySystem.Controllers
                 var guards = db.Guards
                     .Where(g => g.Site == site && g.IsActive)
                     .Select(g => new {
-                        id = g.GuardId,
+                        id = g.GuardId, // Changed from g.id to g.GuardId
                         name = g.Guard_FName + " " + g.Guard_LName,
                         badge = g.PSIRAnumber ?? g.GuardId.ToString()
                     })
-                    .Take(12)
+                    .Take(50) // Increased limit
                     .ToList();
 
-                return Json(new { success = true, guards = guards, count = guards.Count });
+                System.Diagnostics.Debug.WriteLine($"Found {guards.Count} guards for site: {site}");
+
+                return Json(new
+                {
+                    success = true,
+                    guards = guards,
+                    count = guards.Count,
+                    message = $"Loaded {guards.Count} guards"
+                });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Error loading guards: " + ex.Message });
+                System.Diagnostics.Debug.WriteLine($"Error in GetGuardsBySite: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
+                return Json(new
+                {
+                    success = false,
+                    message = "Error loading guards from database. Please check the server logs."
+                });
             }
         }
 
@@ -126,8 +164,18 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                // Repopulate sites dropdown
-                var sites = new List<string> { "Site A", "Site B", "Site C" };
+                // Get available sites for dropdown
+                var sites = db.Guards
+                    .Where(g => g.Site != null && g.IsActive)
+                    .Select(g => g.Site)
+                    .Distinct()
+                    .ToList();
+
+                if (!sites.Any())
+                {
+                    sites = new List<string> { "Site A", "Site B", "Site C" };
+                }
+
                 ViewBag.Sites = new SelectList(sites);
 
                 if (!ModelState.IsValid)
@@ -139,6 +187,13 @@ namespace PiranaSecuritySystem.Controllers
                 if (model.SelectedGuardIds == null || model.SelectedGuardIds.Count == 0)
                 {
                     ModelState.AddModelError("", "Please select at least one guard.");
+                    return View(model);
+                }
+
+                // Validate dates
+                if (model.StartDate >= model.EndDate)
+                {
+                    ModelState.AddModelError("EndDate", "End date must be after start date.");
                     return View(model);
                 }
 
@@ -174,12 +229,22 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in Create (POST): {ex.Message}");
                 TempData["ErrorMessage"] = "Error creating training session: " + ex.Message;
 
                 // Repopulate sites on error
-                var sites = new List<string> { "Site A", "Site B", "Site C" };
-                ViewBag.Sites = new SelectList(sites);
+                var sites = db.Guards
+                    .Where(g => g.Site != null && g.IsActive)
+                    .Select(g => g.Site)
+                    .Distinct()
+                    .ToList();
 
+                if (!sites.Any())
+                {
+                    sites = new List<string> { "Site A", "Site B", "Site C" };
+                }
+
+                ViewBag.Sites = new SelectList(sites);
                 return View(model);
             }
         }
@@ -196,7 +261,17 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Index");
                 }
 
-                var sites = new List<string> { "Site A", "Site B", "Site C" };
+                var sites = db.Guards
+                    .Where(g => g.Site != null && g.IsActive)
+                    .Select(g => g.Site)
+                    .Distinct()
+                    .ToList();
+
+                if (!sites.Any())
+                {
+                    sites = new List<string> { "Site A", "Site B", "Site C" };
+                }
+
                 ViewBag.Sites = new SelectList(sites, session.Site);
 
                 var model = new TrainingSessionViewModel
@@ -211,8 +286,9 @@ namespace PiranaSecuritySystem.Controllers
 
                 return View(model);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in Edit (GET): {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading the edit page.";
                 return RedirectToAction("Index");
             }
@@ -225,7 +301,17 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                var sites = new List<string> { "Site A", "Site B", "Site C" };
+                var sites = db.Guards
+                    .Where(g => g.Site != null && g.IsActive)
+                    .Select(g => g.Site)
+                    .Distinct()
+                    .ToList();
+
+                if (!sites.Any())
+                {
+                    sites = new List<string> { "Site A", "Site B", "Site C" };
+                }
+
                 ViewBag.Sites = new SelectList(sites);
 
                 if (!ModelState.IsValid)
@@ -252,6 +338,7 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in Edit (POST): {ex.Message}");
                 TempData["ErrorMessage"] = "Error updating training session: " + ex.Message;
                 return View(model);
             }
@@ -274,8 +361,9 @@ namespace PiranaSecuritySystem.Controllers
 
                 return View(session);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in Delete (GET): {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading the delete page.";
                 return RedirectToAction("Index");
             }
@@ -313,6 +401,7 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in DeleteConfirmed: {ex.Message}");
                 TempData["ErrorMessage"] = "Error deleting training session: " + ex.Message;
                 return RedirectToAction("Delete", new { id = id });
             }
@@ -328,7 +417,7 @@ namespace PiranaSecuritySystem.Controllers
         }
     }
 
-    // TrainingSessionViewModel class inside the Controller namespace
+    // TrainingSessionViewModel class
     public class TrainingSessionViewModel
     {
         public int Id { get; set; }
