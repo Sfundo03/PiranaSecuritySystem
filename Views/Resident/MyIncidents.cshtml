@@ -72,24 +72,28 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        background: #ecf0f1;
-        padding: 5px 10px;
+        background: #3498db;
+        color: white;
+        padding: 8px 12px;
         border-radius: 4px;
-        font-size: 0.8em;
-        color: #7f8c8d;
+        font-size: 0.9em;
         font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .incident-type {
         font-weight: bold;
         color: #2c3e50;
         font-size: 1.2em;
-        margin-right: 120px;
+        margin-right: 150px;
+        display: block;
+        margin-bottom: 5px;
     }
 
     .incident-date {
         color: #7f8c8d;
         font-size: 0.9em;
+        margin-bottom: 10px;
     }
 
     .incident-status {
@@ -304,7 +308,7 @@
     .incident-meta {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 10px;
         flex-wrap: wrap;
         gap: 10px;
@@ -322,6 +326,56 @@
         margin-top: 15px;
         flex-wrap: wrap;
         gap: 10px;
+    }
+
+    .incident-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .incident-main-info {
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .incident-id-badge {
+        background: #3498db;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 1em;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        white-space: nowrap;
+    }
+
+    .incident-id-section {
+        background: #e8f4ff;
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        border-left: 4px solid #3498db;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .incident-id-label {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+
+    .incident-id-value {
+        background: #3498db;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
     }
 
     @@media (max-width: 768px) {
@@ -355,6 +409,18 @@
 
         .btn-primary {
             margin: 5px 0;
+        }
+
+        .incident-header {
+            flex-direction: column;
+        }
+
+        .incident-id {
+            position: relative;
+            top: auto;
+            right: auto;
+            margin-bottom: 10px;
+            align-self: flex-start;
         }
     }
 
@@ -412,20 +478,29 @@
             foreach (var incident in Model.OrderByDescending(i => i.ReportDate))
             {
                 <div class="incident-card">
-                    <span class="incident-id">ID: #@incident.IncidentReportId</span>
+                    <!-- Incident ID Section - More prominent -->
+                    <div class="incident-id-section">
+                        <span class="incident-id-label">
+                            <i class="fas fa-hashtag"></i> Incident Reference Number:
+                        </span>
+                        <span class="incident-id-value">#@incident.IncidentReportId</span>
+                    </div>
 
-                    <div class="incident-meta">
-                        <div>
+                    <div class="incident-header">
+                        <div class="incident-main-info">
                             <span class="incident-type">@incident.IncidentType</span>
                             @if (!string.IsNullOrEmpty(incident.Priority))
                             {
-                                <span class="incident-priority priority-@incident.Priority.ToLower()">@incident.Priority</span>
+                                <span class="incident-priority priority-@incident.Priority.ToLower()">@incident.Priority Priority</span>
                             }
+                            <div class="incident-date">
+                                <i class="fas fa-calendar"></i> Reported on: @incident.ReportDate.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                            </div>
                         </div>
-                        <div>
-                            <span class="incident-date">
-                                <i class="fas fa-calendar"></i> @incident.ReportDate.ToString("MMM dd, yyyy hh:mm tt")
-                            </span>
+
+                        <!-- Additional ID badge for visibility -->
+                        <div class="incident-id-badge">
+                            <i class="fas fa-hashtag"></i> ID: #@incident.IncidentReportId
                         </div>
                     </div>
 
@@ -433,6 +508,7 @@
                         <p><strong>Description:</strong> @incident.Description</p>
                         <p><strong>Location:</strong> @incident.Location</p>
                         <p><strong>Reported By:</strong> @incident.ReportedBy</p>
+                        <p><strong>Emergency Contact:</strong> @incident.EmergencyContact</p>
                     </div>
 
                     <div class="incident-actions">

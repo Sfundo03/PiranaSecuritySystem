@@ -1,24 +1,44 @@
 ﻿@model PiranaSecuritySystem.ViewModels.StatisticsViewModel
-
 @{
     ViewBag.Title = "Incident Statistics";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<style>
+    .card {
+        transition: transform 0.2s ease-in-out;
+    }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+    .progress {
+        background-color: #e9ecef;
+    }
+
+    .stat-card {
+        min-height: 120px;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <header class="d-flex justify-content-between align-items-center mb-4 pt-3 border-bottom">
+            <!-- Page Header -->
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Security Statistics Dashboard</h1>
                 <div>
-                    <h1 class="h3 mb-1">Security Statistics Dashboard</h1>
-                    <p class="text-muted mb-0">Comprehensive overview of security incidents and guard activities</p>
+                    <a href="@Url.Action("Dashboard", "Director")" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
                 </div>
-            </header>
+            </div>
 
             <!-- Incident Statistics Cards -->
             <section class="row mb-4 g-3">
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-primary h-100">
+                    <div class="card border-left-primary h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -31,7 +51,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-success h-100">
+                    <div class="card border-left-success h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -47,7 +67,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-warning h-100">
+                    <div class="card border-left-warning h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -60,7 +80,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-info h-100">
+                    <div class="card border-left-info h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -74,10 +94,10 @@
                 </div>
             </section>
 
-            <!-- Priority and Monthly Statistics -->
+            <!-- Priority Statistics -->
             <section class="row mb-4 g-3">
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-danger h-100">
+                    <div class="card border-left-danger h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -90,7 +110,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-warning h-100">
+                    <div class="card border-left-warning h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -103,20 +123,21 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-secondary h-100">
+                    <div class="card border-left-secondary h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
-                                    <small class="text-secondary fw-semibold text-uppercase">This Month</small>
-                                    <h3 class="mb-0 fw-bold">@Model.ThisMonthIncidents</h3>
+                                    <small class="text-secondary fw-semibold text-uppercase">Urgent Incidents</small>
+                                    <h3 class="mb-0 fw-bold">@(Model.CriticalPriorityIncidents + Model.HighPriorityIncidents)</h3>
+                                    <small class="text-muted">Critical + High priority</small>
                                 </div>
-                                <i class="fas fa-calendar fa-2x text-muted"></i>
+                                <i class="fas fa-ambulance fa-2x text-muted"></i>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-success h-100">
+                    <div class="card border-left-success h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -134,7 +155,7 @@
             <!-- Guard Statistics Section -->
             <section class="row mb-4 g-3">
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-primary h-100">
+                    <div class="card border-left-primary h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -148,7 +169,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-info h-100">
+                    <div class="card border-left-info h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -161,7 +182,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-success h-100">
+                    <div class="card border-left-success h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -174,7 +195,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6">
-                    <div class="card border-left-warning h-100">
+                    <div class="card border-left-warning h-100 stat-card">
                         <div class="card-body">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -192,16 +213,16 @@
             <section class="row mb-4">
                 <!-- Incidents by Type -->
                 <div class="col-xl-6 col-md-12 mb-4">
-                    <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h6 class="m-0 fw-bold">Incidents by Type</h6>
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Incidents by Type</h6>
                         </div>
                         <div class="card-body">
                             @if (Model.IncidentByType != null && Model.IncidentByType.Any())
                             {
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover">
-                                        <thead>
+                                        <thead class="thead-light">
                                             <tr>
                                                 <th>Incident Type</th>
                                                 <th>Count</th>
@@ -216,8 +237,10 @@
                                                     <td>@item.Count</td>
                                                     <td>
                                                         <div class="progress" style="height: 20px;">
-                                                            <div class="progress-bar" role="progressbar"
-                                                                 style="width: @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%;">
+                                                            <div class="progress-bar bg-primary" role="progressbar"
+                                                                 style="width: @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%;"
+                                                                 aria-valuenow="@(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)"
+                                                                 aria-valuemin="0" aria-valuemax="100">
                                                                 @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%
                                                             </div>
                                                         </div>
@@ -240,16 +263,16 @@
 
                 <!-- Incidents by Status -->
                 <div class="col-xl-6 col-md-12 mb-4">
-                    <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h6 class="m-0 fw-bold">Incidents by Status</h6>
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Incidents by Status</h6>
                         </div>
                         <div class="card-body">
                             @if (Model.IncidentByStatus != null && Model.IncidentByStatus.Any())
                             {
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover">
-                                        <thead>
+                                        <thead class="thead-light">
                                             <tr>
                                                 <th>Status</th>
                                                 <th>Count</th>
@@ -268,7 +291,9 @@
                                                         <div class="progress" style="height: 20px;">
                                                             <div class="progress-bar @GetStatusProgressBarClass(item.Status)"
                                                                  role="progressbar"
-                                                                 style="width: @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%;">
+                                                                 style="width: @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%;"
+                                                                 aria-valuenow="@(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)"
+                                                                 aria-valuemin="0" aria-valuemax="100">
                                                                 @(Model.TotalIncidents > 0 ? Math.Round((double)item.Count / Model.TotalIncidents * 100, 1) : 0)%
                                                             </div>
                                                         </div>
@@ -294,15 +319,15 @@
             <section class="row mb-4">
                 <div class="col-12">
                     <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h6 class="m-0 fw-bold">Monthly Incident Trends - @DateTime.Now.Year</h6>
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Monthly Incident Trends - @DateTime.Now.Year</h6>
                         </div>
                         <div class="card-body">
                             @if (Model.MonthlyIncidents != null && Model.MonthlyIncidents.Any())
                             {
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover">
-                                        <thead>
+                                        <thead class="thead-light">
                                             <tr>
                                                 <th>Month</th>
                                                 <th>Incident Count</th>
@@ -318,7 +343,10 @@
                                                     <td>
                                                         <div class="progress" style="height: 15px;">
                                                             <div class="progress-bar bg-info" role="progressbar"
-                                                                 style="width: @(GetMonthlyPercentage(item.Count, Model.MonthlyIncidents.Max(m => m.Count)))%;">
+                                                                 style="width: @(GetMonthlyPercentage(item.Count, Model.MonthlyIncidents.Max(m => m.Count)))%;"
+                                                                 aria-valuenow="@item.Count"
+                                                                 aria-valuemin="0"
+                                                                 aria-valuemax="@Model.MonthlyIncidents.Max(m => m.Count)">
                                                                 @item.Count incidents
                                                             </div>
                                                         </div>
@@ -340,24 +368,24 @@
                 </div>
             </section>
 
-            <!-- Resolution Statistics -->
+            <!-- Performance Metrics -->
             <section class="row">
                 <div class="col-12">
                     <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h6 class="m-0 fw-bold">Performance Metrics</h6>
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Performance Metrics</h6>
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-4">
-                                    <div class="alert alert-success">
+                                <div class="col-md-4 mb-3">
+                                    <div class="alert alert-success h-100">
                                         <h5><i class="fas fa-clock me-2"></i>Average Resolution Time</h5>
                                         <p class="mb-0 fs-4">@Math.Round(Model.AverageResolutionTime, 1) days</p>
                                         <small class="text-muted">Based on @Model.ResolvedIncidents resolved incidents</small>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="alert alert-primary">
+                                <div class="col-md-4 mb-3">
+                                    <div class="alert alert-primary h-100">
                                         <h5><i class="fas fa-chart-line me-2"></i>Resolution Rate</h5>
                                         <p class="mb-0 fs-4">
                                             @(Model.TotalIncidents > 0 ? Math.Round((double)Model.ResolvedIncidents / Model.TotalIncidents * 100, 1) : 0)%
@@ -365,9 +393,9 @@
                                         <small class="text-muted">@Model.ResolvedIncidents out of @Model.TotalIncidents incidents resolved</small>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="alert alert-info">
-                                        <h5><i class="fas fa-shield-alt me-2"></i>Guard Efficiency</h5>
+                                <div class="col-md-4 mb-3">
+                                    <div class="alert alert-info h-100">
+                                        <h5><i class="fas fa-shield-alt me-2"></i>Guard Activity Rate</h5>
                                         <p class="mb-0 fs-4">
                                             @(Model.TotalGuards > 0 ? Math.Round((double)Model.TodayCheckIns / Model.TotalGuards * 100, 0) : 0)%
                                         </p>
@@ -384,11 +412,21 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Future chart implementations can go here
+            // Add any interactive functionality here
             console.log('Statistics dashboard loaded successfully');
+
+            // Add hover effects to cards
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function () {
+                    this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                });
+                card.addEventListener('mouseleave', function () {
+                    this.style.boxShadow = '';
+                });
+            });
         });
     </script>
 }
@@ -396,7 +434,9 @@
 @functions {
     public string GetStatusBadgeClass(string status)
     {
-        switch (status?.ToLower())
+        if (string.IsNullOrEmpty(status)) return "bg-secondary";
+
+        switch (status.ToLower())
         {
             case "resolved": return "bg-success";
             case "in progress": return "bg-primary";
@@ -407,7 +447,9 @@
 
     public string GetStatusProgressBarClass(string status)
     {
-        switch (status?.ToLower())
+        if (string.IsNullOrEmpty(status)) return "bg-secondary";
+
+        switch (status.ToLower())
         {
             case "resolved": return "bg-success";
             case "in progress": return "bg-primary";

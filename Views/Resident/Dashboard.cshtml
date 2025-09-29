@@ -421,7 +421,7 @@
                         <button class="btn btn-custom">View Details</button>
                     </div>
 
-                    <div class="action-card" onclick="openModal('reportModal')">
+                    <div class="action-card" onclick="window.location.href='@Url.Action("ReportIncident", "Resident")'">
                         <i class="fas fa-exclamation-triangle"></i>
                         <h3>Report Incident</h3>
                         <p>Report a security incident or concern</p>
@@ -452,7 +452,7 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal('detailsModal')">&times;</span>
             <h2>My Details</h2>
-            @using (Html.BeginForm("UpdateDetails", "Resident", FormMethod.Post))
+            @using (Html.BeginForm("UpdateProfile", "Resident", FormMethod.Post))
             {
                 @Html.AntiForgeryToken()
                 @Html.Hidden("Id", Model.Resident.Id)
@@ -477,49 +477,8 @@
         </div>
     </div>
 
-    <!-- Report Incident Modal -->
-    <div id="reportModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('reportModal')">&times;</span>
-            <h2>Report Incident</h2>
-            @using (Html.BeginForm("ReportIncident", "Resident", FormMethod.Post, new { id = "incidentForm" }))
-            {
-                @Html.AntiForgeryToken()
-                @Html.Hidden("ResidentId", Model.Resident.Id)
-
-                <div class="form-group">
-                    <label for="IncidentType">Incident Type</label>
-                    <select id="IncidentType" name="IncidentType" class="form-control" required>
-                        <option value="">Select Incident Type</option>
-                        <option value="Suspicious Activity">Suspicious Activity</option>
-                        <option value="Break-in Attempt">Break-in Attempt</option>
-                        <option value="Theft">Theft</option>
-                        <option value="Vandalism">Vandalism</option>
-                        <option value="Noise Complaint">Noise Complaint</option>
-                        <option value="Parking Violation">Parking Violation</option>
-                        <option value="Fire Hazard">Fire Hazard</option>
-                        <option value="Water Leak">Water Leak</option>
-                        <option value="Electrical Issue">Electrical Issue</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="Description">Description</label>
-                    <textarea id="Description" name="Description" class="form-control" rows="4" required placeholder="Please describe the incident in detail"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="EmergencyContact">Emergency Contact</label>
-                    <input type="text" id="EmergencyContact" name="EmergencyContact" class="form-control" value="@Model.Resident.PhoneNumber">
-                </div>
-
-                <button type="submit" class="btn btn-custom">Submit Report</button>
-            }
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         // Modal functions
         function openModal(modalId) {
@@ -545,7 +504,6 @@
                 e.preventDefault();
                 e.stopPropagation();
                 $('#residentNotificationDropdown').toggle();
-                loadResidentNotifications();
             });
 
             // Close dropdown when clicking outside
@@ -562,7 +520,6 @@
                 var url = $(this).data('url');
 
                 if (notificationId) {
-                    markNotificationAsRead(notificationId);
                     $(this).removeClass('unread');
 
                     // Navigate to related URL if available
@@ -576,100 +533,10 @@
             $('#markAllAsRead').click(function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                markAllNotificationsAsRead();
+                $('.notification-item').removeClass('unread');
+                $('#residentNotificationBell .badge').hide();
+                $('#residentNotificationDropdown').hide();
             });
-
-            // Auto-refresh notifications every 30 seconds
-            setInterval(loadResidentNotifications, 30000);
-
-            // Load notifications function
-            function loadResidentNotifications() {
-                $.get('@Url.Action("GetResidentNotifications", "Notification")', { residentId: '@Model.Resident.Id' }, function (data) {
-                    updateNotificationUI(data);
-                }).fail(function(xhr, status, error) {
-                    console.error('Failed to load notifications:', error);
-                });
-            }
-
-            function updateNotificationUI(data) {
-                var notificationList = $('#residentNotificationList');
-                notificationList.empty();
-
-                if (data && data.length > 0) {
-                    $.each(data, function (index, notification) {
-                        var item = $('<div>').addClass('notification-item ' + (notification.IsRead ? '' : 'unread'))
-                            .attr('data-id', notification.NotificationId)
-                            .attr('data-url', notification.RelatedUrl || '#')
-                            .html('<div class="notification-content">' +
-                                  '<div class="notification-title">Notification</div>' +
-                                  '<div class="notification-message">' + notification.Message + '</div>' +
-                                  '<div class="notification-time">' +
-                                  new Date(notification.CreatedAt).toLocaleString() + '</div>' +
-                                  '</div>');
-
-                        notificationList.append(item);
-                    });
-
-                    // Add view all link if there are more than 10 notifications
-                    if (data.length > 10) {
-                        notificationList.append('<div class="notification-footer text-center py-2">' +
-                            '<a href="#" class="text-primary">View all notifications</a></div>');
-                    }
-                } else {
-                    notificationList.append('<div class="notification-item text-center py-3">' +
-                        '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
-                }
-
-                // Update notification count
-                var unreadCount = data ? data.filter(function(n) { return !n.IsRead; }).length : 0;
-                updateNotificationCount(unreadCount);
-            }
-
-            function updateNotificationCount(count) {
-                var badge = $('#residentNotificationBell .badge');
-                var markAllLink = $('#markAllAsRead');
-
-                if (count > 0) {
-                    badge.text(count).show();
-                    markAllLink.show();
-                } else {
-                    badge.hide();
-                    markAllLink.hide();
-                }
-            }
-
-            function markNotificationAsRead(notificationId) {
-                $.post('@Url.Action("MarkAsRead", "Notification")', { id: notificationId })
-                    .done(function(response) {
-                        if (response.success) {
-                            // Update unread count
-                            var currentCount = parseInt($('#residentNotificationBell .badge').text()) || 0;
-                            if (currentCount > 0) {
-                                updateNotificationCount(currentCount - 1);
-                            }
-                        }
-                    })
-                    .fail(function() {
-                        console.error('Failed to mark notification as read');
-                    });
-            }
-
-            function markAllNotificationsAsRead() {
-                $.post('@Url.Action("MarkAllAsRead", "Notification")', { residentId: '@Model.Resident.Id' })
-                    .done(function(response) {
-                        if (response.success) {
-                            $('.notification-item').removeClass('unread');
-                            updateNotificationCount(0);
-                            $('#residentNotificationDropdown').hide();
-                        }
-                    })
-                    .fail(function() {
-                        console.error('Failed to mark all notifications as read');
-                    });
-            }
-
-            // Initial load of notifications
-            loadResidentNotifications();
 
             // Show success/error messages from TempData
             if ('@TempData["SuccessMessage"]') {

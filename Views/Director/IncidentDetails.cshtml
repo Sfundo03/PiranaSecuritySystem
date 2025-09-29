@@ -2,6 +2,9 @@
 @{
     ViewBag.Title = "Incident Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Helper to get resident information
+    var residentUser = ViewBag.ResidentUser as PiranaSecuritySystem.Models.ApplicationUser;
 }
 
 <div class="container-fluid">
@@ -33,8 +36,15 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label class="font-weight-bold">Priority:</label>
-                                <p>@GetPriorityBadge(Model.Priority)</p>
+                                <label class="font-weight-bold">Current Status:</label>
+                                <p class="form-control-plaintext">
+                                    @{
+                                        var statusClass = Model.Status == "Resolved" ? "badge-success" :
+                                                        Model.Status == "In Progress" ? "badge-primary" :
+                                                        Model.Status == "Pending" ? "badge-warning" : "badge-secondary";
+                                    }
+                                    <span class="badge @statusClass text-white">@Model.Status</span>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -42,15 +52,11 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label class="font-weight-bold">Current Status:</label>
-                                <p>@GetStatusBadge(Model.Status)</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
                                 <label class="font-weight-bold">Report Date:</label>
                                 <p class="form-control-plaintext">@Model.ReportDate.ToString("MM/dd/yyyy HH:mm")</p>
                             </div>
+                        </div>
+                        <div class="col-md-6">
                         </div>
                     </div>
 
@@ -71,34 +77,65 @@
         </div>
 
         <div class="col-lg-4">
-            <!-- Resident Information -->
+            <!-- Reporter Information -->
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Resident Information</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Reporter Information</h6>
                 </div>
                 <div class="card-body">
-                    @if (Model.Resident != null)
+                    @if (!string.IsNullOrEmpty(Model.ResidentId) && residentUser != null)
                     {
                         <div class="form-group">
-                            <label class="font-weight-bold">Name:</label>
-                            <p class="form-control-plaintext">@Model.Resident.FullName</p>
+                            <label class="font-weight-bold">Reporter Type:</label>
+                            <p class="form-control-plaintext">Resident</p>
                         </div>
                         <div class="form-group">
-                            <label class="font-weight-bold">Unit Number:</label>
-                            <p class="form-control-plaintext">@Model.Resident.UnitNumber</p>
+                            <label class="font-weight-bold">Resident ID:</label>
+                            <p class="form-control-plaintext">@Model.ResidentId</p>
                         </div>
                         <div class="form-group">
-                            <label class="font-weight-bold">Contact:</label>
-                            <p class="form-control-plaintext">@Model.Resident.PhoneNumber</p>
+                            <label class="font-weight-bold">Full Name:</label>
+                            <p class="form-control-plaintext">@residentUser.FullName</p>
                         </div>
                         <div class="form-group">
                             <label class="font-weight-bold">Email:</label>
-                            <p class="form-control-plaintext">@Model.Resident.Email</p>
+                            <p class="form-control-plaintext">@residentUser.Email</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Phone:</label>
+                            <p class="form-control-plaintext">@residentUser.PhoneNumber</p>
+                        </div>
+                    }
+                    else if (Model.GuardId.HasValue && Model.Guard != null)
+                    {
+                        <div class="form-group">
+                            <label class="font-weight-bold">Reporter Type:</label>
+                            <p class="form-control-plaintext">Security Guard</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Guard ID:</label>
+                            <p class="form-control-plaintext">@Model.GuardId</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Full Name:</label>
+                            <p class="form-control-plaintext">@Model.Guard.FullName</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">PSIRA Number:</label>
+                            <p class="form-control-plaintext">@Model.Guard.PSIRAnumber</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Email:</label>
+                            <p class="form-control-plaintext">@Model.Guard.Email</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Contact:</label>
+                            <p class="form-control-plaintext">@Model.Guard.PhoneNumber</p>
                         </div>
                     }
                     else
                     {
-                        <p class="text-muted">No resident information available</p>
+                        <p class="text-muted">No reporter information available</p>
                     }
                 </div>
             </div>
@@ -128,18 +165,6 @@
                             <small class="form-text text-muted">Max 5MB - PDF files only</small>
                         </div>
 
-                        if (!string.IsNullOrEmpty(Model.FeedbackAttachment))
-                        {
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="removeFile" name="removeFile" value="true">
-                                    <label class="form-check-label" for="removeFile">
-                                        Remove current feedback file
-                                    </label>
-                                </div>
-                            </div>
-                        }
-
                         <button type="submit" class="btn btn-primary btn-block">
                             <i class="fas fa-save"></i> Update Status
                         </button>
@@ -149,7 +174,7 @@
                     @if (!string.IsNullOrEmpty(Model.FeedbackAttachment))
                     {
                         <hr>
-                        <div class="mt-3">
+                        <div id="feedbackSection" class="mt-3">
                             <label class="font-weight-bold">Current Feedback:</label>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span>@Model.Feedback</span>
@@ -181,7 +206,20 @@
                     <div class="timeline-content">
                         <h6 class="font-weight-bold">Incident Reported</h6>
                         <p class="text-muted">@Model.ReportDate.ToString("MM/dd/yyyy HH:mm")</p>
-                        <p>Incident was initially reported by resident.</p>
+                        <p>
+                            @if (!string.IsNullOrEmpty(Model.ResidentId) && residentUser != null)
+                            {
+                                <text>Incident was reported by resident <strong>@residentUser.FullName</strong> (ID: @Model.ResidentId).</text>
+                            }
+                            else if (Model.GuardId.HasValue && Model.Guard != null)
+                            {
+                                <text>Incident was reported by security guard <strong>@Model.Guard.FullName</strong> (ID: @Model.GuardId).</text>
+                            }
+                            else
+                            {
+                                <text>Incident was initially reported.</text>
+                            }
+                        </p>
                     </div>
                 </div>
 
@@ -204,54 +242,6 @@
         </div>
     </div>
 </div>
-
-<!-- Helper functions for badges -->
-@functions {
-    private IHtmlString GetPriorityBadge(string priority)
-    {
-        string badgeClass;
-        switch (priority?.ToLower())
-        {
-            case "critical":
-                badgeClass = "badge badge-danger";
-                break;
-            case "high":
-                badgeClass = "badge badge-warning";
-                break;
-            case "medium":
-                badgeClass = "badge badge-info";
-                break;
-            case "low":
-                badgeClass = "badge badge-success";
-                break;
-            default:
-                badgeClass = "badge badge-secondary";
-                break;
-        }
-        return new HtmlString($"<span class='{badgeClass}'>{priority}</span>");
-    }
-
-    private IHtmlString GetStatusBadge(string status)
-    {
-        string badgeClass;
-        switch (status?.ToLower())
-        {
-            case "resolved":
-                badgeClass = "badge badge-success";
-                break;
-            case "in progress":
-                badgeClass = "badge badge-primary";
-                break;
-            case "pending":
-                badgeClass = "badge badge-warning";
-                break;
-            default:
-                badgeClass = "badge badge-secondary";
-                break;
-        }
-        return new HtmlString($"<span class='{badgeClass}'>{status}</span>");
-    }
-}
 
 @section Scripts {
     <script>
@@ -278,9 +268,6 @@
                         if (response.success) {
                             showNotification('success', response.message);
 
-                            // Update status badge
-                            $('#statusBadge').html(response.statusBadge);
-
                             // Update feedback section
                             if (response.hasFeedback) {
                                 if (response.isPdf) {
@@ -306,7 +293,6 @@
                             // Reset form
                             $('#statusForm')[0].reset();
                             $('.custom-file-label').html('Choose PDF file');
-                            $('#removeFile').prop('checked', false);
 
                         } else {
                             showNotification('error', response.message);
@@ -323,140 +309,6 @@
                 alert(type.toUpperCase() + ': ' + message);
             }
         });
-
-        $(document).ready(function () {
-            console.log("Director dashboard loaded");
-
-            // Notification bell functionality
-            $('#directorNotificationBell').click(function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                $('#directorNotificationDropdown').toggle();
-                loadDirectorNotifications();
-            });
-
-            // Close dropdown when clicking outside
-            $(document).click(function (e) {
-                if (!$(e.target).closest('.notification-bell').length) {
-                    $('#directorNotificationDropdown').hide();
-                }
-            });
-
-            // Mark notification as read and navigate when clicked
-            $(document).on('click', '.notification-item', function (e) {
-                e.preventDefault();
-                var notificationId = $(this).data('id');
-                var url = $(this).data('url');
-
-                if (notificationId) {
-                    markNotificationAsRead(notificationId);
-                    $(this).removeClass('unread');
-
-                    // Navigate to related URL if available
-                    if (url) {
-                        window.location.href = url;
-                    }
-                }
-            });
-
-            // Mark all as read
-            $('#markAllAsRead').click(function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                markAllNotificationsAsRead();
-            });
-
-            // Auto-refresh notifications every 30 seconds
-            setInterval(loadDirectorNotifications, 30000);
-
-            // Load notifications function
-            function loadDirectorNotifications() {
-                $.get('@Url.Action("GetNotifications", "Director")', function (data) {
-                    if (data.error) {
-                        console.error('Error loading notifications:', data.error);
-                        return;
-                    }
-
-                    updateNotificationUI(data);
-                }).fail(function(xhr, status, error) {
-                    console.error('Failed to load notifications:', error);
-                });
-            }
-
-            function updateNotificationUI(data) {
-                var notificationList = $('#directorNotificationList');
-                notificationList.empty();
-
-                if (data.notifications && data.notifications.length > 0) {
-                    $.each(data.notifications, function (index, notification) {
-                        var item = $('<div>').addClass('notification-item ' + (notification.IsRead ? '' : 'unread'))
-                            .attr('data-id', notification.NotificationId)
-                            .attr('data-url', notification.RelatedUrl || '#')
-                            .html('<div class="notification-content">' +
-                                  '<div class="notification-message">' + notification.Message + '</div>' +
-                                  '<div class="notification-time">' +
-                                  new Date(notification.CreatedAt).toLocaleString() + '</div>' +
-                                  (notification.NotificationType ?
-                                  '<span class="notification-type badge ' + getNotificationTypeClass(notification.NotificationType) + '">' +
-                                  notification.NotificationType + '</span>' : '') +
-                                  '</div>');
-
-                        notificationList.append(item);
-                    });
-                } else {
-                    notificationList.append('<div class="notification-item text-center py-3">' +
-                        '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
-                }
-
-                // Update notification count
-                updateNotificationCount(data.unreadCount || 0);
-            }
-
-            function getNotificationTypeClass(type) {
-                switch (type.toLowerCase()) {
-                    case 'login': return 'bg-success';
-                    case 'incident': return 'bg-danger';
-                    case 'system': return 'bg-info';
-                    case 'security': return 'bg-warning';
-                    default: return 'bg-secondary';
-                }
-            }
-
-            function updateNotificationCount(count) {
-                var badge = $('#directorNotificationBell .badge');
-                if (count > 0) {
-                    badge.text(count).show();
-                    $('#markAllAsRead').show();
-                } else {
-                    badge.hide();
-                    $('#markAllAsRead').hide();
-                }
-            }
-
-            function markNotificationAsRead(notificationId) {
-                $.post('@Url.Action("MarkNotificationAsRead", "Director")', { id: notificationId })
-                    .fail(function() {
-                        console.error('Failed to mark notification as read');
-                    });
-            }
-
-            function markAllNotificationsAsRead() {
-                $.post('@Url.Action("MarkAllNotificationsAsRead", "Director")')
-                    .done(function(response) {
-                        if (response.success) {
-                            $('.notification-item').removeClass('unread');
-                            updateNotificationCount(0);
-                        }
-                    })
-                    .fail(function() {
-                        console.error('Failed to mark all notifications as read');
-                    });
-            }
-
-            // Initial load of notifications
-            loadDirectorNotifications();
-        });
-
     </script>
 }
 

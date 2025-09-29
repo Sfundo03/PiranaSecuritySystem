@@ -331,6 +331,133 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // NEW: Simple status update method for AJAX calls from the ManageGuards view
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<JsonResult> UpdateGuardStatusAjax(int id, bool isActive)
+        {
+            try
+            {
+                var guard = db.Guards.Find(id);
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found." });
+                }
+
+                // Store old status
+                var oldStatus = guard.IsActive;
+                guard.IsActive = isActive;
+
+                // Update user account to prevent/login allow login
+                var user = await UserManager.FindByIdAsync(guard.UserId);
+                if (user != null)
+                {
+                    if (!isActive)
+                    {
+                        // Deactivate - prevent login
+                        user.LockoutEnabled = true;
+                        user.LockoutEndDateUtc = DateTime.UtcNow.AddYears(100);
+                        user.EmailConfirmed = false;
+
+                        // Also try to remove password as additional security
+                        if (await UserManager.HasPasswordAsync(user.Id))
+                        {
+                            await UserManager.RemovePasswordAsync(user.Id);
+                        }
+                    }
+                    else
+                    {
+                        // Reactivate - allow login
+                        user.LockoutEnabled = false;
+                        user.LockoutEndDateUtc = null;
+                        user.EmailConfirmed = true;
+
+                        // Generate and set a new temporary password
+                        var tempPassword = GenerateTemporaryPassword();
+                        if (!await UserManager.HasPasswordAsync(user.Id))
+                        {
+                            var addPasswordResult = await UserManager.AddPasswordAsync(user.Id, tempPassword);
+                            if (addPasswordResult.Succeeded)
+                            {
+                                // Send reactivation email with temporary password
+                                await SendGuardReactivationEmail(guard.Email, tempPassword, $"{guard.Guard_FName} {guard.Guard_LName}");
+                            }
+                        }
+                    }
+                    await UserManager.UpdateAsync(user);
+                }
+
+                db.SaveChanges();
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Guard status updated to {(isActive ? "Active" : "Inactive")} successfully!",
+                    newStatus = isActive ? "Active" : "Inactive"
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log the error
+                System.Diagnostics.Debug.WriteLine($"Error updating guard status: {ex.Message}");
+                return Json(new { success = false, message = "Error updating status: " + ex.Message });
+            }
+        }
+
+        // Helper method to send guard reactivation email
+        private async Task SendGuardReactivationEmail(string email, string tempPassword, string fullName)
+        {
+            try
+            {
+                string subject = "Your Pirana Security System Account Has Been Reactivated";
+                string body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #007bff; color: white; padding: 20px; text-align: center; }}
+        .content {{ background-color: #f8f9fa; padding: 20px; }}
+        .credentials {{ background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #6c757d; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h2>Pirana Security System - Account Reactivated</h2>
+        </div>
+        <div class='content'>
+            <h3>Dear {fullName},</h3>
+            <p>Your guard account has been reactivated. You can now login to the system.</p>
+            
+            <div class='credentials'>
+                <strong>Email:</strong> {email}<br>
+                <strong>Temporary Password:</strong> {tempPassword}
+            </div>
+
+            <p><strong>Login URL:</strong> {Url.Action("Login", "Account", null, Request.Url.Scheme)}</p>
+            
+            <p><strong>Important Security Notice:</strong><br>
+            For security reasons, we strongly recommend that you change your password immediately after your first login.</p>
+        </div>
+        <div class='footer'>
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; {DateTime.Now.Year} Pirana Security System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                await SendEmailAsync(email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error sending reactivation email to {email}: {ex.Message}");
+            }
+        }
+
         // GET: Admin/EditGuard/5
         public ActionResult EditGuard(int id)
         {
@@ -619,13 +746,29 @@ namespace PiranaSecuritySystem.Controllers
             {
                 return HttpNotFound();
             }
-            return View(instructor);
+
+            // Map Instructor to EditInstructorViewModel
+            var viewModel = new EditInstructorViewModel
+            {
+                Id = instructor.Id,
+                FullName = instructor.FullName,
+                EmployeeId = instructor.EmployeeId, // Add this line
+                Email = instructor.Email,
+                PhoneNumber = instructor.PhoneNumber,
+                Specialization = instructor.Specialization,
+                Site = instructor.Site,
+                Group = instructor.Group,
+                IsActive = instructor.IsActive
+                // SiteOptions and GroupOptions are already set in the constructor
+            };
+
+            return View(viewModel);
         }
 
         // POST: Admin/EditInstructor/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult EditInstructor(Instructor model)
+        public ActionResult EditInstructor(EditInstructorViewModel model)
         {
             try
             {
@@ -639,13 +782,13 @@ namespace PiranaSecuritySystem.Controllers
 
                     // Update instructor properties
                     instructor.FullName = model.FullName;
-                    instructor.EmployeeId = model.EmployeeId;
+                    instructor.EmployeeId = model.EmployeeId; // Add this line
                     instructor.Email = model.Email;
                     instructor.PhoneNumber = model.PhoneNumber;
                     instructor.Specialization = model.Specialization;
                     instructor.IsActive = model.IsActive;
                     instructor.Site = model.Site;
-                    instructor.Group = model.Group; // Make sure this line is present
+                    instructor.Group = model.Group;
 
                     // Update user email if changed
                     var user = db.Users.FirstOrDefault(u => u.Id == instructor.UserId);
@@ -681,33 +824,64 @@ namespace PiranaSecuritySystem.Controllers
             return View(instructor);
         }
 
-        // POST: Admin/UpdateInstructorStatus/5
+        // POST: Admin/UpdateInstructorStatus/5 - UPDATED VERSION
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult UpdateInstructorStatus(int id, bool isActive, string statusReason = null)
+        public async Task<ActionResult> UpdateInstructorStatus(int id, bool isActive, string statusReason = null)
         {
             try
             {
                 var instructor = db.Instructors.Find(id);
                 if (instructor == null)
                 {
-                    return HttpNotFound();
+                    TempData["ErrorMessage"] = "Instructor not found.";
+                    return RedirectToAction("ManageInstructors");
                 }
 
                 // Store old status for notification
                 var oldStatus = instructor.IsActive;
                 instructor.IsActive = isActive;
 
-                // Update the user account status as well if needed
-                var user = db.Users.FirstOrDefault(u => u.Id == instructor.UserId);
+                // Update the user account status to prevent login
+                var user = await UserManager.FindByIdAsync(instructor.UserId);
                 if (user != null)
                 {
-                    // Check if ApplicationUser has IsActive property using reflection
-                    var isActiveProperty = user.GetType().GetProperty("IsActive");
-                    if (isActiveProperty != null && isActiveProperty.CanWrite)
+                    if (!isActive)
                     {
-                        isActiveProperty.SetValue(user, isActive);
+                        // Deactivate the user account - prevent login
+                        // Method 1: Remove password (most effective)
+                        var removePasswordResult = await UserManager.RemovePasswordAsync(user.Id);
+                        if (!removePasswordResult.Succeeded)
+                        {
+                            // If removing password fails, try locking out
+                            user.LockoutEnabled = true;
+                            user.LockoutEndDateUtc = DateTime.UtcNow.AddYears(100); // Lock for 100 years
+                        }
+
+                        // Method 2: Add to archived role or mark as archived
+                        user.EmailConfirmed = false; // This will prevent login
                     }
+                    else
+                    {
+                        // Reactivate the user account
+                        user.LockoutEnabled = false;
+                        user.LockoutEndDateUtc = null;
+                        user.EmailConfirmed = true;
+
+                        // If password was removed, set a temporary one
+                        if (!await UserManager.HasPasswordAsync(user.Id))
+                        {
+                            var tempPassword = GenerateTemporaryPassword();
+                            var addPasswordResult = await UserManager.AddPasswordAsync(user.Id, tempPassword);
+                            if (addPasswordResult.Succeeded)
+                            {
+                                // Send email with new temporary password
+                                await SendReactivationEmail(instructor.Email, tempPassword, instructor.FullName);
+                            }
+                        }
+                    }
+
+                    await UserManager.UpdateAsync(user);
                 }
 
                 db.SaveChanges();
@@ -728,13 +902,148 @@ namespace PiranaSecuritySystem.Controllers
                     db.SaveChanges();
                 }
 
-                TempData["SuccessMessage"] = $"Instructor status updated successfully to {(isActive ? "Active" : "Inactive")}.";
+                TempData["SuccessMessage"] = $"Instructor status updated successfully to {(isActive ? "Active" : "Inactive")}. {(isActive ? "A reactivation email has been sent." : "They can no longer login.")}";
                 return RedirectToAction("ManageInstructors");
             }
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = "Error updating instructor status: " + ex.Message;
                 return RedirectToAction("UpdateInstructorStatus", new { id = id });
+            }
+        }
+
+        // NEW: Simple status update method for AJAX calls from the ManageInstructors view
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<JsonResult> UpdateInstructorStatusAjax(int id, bool isActive)
+        {
+            try
+            {
+                var instructor = db.Instructors.Find(id);
+                if (instructor == null)
+                {
+                    return Json(new { success = false, message = "Instructor not found." });
+                }
+
+                // Store old status
+                var oldStatus = instructor.IsActive;
+                instructor.IsActive = isActive;
+
+                // Update user account to prevent/login allow login
+                var user = await UserManager.FindByIdAsync(instructor.UserId);
+                if (user != null)
+                {
+                    if (!isActive)
+                    {
+                        // Deactivate - prevent login
+                        user.LockoutEnabled = true;
+                        user.LockoutEndDateUtc = DateTime.UtcNow.AddYears(100);
+                        user.EmailConfirmed = false;
+
+                        // Also try to remove password as additional security
+                        if (await UserManager.HasPasswordAsync(user.Id))
+                        {
+                            await UserManager.RemovePasswordAsync(user.Id);
+                        }
+                    }
+                    else
+                    {
+                        // Reactivate - allow login
+                        user.LockoutEnabled = false;
+                        user.LockoutEndDateUtc = null;
+                        user.EmailConfirmed = true;
+
+                        // Generate and set a new temporary password
+                        var tempPassword = GenerateTemporaryPassword();
+                        if (!await UserManager.HasPasswordAsync(user.Id))
+                        {
+                            var addPasswordResult = await UserManager.AddPasswordAsync(user.Id, tempPassword);
+                            if (addPasswordResult.Succeeded)
+                            {
+                                // Send reactivation email with temporary password
+                                await SendReactivationEmail(instructor.Email, tempPassword, instructor.FullName);
+                            }
+                        }
+                    }
+                    await UserManager.UpdateAsync(user);
+                }
+
+                db.SaveChanges();
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Instructor status updated to {(isActive ? "Active" : "Inactive")} successfully!",
+                    newStatus = isActive ? "Active" : "Inactive"
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log the error
+                System.Diagnostics.Debug.WriteLine($"Error updating instructor status: {ex.Message}");
+                return Json(new { success = false, message = "Error updating status: " + ex.Message });
+            }
+        }
+        // Helper method to generate temporary password
+        private string GenerateTemporaryPassword()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, 10)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        // Helper method to send reactivation email
+        private async Task SendReactivationEmail(string email, string tempPassword, string fullName)
+        {
+            try
+            {
+                string subject = "Your Pirana Security System Account Has Been Reactivated";
+                string body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #28a745; color: white; padding: 20px; text-align: center; }}
+        .content {{ background-color: #f8f9fa; padding: 20px; }}
+        .credentials {{ background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #6c757d; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h2>Pirana Security System - Account Reactivated</h2>
+        </div>
+        <div class='content'>
+            <h3>Dear {fullName},</h3>
+            <p>Your instructor account has been reactivated. You can now login to the system.</p>
+            
+            <div class='credentials'>
+                <strong>Email:</strong> {email}<br>
+                <strong>Temporary Password:</strong> {tempPassword}
+            </div>
+
+            <p><strong>Login URL:</strong> {Url.Action("Login", "Account", null, Request.Url.Scheme)}</p>
+            
+            <p><strong>Important Security Notice:</strong><br>
+            For security reasons, we strongly recommend that you change your password immediately after your first login.</p>
+        </div>
+        <div class='footer'>
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; {DateTime.Now.Year} Pirana Security System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                await SendEmailAsync(email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error sending reactivation email to {email}: {ex.Message}");
             }
         }
 

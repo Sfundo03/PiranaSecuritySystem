@@ -12,6 +12,10 @@ namespace PiranaSecuritySystem.ViewModels
         [Display(Name = "Full Name")]
         public string FullName { get; set; }
 
+        [Required(ErrorMessage = "Employee ID is required")]
+        [Display(Name = "Employee ID")]
+        public string EmployeeId { get; set; } // Add this property
+
         [Required(ErrorMessage = "Instructor Group is required")]
         [Display(Name = "Instructor Group")]
         public string Group { get; set; }
