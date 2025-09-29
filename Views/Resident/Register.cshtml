@@ -187,6 +187,61 @@
         }
     }
 
+    /* Address autocomplete styles */
+    .address-input-container {
+        position: relative;
+    }
+
+    #autocomplete-results {
+        border: 1px solid #ccc;
+        max-width: 100%;
+        display: none;
+        position: absolute;
+        z-index: 1000;
+        background: white;
+        width: 100%;
+        margin-top: 2px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+        #autocomplete-results div {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+
+            #autocomplete-results div:hover {
+                background-color: #f8f9fa;
+            }
+
+    /* Success state for valid fields */
+    .form-control:valid {
+        border-color: #1abc9c;
+    }
+
+    /* Focus animation */
+    .form-control:focus {
+        animation: pulse 0.3s ease;
+    }
+
+    @@keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.3);
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px rgba(52, 152, 219, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+        }
+    }
+
     /* Responsive adjustments */
     @@media (max-width: 768px) {
         .resident-register {
@@ -223,30 +278,6 @@
         .btn-register, .btn-login {
             padding: 14px;
             font-size: 15px;
-        }
-    }
-
-    /* Success state for valid fields */
-    .form-control:valid {
-        border-color: #1abc9c;
-    }
-
-    /* Focus animation */
-    .form-control:focus {
-        animation: pulse 0.3s ease;
-    }
-
-    @@keyframes pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.3);
-        }
-
-        70% {
-            box-shadow: 0 0 0 6px rgba(52, 152, 219, 0);
-        }
-
-        100% {
-            box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
         }
     }
 </style>
@@ -288,7 +319,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         @Html.LabelFor(model => model.PhoneNumber)
-                        @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control", placeholder = "Enter your phone number", required = "required" })
+                        @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control", placeholder = "Enter your phone number", required = "required", id = "phoneNumber" })
                         @Html.ValidationMessageFor(model => model.PhoneNumber, "", new { @class = "validation-error" })
                     </div>
 
@@ -301,8 +332,23 @@
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.Address)
-                    @Html.TextBoxFor(model => model.Address, new { @class = "form-control", placeholder = "Enter your address", required = "required" })
+                    <div class="address-input-container">
+                        @Html.TextBoxFor(model => model.Address, new
+                        {
+                            @class = "form-control",
+                            placeholder = "Enter street number and street name",
+                            required = "required",
+                            id = "addressInput",
+                            autocomplete = "off"
+                        })
+                        <div id="autocomplete-results"></div>
+                    </div>
                     @Html.ValidationMessageFor(model => model.Address, "", new { @class = "validation-error" })
+
+                    @Html.HiddenFor(model => model.Street, new { id = "street" })
+                    @Html.HiddenFor(model => model.HouseNumber, new { id = "houseNumber" })
+                    @Html.HiddenFor(model => model.City, new { id = "city" })
+                    @Html.HiddenFor(model => model.PostalCode, new { id = "postalCode" })
                 </div>
 
                 <div class="form-row">
@@ -321,7 +367,7 @@
 
                 <div class="form-group">
                     @Html.LabelFor(model => model.EmergencyContact)
-                    @Html.TextBoxFor(model => model.EmergencyContact, new { @class = "form-control", placeholder = "Emergency contact (optional)" })
+                    @Html.TextBoxFor(model => model.EmergencyContact, new { @class = "form-control", placeholder = "Emergency contact (optional)", id = "emergencyContact" })
                     @Html.ValidationMessageFor(model => model.EmergencyContact, "", new { @class = "validation-error" })
                 </div>
 
@@ -338,6 +384,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.7/jquery.inputmask.min.js"></script>
     <script>
         $(document).ready(function () {
             // Add real-time validation feedback
@@ -359,6 +406,122 @@
                 } else {
                     $(this).removeClass('invalid');
                 }
+            });
+
+            // Input masks for phone numbers
+            $("#phoneNumber").inputmask("9999999999", {
+                placeholder: "",
+                greedy: false
+            });
+
+            $("#emergencyContact").inputmask("9999999999", {
+                placeholder: "",
+                greedy: false
+            });
+
+            // Address autocomplete functionality
+            const apiKey = 'db1f2ec180bd423eadf3af1d333ff4d8'; // Your Geoapify API key
+            const input = document.getElementById('addressInput');
+            const resultsDiv = document.getElementById('autocomplete-results');
+
+            input.addEventListener('input', debounce(async function () {
+                const query = input.value;
+
+                if (query.length < 3) {
+                    resultsDiv.style.display = 'none';
+                    resultsDiv.innerHTML = '';
+                    return;
+                }
+
+                const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&limit=5&filter=countrycode:za&format=json&apiKey=${apiKey}`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    resultsDiv.innerHTML = '';
+
+                    if (data.results && data.results.length > 0) {
+                        resultsDiv.style.display = 'block';
+
+                        data.results.forEach(result => {
+                            let addressLine = result.address_line1 || "";
+                            let city = result.city || "";
+                            let postcode = result.postcode || "";
+
+                            const div = document.createElement('div');
+                            div.innerText = `${addressLine}, ${city}, ${postcode}`;
+                            div.style.padding = "8px";
+                            div.style.cursor = "pointer";
+                            div.style.borderBottom = "1px solid #eee";
+
+                            div.onmouseover = () => div.style.backgroundColor = "#f0f0f0";
+                            div.onmouseout = () => div.style.backgroundColor = "transparent";
+
+                            div.onclick = () => {
+                                input.value = div.innerText;
+
+                                // Fill hidden form fields
+                                document.getElementById('street').value = result.street || "";
+                                document.getElementById('houseNumber').value = result.housenumber || "";
+                                document.getElementById('city').value = result.city || "";
+                                document.getElementById('postalCode').value = result.postcode || "";
+
+                                resultsDiv.style.display = 'none';
+                                resultsDiv.innerHTML = '';
+                            };
+
+                            resultsDiv.appendChild(div);
+                        });
+                    } else {
+                        resultsDiv.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error fetching address suggestions:', error);
+                    resultsDiv.style.display = 'none';
+                }
+            }, 300));
+
+            // Hide results when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!resultsDiv.contains(e.target) && e.target !== input) {
+                    resultsDiv.style.display = 'none';
+                }
+            });
+
+            // Debounce function to limit API calls
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // Phone number validation
+            $('#phoneNumber, #emergencyContact').on('input', function () {
+                var value = $(this).val().replace(/\D/g, '');
+                $(this).val(value);
+            });
+
+            // Form submission cleanup
+            $('form').on('submit', function () {
+                var phone = $("#phoneNumber").val();
+                var emergency = $("#emergencyContact").val();
+
+                // Remove any non-digit characters
+                phone = phone.replace(/\D/g, '');
+                emergency = emergency.replace(/\D/g, '');
+
+                // Update the values
+                $("#phoneNumber").val(phone);
+                $("#emergencyContact").val(emergency);
+
+                return true;
             });
         });
     </script>

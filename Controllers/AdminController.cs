@@ -69,27 +69,27 @@ namespace PiranaSecuritySystem.Controllers
             {
                 // Initialize site options
                 SiteOptions = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "Site A", Text = "Site A" },
-            new SelectListItem { Value = "Site B", Text = "Site B" },
-            new SelectListItem { Value = "Site C", Text = "Site C" }
-        }
+                {
+                    new SelectListItem { Value = "Site A", Text = "Site A" },
+                    new SelectListItem { Value = "Site B", Text = "Site B" },
+                    new SelectListItem { Value = "Site C", Text = "Site C" }
+                }
             };
             return View(model);
         }
 
-        // POST: Admin/RegisterGuard
+        // POST: Admin/RegisterGuard - UPDATED VERSION
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterGuard(RegisterGuardViewModel model)
         {
             // Ensure site options are populated if we need to return the view
             model.SiteOptions = new List<SelectListItem>
-    {
-        new SelectListItem { Value = "Site A", Text = "Site A" },
-        new SelectListItem { Value = "Site B", Text = "Site B" },
-        new SelectListItem { Value = "Site C", Text = "Site C" }
-    };
+            {
+                new SelectListItem { Value = "Site A", Text = "Site A" },
+                new SelectListItem { Value = "Site B", Text = "Site B" },
+                new SelectListItem { Value = "Site C", Text = "Site C" }
+            };
 
             if (ModelState.IsValid)
             {
@@ -109,7 +109,6 @@ namespace PiranaSecuritySystem.Controllers
                     ModelState.AddModelError("", "Username generation error. Please try again.");
                     return View(model);
                 }
-
 
                 if (db.Guards.Any(g => g.PSIRAnumber == model.PSIRAnumber))
                 {
@@ -185,9 +184,22 @@ namespace PiranaSecuritySystem.Controllers
                         return View(model);
                     }
 
-                    // Send email with credentials
+                    // Send email with credentials - UPDATED: Don't await, fire and forget
                     string fullName = $"{model.Guard_FName} {model.Guard_LName}";
-                    await SendGuardCredentialsEmail(model.Email, model.Password, fullName);
+
+                    // Fire and forget email sending to prevent hanging
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await SendGuardCredentialsEmail(model.Email, model.Password, fullName);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Email sending failed (non-critical): {ex.Message}");
+                            // Don't throw - email failure shouldn't prevent registration
+                        }
+                    });
 
                     // Create notification for director
                     CreateNewStaffNotification("Guard", fullName);
@@ -249,6 +261,7 @@ namespace PiranaSecuritySystem.Controllers
             // Format with leading zeros (001, 002, etc.)
             return $"{sitePrefix}{nextNumber:D3}";
         }
+
         // GET: Admin/ManageGuards
         public ActionResult ManageGuards()
         {
@@ -512,7 +525,6 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("ManageGuards");
                 }
 
-
                 return View(model);
             }
             catch (Exception ex)
@@ -529,24 +541,24 @@ namespace PiranaSecuritySystem.Controllers
             {
                 // Initialize site options
                 SiteOptions = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "Site A", Text = "Site A" },
-            new SelectListItem { Value = "Site B", Text = "Site B" },
-            new SelectListItem { Value = "Site C", Text = "Site C" }
-        },
+                {
+                    new SelectListItem { Value = "Site A", Text = "Site A" },
+                    new SelectListItem { Value = "Site B", Text = "Site B" },
+                    new SelectListItem { Value = "Site C", Text = "Site C" }
+                },
                 // Initialize group options
                 GroupOptions = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "Group A", Text = "Group A" },
-            new SelectListItem { Value = "Group B", Text = "Group B" },
-            new SelectListItem { Value = "Group C", Text = "Group C" },
-            new SelectListItem { Value = "Group D", Text = "Group D" }
-        }
+                {
+                    new SelectListItem { Value = "Group A", Text = "Group A" },
+                    new SelectListItem { Value = "Group B", Text = "Group B" },
+                    new SelectListItem { Value = "Group C", Text = "Group C" },
+                    new SelectListItem { Value = "Group D", Text = "Group D" }
+                }
             };
             return View(model);
         }
 
-        // POST: Admin/RegisterInstructor
+        // POST: Admin/RegisterInstructor - UPDATED VERSION
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterInstructor(RegisterInstructorViewModel model)
@@ -650,8 +662,19 @@ namespace PiranaSecuritySystem.Controllers
                         return View(model);
                     }
 
-                    // Send email with credentials
-                    await SendInstructorCredentialsEmail(model.Email, model.Password, model.FullName);
+                    // Send email with credentials - UPDATED: Don't await, fire and forget
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await SendInstructorCredentialsEmail(model.Email, model.Password, model.FullName);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Email sending failed (non-critical): {ex.Message}");
+                            // Don't throw - email failure shouldn't prevent registration
+                        }
+                    });
 
                     // Create notification for director
                     CreateNewStaffNotification("Instructor", model.FullName);
@@ -984,6 +1007,7 @@ namespace PiranaSecuritySystem.Controllers
                 return Json(new { success = false, message = "Error updating status: " + ex.Message });
             }
         }
+
         // Helper method to generate temporary password
         private string GenerateTemporaryPassword()
         {
@@ -1149,7 +1173,7 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error sending email to {email}: {ex.Message}");
-                // You might want to log this error or handle it appropriately
+                // Don't throw - email failure shouldn't prevent registration
             }
         }
 
@@ -1204,20 +1228,22 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error sending email to {email}: {ex.Message}");
-                // You might want to log this error or handle it appropriately
+                // Don't throw - email failure shouldn't prevent registration
             }
         }
 
+        // UPDATED: Email sending method with timeout and better error handling
         private async Task SendEmailAsync(string toEmail, string subject, string body)
         {
             try
             {
                 // Configure these settings in your web.config or app settings
-                string fromEmail = "noreply@piranasecurity.com"; // Change this to your email
-                string smtpServer = "smtp.your-email-provider.com"; // Change to your SMTP server
-                int smtpPort = 587; // Change to your SMTP port
-                string smtpUsername = "your-email@domain.com"; // Change to your SMTP username
-                string smtpPassword = "your-email-password"; // Change to your SMTP password
+                string fromEmail = ConfigurationManager.AppSettings["EmailFrom"] ?? "noreply@piranasecurity.com";
+                string smtpServer = ConfigurationManager.AppSettings["SmtpServer"] ?? "smtp.gmail.com";
+                int smtpPort = int.Parse(ConfigurationManager.AppSettings["SmtpPort"] ?? "587");
+                string smtpUsername = ConfigurationManager.AppSettings["SmtpUsername"] ?? "your-email@gmail.com";
+                string smtpPassword = ConfigurationManager.AppSettings["SmtpPassword"] ?? "your-app-password";
+                bool enableSsl = bool.Parse(ConfigurationManager.AppSettings["EnableSsl"] ?? "true");
 
                 using (var message = new MailMessage())
                 {
@@ -1230,7 +1256,8 @@ namespace PiranaSecuritySystem.Controllers
                     using (var smtpClient = new SmtpClient(smtpServer, smtpPort))
                     {
                         smtpClient.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
-                        smtpClient.EnableSsl = true;
+                        smtpClient.EnableSsl = enableSsl;
+                        smtpClient.Timeout = 30000; // 30 seconds timeout
 
                         await smtpClient.SendMailAsync(message);
                     }
@@ -1240,8 +1267,8 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error sending email: {ex.Message}");
-                throw; // Re-throw to handle in calling method
+                System.Diagnostics.Debug.WriteLine($"Error sending email to {toEmail}: {ex.Message}");
+                // Don't throw - let the calling method handle gracefully
             }
         }
 

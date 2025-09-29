@@ -800,6 +800,12 @@ namespace PiranaSecuritySystem.Controllers
         [StringLength(100, ErrorMessage = "Full Name cannot exceed 100 characters")]
         public string FullName { get; set; }
 
+        public string Street { get; set; }
+        public string City { get; set; }
+
+        public string HouseNumber { get; set; }
+        public string PostalCode { get; set; }
+
         [Required(ErrorMessage = "Email is required")]
         [EmailAddress(ErrorMessage = "Please enter a valid email address")]
         [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
@@ -887,6 +893,8 @@ namespace PiranaSecuritySystem.Controllers
     {
         [Required]
         public string ResidentId { get; set; }
+
+
 
         [Required(ErrorMessage = "Incident type is required")]
         [Display(Name = "Incident Type")]
