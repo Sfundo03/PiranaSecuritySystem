@@ -18,6 +18,7 @@
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
         }
 
         .form-group {
@@ -165,6 +166,30 @@
             border: 1px solid #eee;
             border-radius: 5px;
         }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .btn-dashboard {
+            background-color: #28a745;
+        }
+
+            .btn-dashboard:hover {
+                background-color: #218838;
+            }
+
+        .btn-reset {
+            background-color: #6c757d;
+        }
+
+            .btn-reset:hover {
+                background-color: #5a6268;
+            }
     </style>
 </head>
 <body>
@@ -196,11 +221,20 @@
                 <button id="checkInBtn">Check In</button>
                 <button id="checkOutBtn">Check Out</button>
                 <button id="generateQRBtn">Generate QR Code</button>
-                <button id="resetBtn" style="background-color: #6c757d;">Reset</button>
             </div>
         </div>
 
         <div id="statusMessage" class="message"></div>
+
+        <!-- Navigation Buttons -->
+        <div class="navigation-buttons">
+            <button id="backToDashboardBtn" class="btn-dashboard" onclick="goToDashboard()">
+                ← Back to Dashboard
+            </button>
+            <button id="resetBtn" class="btn-reset" onclick="resetForm()">
+                Reset Form
+            </button>
+        </div>
     </div>
 
     <!-- Using a more reliable QR code library -->

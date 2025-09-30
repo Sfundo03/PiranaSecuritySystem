@@ -64,6 +64,12 @@ function showValidationMessage(text, type) {
     element.style.display = "block";
 }
 
+// Navigation function
+function goToDashboard() {
+    // Redirect to the Guard Dashboard
+    window.location.href = '/Guard/Dashboard';
+}
+
 // API CALLS
 async function validateGuardByUsername(siteUsername) {
     try {
@@ -653,6 +659,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('checkOutBtn').addEventListener('click', checkOut);
     document.getElementById('generateQRBtn').addEventListener('click', generateQRCode);
     document.getElementById('resetBtn').addEventListener('click', resetForm);
+    document.getElementById('backToDashboardBtn').addEventListener('click', goToDashboard);
 
     // Enter key handlers
     document.getElementById("siteUsername").addEventListener("keypress", function (event) {
