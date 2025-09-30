@@ -28,6 +28,11 @@
             }
         }
 
+        .notification-bell {
+            position: relative;
+            display: inline-block;
+        }
+
         .notification-dropdown {
             display: none;
             position: absolute;
@@ -38,9 +43,10 @@
             border: 1px solid #dee2e6;
             border-radius: 0.375rem;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            z-index: 1000;
+            z-index: 1050;
             max-height: 500px;
             overflow-y: auto;
+            margin-top: 0.5rem;
         }
 
         .notification-item {
@@ -88,6 +94,9 @@
             justify-content: space-between;
             align-items: center;
             font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
         .notification-footer {
@@ -95,6 +104,8 @@
             background-color: #f8f9fa;
             border-top: 1px solid #e9ecef;
             text-align: center;
+            position: sticky;
+            bottom: 0;
         }
 
         .mark-all-read {
@@ -107,6 +118,12 @@
             .mark-all-read:hover {
                 text-decoration: underline;
             }
+
+        /* Ensure the bell button doesn't have unexpected styles */
+        #directorNotificationBell {
+            text-decoration: none;
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -125,7 +142,7 @@
                         <h1 class="h3 mb-1">Director Dashboard</h1>
                         <p class="text-muted mb-0">Overview and management of all security operations</p>
                     </div>
-                    <div class="notification-bell" aria-label="Notifications">
+                    <div class="notification-bell">
                         <a href="#" id="directorNotificationBell" class="btn btn-outline-primary position-relative" aria-expanded="false" aria-controls="directorNotificationDropdown" role="button" title="Notifications">
                             <i class="fas fa-bell"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationCount" style="display: none;">
@@ -133,12 +150,12 @@
                                 <span class="visually-hidden">unread notifications</span>
                             </span>
                         </a>
-                        <div class="notification-dropdown" id="directorNotificationDropdown" aria-live="polite" aria-label="Notifications List" role="region" tabindex="-1">
+                        <div class="notification-dropdown" id="directorNotificationDropdown" aria-live="polite" aria-label="Notifications List" role="region">
                             <div class="notification-header">
                                 <span>All Notifications</span>
                                 <a href="#" class="mark-all-read small text-decoration-none" id="markAllAsRead" style="display: none;">Mark all as read</a>
                             </div>
-                            <div id="directorNotificationList" tabindex="0" style="outline:none;">
+                            <div id="directorNotificationList">
                                 <div class="notification-item text-center py-3 text-muted">
                                     <i class="fas fa-bell-slash me-2"></i>No notifications
                                 </div>
@@ -336,17 +353,24 @@
             const notificationBell = document.getElementById('directorNotificationBell');
             const notificationDropdown = document.getElementById('directorNotificationDropdown');
 
+            // Improved notification bell click handler
             notificationBell.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                const visible = notificationDropdown.style.display === 'block';
-                notificationDropdown.style.display = visible ? 'none' : 'block';
-                notificationBell.setAttribute('aria-expanded', !visible);
-                if (!visible) {
-                    notificationDropdown.focus();
+
+                const isVisible = notificationDropdown.style.display === 'block';
+                notificationDropdown.style.display = isVisible ? 'none' : 'block';
+                notificationBell.setAttribute('aria-expanded', !isVisible);
+
+                if (!isVisible) {
+                    // Focus the dropdown for accessibility
+                    setTimeout(() => {
+                        notificationDropdown.focus();
+                    }, 100);
                 }
             });
 
+            // Close dropdown when clicking outside
             document.addEventListener('click', function (e) {
                 if (!e.target.closest('.notification-bell')) {
                     notificationDropdown.style.display = 'none';
@@ -354,13 +378,23 @@
                 }
             });
 
+            // Close dropdown on escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && notificationDropdown.style.display === 'block') {
+                    notificationDropdown.style.display = 'none';
+                    notificationBell.setAttribute('aria-expanded', 'false');
+                    notificationBell.focus();
+                }
+            });
+
+            // Mark all as read handler
             document.getElementById('markAllAsRead').addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 markAllNotificationsAsRead();
             });
 
-            // Show messages from TempData (use server rendering here)
+            // Show messages from TempData
             if ('@TempData["LoginSuccess"]' !== '') {
                 document.querySelector('.alert-success').style.display = 'block';
                 document.getElementById('successMessage').textContent = '@TempData["LoginSuccess"]';
@@ -426,7 +460,6 @@
                             const priorityClass = getPriorityClass(incident.Priority);
                             const statusClass = getStatusClass(incident.Status);
 
-                            // Proper date handling with error checking
                             let dateDisplay = 'Date unavailable';
                             try {
                                 if (incident.ReportDate) {
@@ -473,7 +506,12 @@
 
         function loadNotifications() {
             fetch('@Url.Action("GetNotifications", "Director")')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.error) {
                         console.error('Error loading notifications:', data.error);
@@ -497,15 +535,21 @@
                             const priorityClass = getPriorityBadgeClass(notification.PriorityLevel || 1);
                             const priorityDisplay = notification.PriorityLevel > 2 ? `Priority ${notification.PriorityLevel}` : '';
 
+                            // Build proper URL - handle both relative and absolute URLs
+                            let notificationUrl = notification.RelatedUrl || '#';
+                            if (notificationUrl !== '#' && !notificationUrl.startsWith('http') && !notificationUrl.startsWith('/')) {
+                                notificationUrl = '/' + notificationUrl;
+                            }
+
                             html += `<div class="notification-item ${isUnread ? 'unread' : ''} ${notification.PriorityLevel > 2 ? 'priority-high' : ''} ${notification.PriorityLevel > 3 ? 'priority-critical' : ''}"
-                                     data-id="${notification.NotificationId}" data-url="${notification.RelatedUrl || '#'}">
+                                     data-id="${notification.NotificationId}" data-url="${notificationUrl}">
                                 <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div class="notification-title">
-                                        <strong>${notification.Title}</strong>
+                                        <strong>${escapeHtml(notification.Title)}</strong>
                                     </div>
-                                    <span class="notification-type badge ${typeClass}">${notification.NotificationType}</span>
+                                    <span class="notification-type badge ${typeClass}">${escapeHtml(notification.NotificationType)}</span>
                                 </div>
-                                <div class="notification-message">${notification.Message}</div>
+                                <div class="notification-message">${escapeHtml(notification.Message)}</div>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="notification-time">${timeAgo}</small>
                                     <div>
@@ -526,10 +570,17 @@
                             item.addEventListener('click', function() {
                                 const notificationId = this.getAttribute('data-id');
                                 const url = this.getAttribute('data-url');
+
+                                // Mark as read
                                 markNotificationAsRead(notificationId);
 
                                 // Navigate to related URL if available and not '#'
                                 if (url && url !== '#') {
+                                    // Close dropdown first
+                                    document.getElementById('directorNotificationDropdown').style.display = 'none';
+                                    document.getElementById('directorNotificationBell').setAttribute('aria-expanded', 'false');
+
+                                    // Then navigate
                                     setTimeout(() => {
                                         window.location.href = url;
                                     }, 300);
@@ -544,6 +595,7 @@
                 })
                 .catch(error => {
                     console.error('Error loading notifications:', error);
+                    showError('Failed to load notifications');
                 });
         }
 
@@ -552,6 +604,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
                 },
                 body: JSON.stringify({ id: parseInt(id) })
             })
@@ -566,7 +619,7 @@
 
                         // Update count
                         const currentCount = parseInt(document.getElementById('notificationCount').textContent);
-                        const newCount = currentCount - 1;
+                        const newCount = Math.max(0, currentCount - 1);
                         document.getElementById('notificationCount').textContent = newCount;
 
                         if (newCount <= 0) {
@@ -588,6 +641,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
                 }
             })
             .then(response => response.json())
@@ -623,6 +677,7 @@
         }
 
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;

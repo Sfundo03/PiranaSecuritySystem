@@ -49,6 +49,44 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // GET: Notification/GetDirectorNotifications
+        public JsonResult GetDirectorNotifications(int directorId)
+        {
+            try
+            {
+                var notifications = db.Notifications
+                    .Where(n => n.UserId == directorId.ToString() && n.UserType == "Director")
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(20)
+                    .Select(n => new
+                    {
+                        n.NotificationId,
+                        n.Title,
+                        n.Message,
+                        n.IsRead,
+                        n.CreatedAt,
+                        n.RelatedUrl,
+                        n.NotificationType,
+                        n.PriorityLevel,
+                        TimeAgo = n.GetTimeAgo()
+                    })
+                    .ToList();
+
+                var unreadCount = notifications.Count(n => !n.IsRead);
+
+                return Json(new
+                {
+                    success = true,
+                    notifications = notifications,
+                    unreadCount = unreadCount
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         // GET: Notification/GetResidentNotifications
         public JsonResult GetResidentNotifications(int residentId)
         {
@@ -211,9 +249,11 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                string relatedUrl = "/Admin/Dashboard"; // Default URL
+                string relatedUrl = "/Admin/Dashboard";
+                string notificationUserId = "Admin";
+                string notificationUserType = "Admin";
 
-                // Determine the related URL based on user type using traditional switch
+                // Determine the related URL and notification recipient based on user type
                 switch (userType.ToLower())
                 {
                     case "guard":
@@ -221,6 +261,14 @@ namespace PiranaSecuritySystem.Controllers
                         break;
                     case "instructor":
                         relatedUrl = "/Admin/ManageInstructors";
+                        break;
+                    case "director":
+                        relatedUrl = "/Director/Dashboard";
+                        notificationUserId = userId.ToString();
+                        notificationUserType = "Director";
+                        break;
+                    case "admin":
+                        relatedUrl = "/Admin/Dashboard";
                         break;
                     default:
                         relatedUrl = "/Admin/Dashboard";
@@ -233,12 +281,13 @@ namespace PiranaSecuritySystem.Controllers
                     Message = $"{userType} {userName} logged in at {DateTime.Now.ToString("hh:mm tt")} on {DateTime.Now.ToString("MMM dd, yyyy")}" +
                              (string.IsNullOrEmpty(site) ? "" : $" from {site}"),
                     NotificationType = "Login",
-                    UserId = "Admin", // Notify admin about logins
-                    UserType = "Admin",
+                    UserId = notificationUserId,
+                    UserType = notificationUserType,
                     CreatedAt = DateTime.Now,
                     IsRead = false,
                     Source = "LoginSystem",
-                    RelatedUrl = relatedUrl
+                    RelatedUrl = relatedUrl,
+                    PriorityLevel = 1
                 };
 
                 db.Notifications.Add(notification);
@@ -257,9 +306,11 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                string relatedUrl = "/Admin/Dashboard"; // Default URL
+                string relatedUrl = "/Admin/Dashboard";
+                string notificationUserId = "Admin";
+                string notificationUserType = "Admin";
 
-                // Determine the related URL based on user type using traditional switch
+                // Determine the related URL and notification recipient based on user type
                 switch (userType.ToLower())
                 {
                     case "guard":
@@ -270,9 +321,13 @@ namespace PiranaSecuritySystem.Controllers
                         break;
                     case "admin":
                         relatedUrl = "/Admin/Dashboard";
+                        notificationUserId = userId.ToString();
+                        notificationUserType = "Admin";
                         break;
                     case "director":
                         relatedUrl = "/Director/Dashboard";
+                        notificationUserId = userId.ToString();
+                        notificationUserType = "Director";
                         break;
                     default:
                         relatedUrl = "/Admin/Dashboard";
@@ -285,12 +340,13 @@ namespace PiranaSecuritySystem.Controllers
                     Message = $"{userType} {userName} logged in at {DateTime.Now.ToString("hh:mm tt")} on {DateTime.Now.ToString("MMM dd, yyyy")}" +
                              (string.IsNullOrEmpty(site) ? "" : $" from {site}"),
                     NotificationType = "Login",
-                    UserId = "Admin", // Notify admin about all logins
-                    UserType = "Admin",
+                    UserId = notificationUserId,
+                    UserType = notificationUserType,
                     CreatedAt = DateTime.Now,
                     IsRead = false,
                     Source = "LoginSystem",
-                    RelatedUrl = relatedUrl
+                    RelatedUrl = relatedUrl,
+                    PriorityLevel = 1
                 };
 
                 db.Notifications.Add(notification);
@@ -299,6 +355,107 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error creating login notification: {ex.Message}");
+            }
+        }
+
+        // Helper method to create incident notification for Director
+        public void CreateDirectorIncidentNotification(int directorId, string incidentType, int incidentId, string priority = "Medium")
+        {
+            try
+            {
+                int priorityLevel;
+
+                // Convert priority string to priority level using traditional switch
+                switch (priority.ToLower())
+                {
+                    case "critical":
+                        priorityLevel = 4;
+                        break;
+                    case "high":
+                        priorityLevel = 3;
+                        break;
+                    case "medium":
+                        priorityLevel = 2;
+                        break;
+                    default:
+                        priorityLevel = 1;
+                        break;
+                }
+
+                var notification = new Notification
+                {
+                    UserId = directorId.ToString(),
+                    UserType = "Director",
+                    Title = "New Incident Reported",
+                    Message = $"A new {incidentType} incident (#{incidentId}) has been reported and requires your attention.",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    RelatedUrl = $"/Director/IncidentDetails/{incidentId}",
+                    NotificationType = "Incident",
+                    PriorityLevel = priorityLevel,
+                    RelatedIncidentId = incidentId
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating director incident notification: {ex.Message}");
+            }
+        }
+
+        // Helper method to create system notification for Director
+        public void CreateDirectorSystemNotification(int directorId, string title, string message, string notificationType = "System", int priorityLevel = 1)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    UserId = directorId.ToString(),
+                    UserType = "Director",
+                    Title = title,
+                    Message = message,
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    RelatedUrl = "/Director/Dashboard",
+                    NotificationType = notificationType,
+                    PriorityLevel = priorityLevel
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating director system notification: {ex.Message}");
+            }
+        }
+
+        // Helper method to create guard activity notification for Director
+        public void CreateDirectorGuardActivityNotification(int directorId, string guardName, string activityType, int guardId)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    UserId = directorId.ToString(),
+                    UserType = "Director",
+                    Title = "Guard Activity",
+                    Message = $"Guard {guardName} has {activityType}.",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    RelatedUrl = $"/Director/GuardLogs?guardId={guardId}",
+                    NotificationType = "Guard",
+                    PriorityLevel = 2
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating director guard activity notification: {ex.Message}");
             }
         }
 

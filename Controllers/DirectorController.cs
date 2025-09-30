@@ -45,6 +45,7 @@ namespace PiranaSecuritySystem.Controllers
                 // Set session for future use
                 Session["DirectorId"] = director.DirectorId.ToString();
 
+
                 // Get notifications
                 var notifications = db.Notifications
                     .Where(n => n.UserId == director.DirectorId.ToString() && n.UserType == "Director")
@@ -54,16 +55,39 @@ namespace PiranaSecuritySystem.Controllers
                 ViewBag.Notifications = notifications;
                 ViewBag.UnreadNotificationCount = notifications.Count(n => !n.IsRead);
 
-                // Check login success message
-                var loginNotification = notifications.FirstOrDefault(n => n.Message.Contains("logged in successfully"));
-                if (loginNotification != null && !loginNotification.IsRead)
+                // Create login notification for Director (not Admin)
+                var existingLoginNotification = notifications.FirstOrDefault(n =>
+                    n.Message.Contains("logged in successfully") &&
+                    n.UserId == director.DirectorId.ToString());
+
+                if (existingLoginNotification == null)
+                {
+                    // Create login notification for Director
+                    var loginNotification = new Notification
+                    {
+                        UserId = director.DirectorId.ToString(),
+                        UserType = "Director",
+                        Title = "Login Successful",
+                        Message = $"You have logged in successfully at {DateTime.Now.ToString("hh:mm tt")} on {DateTime.Now.ToString("MMM dd, yyyy")}",
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = Url.Action("Dashboard", "Director"),
+                        NotificationType = "Login",
+                        PriorityLevel = 1
+                    };
+                    db.Notifications.Add(loginNotification);
+                    db.SaveChanges();
+
+                    TempData["LoginSuccess"] = "You have successfully logged in!";
+                }
+                else if (!existingLoginNotification.IsRead)
                 {
                     TempData["LoginSuccess"] = "You have successfully logged in!";
-                    loginNotification.IsRead = true;
+                    existingLoginNotification.IsRead = true;
                     db.SaveChanges();
                 }
 
-                // **FIXED: Calculate statistics with proper database queries**
+                // Calculate statistics with proper database queries
                 ViewBag.TotalIncidents = db.IncidentReports.Count();
                 ViewBag.ResolvedIncidents = db.IncidentReports.Count(i => i.Status == "Resolved");
                 ViewBag.PendingIncidents = db.IncidentReports.Count(i => i.Status == "Pending");
@@ -91,7 +115,7 @@ namespace PiranaSecuritySystem.Controllers
                     .Distinct()
                     .Count();
 
-                // **FIXED: Recent incidents - ensure we're getting data**
+                // Recent incidents - ensure we're getting data
                 ViewBag.RecentIncidents = db.IncidentReports
                     .OrderByDescending(i => i.ReportDate)
                     .Take(10)
@@ -116,12 +140,11 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // GET: Director/Statistics - FIXED VERSION
+        // GET: Director/Statistics
         public ActionResult Statistics()
         {
             try
             {
-                // **FIXED: Create StatisticsViewModel with proper data retrieval**
                 var statistics = new StatisticsViewModel
                 {
                     // Basic incident counts
@@ -132,10 +155,10 @@ namespace PiranaSecuritySystem.Controllers
                     HighPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "High"),
                     CriticalPriorityIncidents = db.IncidentReports.Count(i => i.Priority == "Critical"),
 
-                    // **FIXED: Monthly incidents with proper grouping**
+                    // Monthly incidents with proper grouping
                     MonthlyIncidents = db.IncidentReports
                         .Where(i => i.ReportDate.Year == DateTime.Now.Year)
-                        .AsEnumerable() // Switch to client-side for grouping
+                        .AsEnumerable()
                         .GroupBy(i => i.ReportDate.Month)
                         .Select(g => new MonthlyIncidentData
                         {
@@ -145,9 +168,9 @@ namespace PiranaSecuritySystem.Controllers
                         .OrderBy(x => x.Month)
                         .ToList(),
 
-                    // **FIXED: Incidents by type with null check**
+                    // Incidents by type with null check
                     IncidentByType = db.IncidentReports
-                        .Where(i => i.IncidentType != null) // Ensure no null types
+                        .Where(i => i.IncidentType != null)
                         .GroupBy(i => i.IncidentType)
                         .Select(g => new IncidentTypeData
                         {
@@ -157,9 +180,9 @@ namespace PiranaSecuritySystem.Controllers
                         .OrderByDescending(x => x.Count)
                         .ToList(),
 
-                    // **FIXED: Incidents by status with null check**
+                    // Incidents by status with null check
                     IncidentByStatus = db.IncidentReports
-                        .Where(i => i.Status != null) // Ensure no null statuses
+                        .Where(i => i.Status != null)
                         .GroupBy(i => i.Status)
                         .Select(g => new IncidentStatusData
                         {
@@ -172,7 +195,7 @@ namespace PiranaSecuritySystem.Controllers
                     TotalGuards = db.Guards.Count(g => g.IsActive),
                     TotalCheckIns = db.GuardCheckIns.Count(),
 
-                    // **FIXED: Today's check-ins with proper date comparison**
+                    // Today's check-ins with proper date comparison
                     TodayCheckIns = db.GuardCheckIns.Count(g =>
                         DbFunctions.TruncateTime(g.CheckInTime) == DbFunctions.TruncateTime(DateTime.Now)),
 
@@ -183,7 +206,7 @@ namespace PiranaSecuritySystem.Controllers
                         .Distinct()
                         .Count(),
 
-                    // **FIXED: Average resolution time with proper calculation**
+                    // Average resolution time with proper calculation
                     AverageResolutionTime = db.IncidentReports
                         .Where(i => i.Status == "Resolved" && i.FeedbackDate != null && i.ReportDate != null)
                         .AsEnumerable()
@@ -192,19 +215,11 @@ namespace PiranaSecuritySystem.Controllers
                         .Average()
                 };
 
-                // Debug information
-                System.Diagnostics.Debug.WriteLine($"Statistics - Total incidents: {statistics.TotalIncidents}");
-                System.Diagnostics.Debug.WriteLine($"Statistics - IncidentByType count: {statistics.IncidentByType.Count}");
-                System.Diagnostics.Debug.WriteLine($"Statistics - IncidentByStatus count: {statistics.IncidentByStatus.Count}");
-
                 return View(statistics);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Statistics error: " + ex.Message);
-                System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
-
-                // Return empty view model on error
                 TempData["ErrorMessage"] = "Error loading statistics: " + ex.Message;
                 return View(new StatisticsViewModel());
             }
@@ -222,7 +237,7 @@ namespace PiranaSecuritySystem.Controllers
                 }
 
                 var incident = db.IncidentReports
-                    .Include("Guard") // Include Guard information
+                    .Include("Guard")
                     .FirstOrDefault(i => i.IncidentReportId == id.Value);
 
                 if (incident == null)
@@ -230,6 +245,15 @@ namespace PiranaSecuritySystem.Controllers
                     TempData["ErrorMessage"] = "Incident not found.";
                     return RedirectToAction("Incidents");
                 }
+
+                // Create notification for Director about viewing incident
+                CreateDirectorNotification(
+                    "Incident Viewed",
+                    $"You viewed incident #{id.Value} - {incident.IncidentType}",
+                    Url.Action("IncidentDetails", "Director", new { id = id.Value }),
+                    "Incident",
+                    2
+                );
 
                 // Load resident user information if ResidentId exists
                 if (!string.IsNullOrEmpty(incident.ResidentId))
@@ -240,10 +264,10 @@ namespace PiranaSecuritySystem.Controllers
 
                 // Add status options to ViewBag
                 ViewBag.StatusOptions = new SelectList(new[] {
-            new { Value = "Pending", Text = "Pending" },
-            new { Value = "In Progress", Text = "In Progress" },
-            new { Value = "Resolved", Text = "Resolved" }
-        }, "Value", "Text", incident.Status);
+                    new { Value = "Pending", Text = "Pending" },
+                    new { Value = "In Progress", Text = "In Progress" },
+                    new { Value = "Resolved", Text = "Resolved" }
+                }, "Value", "Text", incident.Status);
 
                 return View(incident);
             }
@@ -309,13 +333,12 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // GET: Director/GetRecentIncidents - FIXED VERSION
+        // GET: Director/GetRecentIncidents
         [HttpGet]
         public JsonResult GetRecentIncidents()
         {
             try
             {
-                // **FIXED: Proper database query with explicit field selection and error handling**
                 var recentIncidents = db.IncidentReports
                     .OrderByDescending(i => i.ReportDate)
                     .Take(10)
@@ -336,20 +359,15 @@ namespace PiranaSecuritySystem.Controllers
                         i.Location,
                         i.Status,
                         i.Priority,
-                        ReportDate = i.ReportDate.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") // ISO format
+                        ReportDate = i.ReportDate.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
                     })
                     .ToList();
-
-                System.Diagnostics.Debug.WriteLine($"GetRecentIncidents found: {recentIncidents.Count} incidents");
 
                 return Json(new { Success = true, Incidents = recentIncidents }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("GetRecentIncidents error: " + ex.Message);
-                System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
-
-                // Return empty list on error instead of failing completely
                 return Json(new
                 {
                     Success = false,
@@ -364,21 +382,11 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                string directorId = Session["DirectorId"] as string;
+                string directorId = GetCurrentDirectorId();
                 if (string.IsNullOrEmpty(directorId))
                 {
-                    var currentUser = User.Identity.Name;
-                    var director = db.Directors.FirstOrDefault(d => d.Email == currentUser);
-                    if (director != null)
-                    {
-                        directorId = director.DirectorId.ToString();
-                        Session["DirectorId"] = directorId;
-                    }
-                    else
-                    {
-                        TempData["ErrorMessage"] = "Please log in to view notifications.";
-                        return RedirectToAction("Login", "Account");
-                    }
+                    TempData["ErrorMessage"] = "Please log in to view notifications.";
+                    return RedirectToAction("Login", "Account");
                 }
 
                 var query = db.Notifications
@@ -433,20 +441,10 @@ namespace PiranaSecuritySystem.Controllers
         {
             try
             {
-                string directorId = Session["DirectorId"] as string;
+                string directorId = GetCurrentDirectorId();
                 if (string.IsNullOrEmpty(directorId))
                 {
-                    var currentUser = User.Identity.Name;
-                    var director = db.Directors.FirstOrDefault(d => d.Email == currentUser);
-                    if (director != null)
-                    {
-                        directorId = director.DirectorId.ToString();
-                        Session["DirectorId"] = directorId;
-                    }
-                    else
-                    {
-                        return Json(new { error = "Not authenticated" }, JsonRequestBehavior.AllowGet);
-                    }
+                    return Json(new { error = "Not authenticated" }, JsonRequestBehavior.AllowGet);
                 }
 
                 var notifications = db.Notifications
@@ -484,11 +482,12 @@ namespace PiranaSecuritySystem.Controllers
 
         // POST: Director/MarkNotificationAsRead
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult MarkNotificationAsRead(int id)
         {
             try
             {
-                string directorId = Session["DirectorId"] as string;
+                string directorId = GetCurrentDirectorId();
                 if (string.IsNullOrEmpty(directorId))
                 {
                     return Json(new { success = false, error = "Not authenticated" });
@@ -513,11 +512,12 @@ namespace PiranaSecuritySystem.Controllers
 
         // POST: Director/MarkAllNotificationsAsRead
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult MarkAllNotificationsAsRead()
         {
             try
             {
-                string directorId = Session["DirectorId"] as string;
+                string directorId = GetCurrentDirectorId();
                 if (string.IsNullOrEmpty(directorId))
                 {
                     return Json(new { success = false, error = "Not authenticated" });
@@ -571,6 +571,15 @@ namespace PiranaSecuritySystem.Controllers
                     .OrderByDescending(i => i.ReportDate)
                     .ToList();
 
+                // Create notification for Director about viewing incidents
+                CreateDirectorNotification(
+                    "Incidents Viewed",
+                    "You accessed the incidents management page",
+                    Url.Action("Incidents", "Director"),
+                    "System",
+                    1
+                );
+
                 ViewBag.StatusFilter = status;
                 ViewBag.PriorityFilter = priority;
                 ViewBag.TypeFilter = type;
@@ -588,7 +597,7 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // POST: Director/UpdateIncidentStatus - FIXED VERSION
+        // POST: Director/UpdateIncidentStatus
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult UpdateIncidentStatus(int incidentId, string status, string feedback = "", HttpPostedFileBase pdfFile = null, bool removeFile = false)
@@ -601,6 +610,7 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Incident not found." });
                 }
 
+                string oldStatus = incident.Status;
                 incident.Status = status;
                 incident.FeedbackDate = DateTime.Now;
 
@@ -610,7 +620,7 @@ namespace PiranaSecuritySystem.Controllers
                     incident.Feedback = feedback;
                 }
 
-                // Handle PDF file upload - store in database instead of file system
+                // Handle PDF file upload
                 if (pdfFile != null && pdfFile.ContentLength > 0)
                 {
                     if (pdfFile.ContentType != "application/pdf")
@@ -618,12 +628,11 @@ namespace PiranaSecuritySystem.Controllers
                         return Json(new { success = false, message = "Only PDF files are allowed." });
                     }
 
-                    if (pdfFile.ContentLength > 5 * 1024 * 1024) // 5MB limit
+                    if (pdfFile.ContentLength > 5 * 1024 * 1024)
                     {
                         return Json(new { success = false, message = "File size must be less than 5MB." });
                     }
 
-                    // Convert file to base64 and store in database
                     using (var memoryStream = new MemoryStream())
                     {
                         pdfFile.InputStream.CopyTo(memoryStream);
@@ -635,14 +644,12 @@ namespace PiranaSecuritySystem.Controllers
                         incident.FeedbackFileType = pdfFile.ContentType;
                         incident.FeedbackFileSize = pdfFile.ContentLength;
 
-                        // Also store the file path for backward compatibility
                         var fileName = $"feedback_{incidentId}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
                         incident.FeedbackAttachment = fileName;
                     }
                 }
                 else if (removeFile)
                 {
-                    // Remove file data from database
                     incident.FeedbackFileData = null;
                     incident.FeedbackFileName = null;
                     incident.FeedbackFileType = null;
@@ -652,6 +659,15 @@ namespace PiranaSecuritySystem.Controllers
 
                 db.Entry(incident).State = EntityState.Modified;
                 db.SaveChanges();
+
+                // Create notification for Director about status update
+                CreateDirectorNotification(
+                    "Incident Status Updated",
+                    $"You updated incident #{incidentId} from {oldStatus} to {status}",
+                    Url.Action("IncidentDetails", "Director", new { id = incidentId }),
+                    "Incident",
+                    3
+                );
 
                 // Create notification for resident about status update
                 if (!string.IsNullOrEmpty(incident.ResidentId))
@@ -665,7 +681,8 @@ namespace PiranaSecuritySystem.Controllers
                         IsRead = false,
                         CreatedAt = DateTime.Now,
                         RelatedUrl = Url.Action("MyIncidents", "Resident"),
-                        NotificationType = "Incident"
+                        NotificationType = "Incident",
+                        PriorityLevel = 3
                     };
                     db.Notifications.Add(notification);
                     db.SaveChanges();
@@ -687,7 +704,6 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("UpdateIncidentStatus error: " + ex.Message);
-                System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
                 return Json(new { success = false, message = "Error updating incident status: " + ex.Message });
             }
         }
@@ -705,7 +721,7 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Incidents");
                 }
 
-                // Check if we have file data stored in database (preferred method)
+                // Check if we have file data stored in database
                 if (!string.IsNullOrEmpty(incident.FeedbackFileData))
                 {
                     return DownloadFileFromDatabase(incident);
@@ -718,30 +734,25 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Incidents");
                 }
 
-                // Get the file path from the database
                 string storedFilePath = incident.FeedbackAttachment;
-
-                // Try multiple possible file locations
                 string actualFilePath = FindActualFilePath(storedFilePath);
 
                 if (string.IsNullOrEmpty(actualFilePath) || !System.IO.File.Exists(actualFilePath))
                 {
-                    TempData["ErrorMessage"] = "The requested file is not available. It may have been moved or deleted.";
+                    TempData["ErrorMessage"] = "The requested file is not available.";
                     return RedirectToAction("Incidents");
                 }
 
-                // Get file info for download
                 FileInfo fileInfo = new FileInfo(actualFilePath);
                 string fileNameForDownload = GetDownloadFileName(incident, fileInfo.Name);
 
-                // Return the file for download
                 byte[] fileBytes = System.IO.File.ReadAllBytes(actualFilePath);
                 return File(fileBytes, "application/pdf", fileNameForDownload);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("DownloadFeedbackAttachment error: " + ex.Message);
-                TempData["ErrorMessage"] = "An error occurred while downloading the file. Please try again.";
+                TempData["ErrorMessage"] = "An error occurred while downloading the file.";
                 return RedirectToAction("Incidents");
             }
         }
@@ -757,17 +768,8 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Incidents");
                 }
 
-                // Convert base64 string back to byte array
                 byte[] fileBytes = Convert.FromBase64String(incident.FeedbackFileData);
-
-                // Determine file name
-                string fileName = incident.FeedbackFileName;
-                if (string.IsNullOrEmpty(fileName))
-                {
-                    fileName = $"Incident_Feedback_{incident.IncidentReportId}.pdf";
-                }
-
-                // Determine content type
+                string fileName = incident.FeedbackFileName ?? $"Incident_Feedback_{incident.IncidentReportId}.pdf";
                 string contentType = incident.FeedbackFileType ?? "application/pdf";
 
                 return File(fileBytes, contentType, fileName);
@@ -786,14 +788,11 @@ namespace PiranaSecuritySystem.Controllers
             if (string.IsNullOrEmpty(storedFilePath))
                 return null;
 
-            // Check if file exists at the stored path
             if (System.IO.File.Exists(storedFilePath))
                 return storedFilePath;
 
-            // Try to extract just the filename and search in common locations
             string fileName = Path.GetFileName(storedFilePath);
 
-            // Common attachment storage locations
             var possibleLocations = new[]
             {
                 Server.MapPath("~/App_Data/Attachments/"),
@@ -860,6 +859,15 @@ namespace PiranaSecuritySystem.Controllers
                     .OrderByDescending(g => g.CheckInTime)
                     .ToList();
 
+                // Create notification for Director about viewing guard logs
+                CreateDirectorNotification(
+                    "Guard Logs Viewed",
+                    "You accessed the guard logs management page",
+                    Url.Action("GuardLogs", "Director"),
+                    "Guard",
+                    1
+                );
+
                 ViewBag.StartDate = startDate.Value.ToString("yyyy-MM-dd");
                 ViewBag.EndDate = endDate.Value.ToString("yyyy-MM-dd");
                 ViewBag.GuardId = guardId;
@@ -896,6 +904,53 @@ namespace PiranaSecuritySystem.Controllers
             }
 
             return new HtmlString($"<span class='{badgeClass}'>{status}</span>");
+        }
+
+        // Helper method to get current director ID
+        private string GetCurrentDirectorId()
+        {
+            string directorId = Session["DirectorId"] as string;
+            if (string.IsNullOrEmpty(directorId))
+            {
+                var currentUser = User.Identity.Name;
+                var director = db.Directors.FirstOrDefault(d => d.Email == currentUser);
+                if (director != null)
+                {
+                    directorId = director.DirectorId.ToString();
+                    Session["DirectorId"] = directorId;
+                }
+            }
+            return directorId;
+        }
+
+        // Helper method to create director notifications
+        private void CreateDirectorNotification(string title, string message, string relatedUrl, string notificationType, int priorityLevel)
+        {
+            try
+            {
+                string directorId = GetCurrentDirectorId();
+                if (!string.IsNullOrEmpty(directorId))
+                {
+                    var notification = new Notification
+                    {
+                        UserId = directorId,
+                        UserType = "Director",
+                        Title = title,
+                        Message = message,
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = relatedUrl,
+                        NotificationType = notificationType,
+                        PriorityLevel = priorityLevel
+                    };
+                    db.Notifications.Add(notification);
+                    db.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating director notification: {ex.Message}");
+            }
         }
 
         protected override void Dispose(bool disposing)
