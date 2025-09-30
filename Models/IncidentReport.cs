@@ -31,6 +31,12 @@ namespace PiranaSecuritySystem.Models
         public string EmergencyContact { get; set; }
         public string Feedback { get; set; }
 
+        // New properties for file storage in database
+        public string FeedbackFileData { get; set; } // Base64 encoded file data
+        public string FeedbackFileName { get; set; } // Original file name
+        public string FeedbackFileType { get; set; } // MIME type
+        public long? FeedbackFileSize { get; set; } // File size in bytes
+
         public string Attachment { get; set; }
         public string FeedbackAttachment { get; set; }
         public DateTime? FeedbackDate { get; set; }

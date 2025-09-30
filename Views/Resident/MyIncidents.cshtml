@@ -166,7 +166,8 @@
         font-size: 0.9em;
         margin-left: 10px;
         text-decoration: none;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
         transition: background 0.3s ease;
     }
 
@@ -378,6 +379,12 @@
         font-family: 'Courier New', monospace;
     }
 
+    .file-info {
+        font-size: 0.8em;
+        color: #7f8c8d;
+        margin-top: 5px;
+    }
+
     @@media (max-width: 768px) {
         .feedback-modal-content {
             width: 90%;
@@ -523,13 +530,20 @@
                             <i class="fas fa-comment"></i> View Feedback
                         </button>
 
-                        @if (!string.IsNullOrEmpty(incident.FeedbackAttachment))
+                        @if (!string.IsNullOrEmpty(incident.FeedbackAttachment) || !string.IsNullOrEmpty(incident.FeedbackFileData))
                         {
                             <a href="@Url.Action("DownloadFeedbackAttachment", "Resident", new { id = incident.IncidentReportId })"
                                class="download-attachment-btn"
-                               title="Download feedback attachment">
-                                <i class="fas fa-download"></i> Download PDF
+                               title="Download feedback attachment"
+                               target="_blank">
+                                <i class="fas fa-file-pdf"></i> Download PDF
                             </a>
+                        }
+                        else
+                        {
+                            <button class="download-attachment-btn" disabled title="No attachment available">
+                                <i class="fas fa-file-pdf"></i> No PDF
+                            </button>
                         }
                     </div>
                 </div>
@@ -566,9 +580,10 @@
         </div>
         <div id="attachmentContainer" class="attachment-container" style="display: none;">
             <h4><i class="fas fa-paperclip"></i> Attachment</h4>
-            <a id="downloadAttachmentLink" href="#" class="download-attachment-btn">
-                <i class="fas fa-download"></i> Download Attachment
+            <a id="downloadAttachmentLink" href="#" class="download-attachment-btn" target="_blank">
+                <i class="fas fa-download"></i> Download PDF Attachment
             </a>
+            <div class="file-info" id="fileInfo"></div>
         </div>
     </div>
 </div>
@@ -606,10 +621,11 @@
                             $("#feedbackContent").html('<p style="white-space: pre-wrap;">' + data.feedback + '</p>');
 
                             // Show attachment if available
-                            if (data.hasAttachment && data.attachmentName) {
+                            if (data.hasAttachment && data.fileName) {
                                 $("#downloadAttachmentLink")
                                     .attr("href", '@Url.Action("DownloadFeedbackAttachment", "Resident")' + '?id=' + incidentId)
-                                    .text('Download: ' + data.attachmentName);
+                                    .text('Download: ' + data.fileName);
+                                $("#fileInfo").html('<i class="fas fa-info-circle"></i> File: ' + data.fileName);
                                 $("#attachmentContainer").show();
                             } else {
                                 $("#attachmentContainer").hide();

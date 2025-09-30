@@ -209,6 +209,7 @@ namespace PiranaSecuritySystem.Controllers
                 return View(new StatisticsViewModel());
             }
         }
+
         // GET: Director/IncidentDetails
         public ActionResult IncidentDetails(int? id)
         {
@@ -253,6 +254,7 @@ namespace PiranaSecuritySystem.Controllers
                 return RedirectToAction("Incidents");
             }
         }
+
         // GET: Director/AllIncidents
         public ActionResult AllIncidents()
         {
@@ -356,6 +358,7 @@ namespace PiranaSecuritySystem.Controllers
                 }, JsonRequestBehavior.AllowGet);
             }
         }
+
         // GET: Director/Notifications
         public ActionResult Notifications(string typeFilter = "", string statusFilter = "", int page = 1, int pageSize = 20)
         {
@@ -584,10 +587,10 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // POST: Director/UpdateIncidentStatus
+        // POST: Director/UpdateIncidentStatus - FIXED VERSION
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public JsonResult UpdateIncidentStatus(int incidentId, string status, HttpPostedFileBase pdfFile = null, bool removeFile = false)
+        public JsonResult UpdateIncidentStatus(int incidentId, string status, string feedback = "", HttpPostedFileBase pdfFile = null, bool removeFile = false)
         {
             try
             {
@@ -598,7 +601,15 @@ namespace PiranaSecuritySystem.Controllers
                 }
 
                 incident.Status = status;
+                incident.FeedbackDate = DateTime.Now;
 
+                // Handle feedback text
+                if (!string.IsNullOrEmpty(feedback))
+                {
+                    incident.Feedback = feedback;
+                }
+
+                // Handle PDF file upload - store in database instead of file system
                 if (pdfFile != null && pdfFile.ContentLength > 0)
                 {
                     if (pdfFile.ContentType != "application/pdf")
@@ -606,35 +617,58 @@ namespace PiranaSecuritySystem.Controllers
                         return Json(new { success = false, message = "Only PDF files are allowed." });
                     }
 
-                    if (pdfFile.ContentLength > 5 * 1024 * 1024)
+                    if (pdfFile.ContentLength > 5 * 1024 * 1024) // 5MB limit
                     {
                         return Json(new { success = false, message = "File size must be less than 5MB." });
                     }
 
-                    var fileName = $"feedback_{incidentId}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
-                    var path = Path.Combine(Server.MapPath("~/App_Data/FeedbackFiles"), fileName);
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(path));
-                    pdfFile.SaveAs(path);
-
-                    incident.FeedbackAttachment = fileName;
-                    incident.Feedback = fileName;
-                }
-                else if (removeFile && !string.IsNullOrEmpty(incident.FeedbackAttachment))
-                {
-                    var oldFilePath = Path.Combine(Server.MapPath("~/App_Data/FeedbackFiles"), incident.FeedbackAttachment);
-                    if (System.IO.File.Exists(oldFilePath))
+                    // Convert file to base64 and store in database
+                    using (var memoryStream = new MemoryStream())
                     {
-                        System.IO.File.Delete(oldFilePath);
-                    }
-                    incident.FeedbackAttachment = null;
-                    incident.Feedback = null;
-                }
+                        pdfFile.InputStream.CopyTo(memoryStream);
+                        byte[] fileBytes = memoryStream.ToArray();
+                        string base64FileData = Convert.ToBase64String(fileBytes);
 
-                incident.FeedbackDate = DateTime.Now;
+                        incident.FeedbackFileData = base64FileData;
+                        incident.FeedbackFileName = Path.GetFileName(pdfFile.FileName);
+                        incident.FeedbackFileType = pdfFile.ContentType;
+                        incident.FeedbackFileSize = pdfFile.ContentLength;
+
+                        // Also store the file path for backward compatibility
+                        var fileName = $"feedback_{incidentId}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
+                        incident.FeedbackAttachment = fileName;
+                    }
+                }
+                else if (removeFile)
+                {
+                    // Remove file data from database
+                    incident.FeedbackFileData = null;
+                    incident.FeedbackFileName = null;
+                    incident.FeedbackFileType = null;
+                    incident.FeedbackFileSize = null;
+                    incident.FeedbackAttachment = null;
+                }
 
                 db.Entry(incident).State = EntityState.Modified;
                 db.SaveChanges();
+
+                // Create notification for resident about status update
+                if (!string.IsNullOrEmpty(incident.ResidentId))
+                {
+                    var notification = new Notification
+                    {
+                        UserId = incident.ResidentId,
+                        UserType = "Resident",
+                        Title = "Incident Status Updated",
+                        Message = $"Your incident report #{incidentId} status has been updated to '{status}'.",
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = Url.Action("MyIncidents", "Resident"),
+                        NotificationType = "Incident"
+                    };
+                    db.Notifications.Add(notification);
+                    db.SaveChanges();
+                }
 
                 string statusBadge = GetStatusBadge(status).ToString();
 
@@ -643,16 +677,161 @@ namespace PiranaSecuritySystem.Controllers
                     success = true,
                     message = $"Incident status updated to {status} successfully.",
                     statusBadge = statusBadge,
-                    hasFeedback = !string.IsNullOrEmpty(incident.Feedback),
+                    hasFeedback = !string.IsNullOrEmpty(incident.Feedback) || !string.IsNullOrEmpty(incident.FeedbackFileData),
                     feedback = incident.Feedback,
-                    isPdf = !string.IsNullOrEmpty(incident.Feedback) && incident.Feedback.EndsWith(".pdf")
+                    hasAttachment = !string.IsNullOrEmpty(incident.FeedbackFileData),
+                    attachmentName = incident.FeedbackFileName
                 });
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("UpdateIncidentStatus error: " + ex.Message);
-                return Json(new { success = false, message = "Error updating incident status." });
+                System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
+                return Json(new { success = false, message = "Error updating incident status: " + ex.Message });
             }
+        }
+
+        // GET: Director/DownloadFeedbackAttachment
+        [Authorize(Roles = "Director")]
+        public ActionResult DownloadFeedbackAttachment(int id)
+        {
+            try
+            {
+                var incident = db.IncidentReports.Find(id);
+                if (incident == null)
+                {
+                    TempData["ErrorMessage"] = "Incident report not found.";
+                    return RedirectToAction("Incidents");
+                }
+
+                // Check if we have file data stored in database (preferred method)
+                if (!string.IsNullOrEmpty(incident.FeedbackFileData))
+                {
+                    return DownloadFileFromDatabase(incident);
+                }
+
+                // Fallback to file path method
+                if (string.IsNullOrEmpty(incident.FeedbackAttachment))
+                {
+                    TempData["ErrorMessage"] = "No attachment available for this incident.";
+                    return RedirectToAction("Incidents");
+                }
+
+                // Get the file path from the database
+                string storedFilePath = incident.FeedbackAttachment;
+
+                // Try multiple possible file locations
+                string actualFilePath = FindActualFilePath(storedFilePath);
+
+                if (string.IsNullOrEmpty(actualFilePath) || !System.IO.File.Exists(actualFilePath))
+                {
+                    TempData["ErrorMessage"] = "The requested file is not available. It may have been moved or deleted.";
+                    return RedirectToAction("Incidents");
+                }
+
+                // Get file info for download
+                FileInfo fileInfo = new FileInfo(actualFilePath);
+                string fileNameForDownload = GetDownloadFileName(incident, fileInfo.Name);
+
+                // Return the file for download
+                byte[] fileBytes = System.IO.File.ReadAllBytes(actualFilePath);
+                return File(fileBytes, "application/pdf", fileNameForDownload);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("DownloadFeedbackAttachment error: " + ex.Message);
+                TempData["ErrorMessage"] = "An error occurred while downloading the file. Please try again.";
+                return RedirectToAction("Incidents");
+            }
+        }
+
+        // Helper method to download file from database storage
+        private ActionResult DownloadFileFromDatabase(IncidentReport incident)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(incident.FeedbackFileData))
+                {
+                    TempData["ErrorMessage"] = "File data not available.";
+                    return RedirectToAction("Incidents");
+                }
+
+                // Convert base64 string back to byte array
+                byte[] fileBytes = Convert.FromBase64String(incident.FeedbackFileData);
+
+                // Determine file name
+                string fileName = incident.FeedbackFileName;
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    fileName = $"Incident_Feedback_{incident.IncidentReportId}.pdf";
+                }
+
+                // Determine content type
+                string contentType = incident.FeedbackFileType ?? "application/pdf";
+
+                return File(fileBytes, contentType, fileName);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Download from database error: " + ex.Message);
+                TempData["ErrorMessage"] = "Error processing file data.";
+                return RedirectToAction("Incidents");
+            }
+        }
+
+        // Helper method to find the actual file path
+        private string FindActualFilePath(string storedFilePath)
+        {
+            if (string.IsNullOrEmpty(storedFilePath))
+                return null;
+
+            // Check if file exists at the stored path
+            if (System.IO.File.Exists(storedFilePath))
+                return storedFilePath;
+
+            // Try to extract just the filename and search in common locations
+            string fileName = Path.GetFileName(storedFilePath);
+
+            // Common attachment storage locations
+            var possibleLocations = new[]
+            {
+                Server.MapPath("~/App_Data/Attachments/"),
+                Server.MapPath("~/Uploads/"),
+                Server.MapPath("~/Files/"),
+                Server.MapPath("~/Content/Attachments/"),
+                Server.MapPath("~/Attachments/"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Attachments"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data", "Attachments")
+            };
+
+            foreach (var location in possibleLocations)
+            {
+                try
+                {
+                    if (Directory.Exists(location))
+                    {
+                        string possiblePath = Path.Combine(location, fileName);
+                        if (System.IO.File.Exists(possiblePath))
+                            return possiblePath;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error checking location {location}: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        // Helper method to generate download file name
+        private string GetDownloadFileName(IncidentReport incident, string originalFileName)
+        {
+            string fileExtension = Path.GetExtension(originalFileName);
+            if (string.IsNullOrEmpty(fileExtension))
+                fileExtension = ".pdf";
+
+            return $"Incident_Feedback_{incident.IncidentReportId}_{DateTime.Now:yyyyMMdd}{fileExtension}";
         }
 
         // GET: Director/GuardLogs

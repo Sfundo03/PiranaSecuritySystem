@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data.Entity.Validation;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
@@ -689,6 +690,152 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // GET: Resident/DownloadFeedbackAttachment
+        [Authorize(Roles = "Resident")]
+        public ActionResult DownloadFeedbackAttachment(int id)
+        {
+            try
+            {
+                var residentId = User.Identity.GetUserId();
+                var incident = db.IncidentReports
+                    .FirstOrDefault(i => i.IncidentReportId == id && i.ResidentId == residentId);
+
+                if (incident == null)
+                {
+                    TempData["ErrorMessage"] = "Incident report not found or you don't have permission to access it.";
+                    return RedirectToAction("MyIncidents");
+                }
+
+                // Check if we have file data stored in database (preferred method)
+                if (!string.IsNullOrEmpty(incident.FeedbackFileData))
+                {
+                    return DownloadFileFromDatabase(incident);
+                }
+
+                // Fallback to file path method
+                if (string.IsNullOrEmpty(incident.FeedbackAttachment))
+                {
+                    TempData["ErrorMessage"] = "No attachment available for this incident.";
+                    return RedirectToAction("MyIncidents");
+                }
+
+                // Get the file path from the database
+                string storedFilePath = incident.FeedbackAttachment;
+
+                // Try multiple possible file locations
+                string actualFilePath = FindActualFilePath(storedFilePath);
+
+                if (string.IsNullOrEmpty(actualFilePath) || !System.IO.File.Exists(actualFilePath))
+                {
+                    TempData["ErrorMessage"] = "The requested file is not available. It may have been moved or deleted.";
+                    return RedirectToAction("MyIncidents");
+                }
+
+                // Get file info for download
+                FileInfo fileInfo = new FileInfo(actualFilePath);
+                string fileNameForDownload = GetDownloadFileName(incident, fileInfo.Name);
+
+                // Return the file for download
+                byte[] fileBytes = System.IO.File.ReadAllBytes(actualFilePath);
+                return File(fileBytes, "application/pdf", fileNameForDownload);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("DownloadFeedbackAttachment error: " + ex.Message);
+                TempData["ErrorMessage"] = "An error occurred while downloading the file. Please try again.";
+                return RedirectToAction("MyIncidents");
+            }
+        }
+
+        // Helper method to find the actual file path
+        private string FindActualFilePath(string storedFilePath)
+        {
+            if (string.IsNullOrEmpty(storedFilePath))
+                return null;
+
+            // Check if file exists at the stored path
+            if (System.IO.File.Exists(storedFilePath))
+                return storedFilePath;
+
+            // Try to extract just the filename and search in common locations
+            string fileName = Path.GetFileName(storedFilePath);
+
+            // Common attachment storage locations
+            var possibleLocations = new[]
+            {
+                Server.MapPath("~/App_Data/Attachments/"),
+                Server.MapPath("~/Uploads/"),
+                Server.MapPath("~/Files/"),
+                Server.MapPath("~/Content/Attachments/"),
+                Server.MapPath("~/Attachments/"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Attachments"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data", "Attachments")
+            };
+
+            foreach (var location in possibleLocations)
+            {
+                try
+                {
+                    if (Directory.Exists(location))
+                    {
+                        string possiblePath = Path.Combine(location, fileName);
+                        if (System.IO.File.Exists(possiblePath))
+                            return possiblePath;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error checking location {location}: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        // Helper method to download file from database storage
+        private ActionResult DownloadFileFromDatabase(IncidentReport incident)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(incident.FeedbackFileData))
+                {
+                    TempData["ErrorMessage"] = "File data not available.";
+                    return RedirectToAction("MyIncidents");
+                }
+
+                // Convert base64 string back to byte array
+                byte[] fileBytes = Convert.FromBase64String(incident.FeedbackFileData);
+
+                // Determine file name
+                string fileName = incident.FeedbackFileName;
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    fileName = $"Incident_Feedback_{incident.IncidentReportId}.pdf";
+                }
+
+                // Determine content type
+                string contentType = incident.FeedbackFileType ?? "application/pdf";
+
+                return File(fileBytes, contentType, fileName);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Download from database error: " + ex.Message);
+                TempData["ErrorMessage"] = "Error processing file data.";
+                return RedirectToAction("MyIncidents");
+            }
+        }
+
+        // Helper method to generate download file name
+        private string GetDownloadFileName(IncidentReport incident, string originalFileName)
+        {
+            string fileExtension = Path.GetExtension(originalFileName);
+            if (string.IsNullOrEmpty(fileExtension))
+                fileExtension = ".pdf";
+
+            return $"Incident_Feedback_{incident.IncidentReportId}_{DateTime.Now:yyyyMMdd}{fileExtension}";
+        }
+
         // POST: Resident/Logout
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -841,43 +988,23 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { error = "Incident not found or access denied" }, JsonRequestBehavior.AllowGet);
                 }
 
+                string displayFileName = !string.IsNullOrEmpty(incident.FeedbackFileName)
+                    ? incident.FeedbackFileName
+                    : (!string.IsNullOrEmpty(incident.FeedbackAttachment)
+                        ? Path.GetFileName(incident.FeedbackAttachment)
+                        : "feedback.pdf");
+
                 return Json(new
                 {
                     feedback = incident.Feedback,
-                    hasAttachment = !string.IsNullOrEmpty(incident.FeedbackAttachment),
-                    attachmentName = incident.FeedbackAttachment
+                    hasAttachment = !string.IsNullOrEmpty(incident.FeedbackAttachment) || !string.IsNullOrEmpty(incident.FeedbackFileData),
+                    attachmentName = displayFileName,
+                    fileName = displayFileName
                 }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
                 return Json(new { error = "Error retrieving feedback" }, JsonRequestBehavior.AllowGet);
-            }
-        }
-
-        // GET: Resident/DownloadFeedbackAttachment
-        [Authorize(Roles = "Resident")]
-        public ActionResult DownloadFeedbackAttachment(int id)
-        {
-            try
-            {
-                var residentId = User.Identity.GetUserId();
-                var incident = db.IncidentReports
-                    .FirstOrDefault(i => i.IncidentReportId == id && i.ResidentId == residentId);
-
-                if (incident == null || string.IsNullOrEmpty(incident.FeedbackAttachment))
-                {
-                    TempData["ErrorMessage"] = "Attachment not found or access denied";
-                    return RedirectToAction("MyIncidents");
-                }
-
-                // For now, return a simple file result
-                // You'll need to implement actual file download logic based on your storage system
-                return Content("File download functionality would be implemented here");
-            }
-            catch (Exception ex)
-            {
-                TempData["ErrorMessage"] = "Error downloading attachment";
-                return RedirectToAction("MyIncidents");
             }
         }
 
