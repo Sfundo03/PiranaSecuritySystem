@@ -1,40 +1,58 @@
-﻿@model PiranaSecuritySystem.Models.VerifyCodeViewModel
+﻿@model PiranaSecuritySystem.Models.VerifyOTPViewModel
 @{
-    ViewBag.Title = "Verify";
+    ViewBag.Title = "Verify OTP";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<main aria-labelledby="title">
-    <h2 id="title">@ViewBag.Title.</h2>
+<div class="login-section">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="card-header">
+                <h4 class="mb-0">Verify OTP</h4>
+                <small>Enter the OTP sent to your email</small>
+            </div>
+            <div class="card-body">
+                @using (Html.BeginForm("VerifyOTP", "Account", FormMethod.Post, new { @id = "verifyOtpForm" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.HiddenFor(m => m.Email)
 
-    @using (Html.BeginForm("VerifyCode", "Account", new { ReturnUrl = Model.ReturnUrl }, FormMethod.Post, new { role = "form" })) {
-        @Html.AntiForgeryToken()
-        @Html.Hidden("provider", @Model.Provider)
-        @Html.Hidden("rememberMe", @Model.RememberMe)
-        <h4>Enter verification code</h4>
-        <hr />
-        @Html.ValidationSummary("", new { @class = "text-danger" })
-        <div class="row">
-            @Html.LabelFor(m => m.Code, new { @class = "col-md-2 col-form-label" })
-            <div class="col-md-10">
-                @Html.TextBoxFor(m => m.Code, new { @class = "form-control" })
+                    <div class="mb-3">
+                        <label for="OTP" class="form-label">OTP Code</label>
+                        <div class="input-icon">
+                            <i class="fas fa-shield-alt"></i>
+                            <input type="text" class="form-control" id="OTP" name="OTP"
+                                   placeholder="Enter 6-digit OTP" maxlength="6" required
+                                   pattern="\d{6}" title="Please enter 6 digits">
+                        </div>
+                        @Html.ValidationMessageFor(m => m.OTP, "", new { @class = "text-danger" })
+                    </div>
+
+                    <button type="submit" class="btn btn-login w-100 text-white">
+                        <i class="fas fa-check-circle me-2"></i>Verify OTP
+                    </button>
+
+                    <div class="text-center mt-3">
+                        <p class="text-muted">
+                            Didn't receive OTP?
+                            <a href="@Url.Action("ForgotPassword")">Resend OTP</a>
+                        </p>
+                    </div>
+                }
             </div>
         </div>
-        <div class="row">
-            <div class="offset-md-2 col-md-10">
-                <div class="checkbox">
-                    @Html.CheckBoxFor(m => m.RememberBrowser)
-                    @Html.LabelFor(m => m.RememberBrowser)
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="offset-md-2 col-md-10">
-                <input type="submit" class="btn btn-outline-dark" value="Submit" />
-            </div>
-        </div>
-    }
-</main>
+    </div>
+</div>
 
 @section Scripts {
     @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Auto-tab between OTP digits (if you want to implement OTP input boxes)
+            const otpInput = document.getElementById('OTP');
+            otpInput.addEventListener('input', function () {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        });
+    </script>
 }

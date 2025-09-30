@@ -242,6 +242,7 @@
     <Compile Include="Models\MonthlyIncidentData.cs" />
     <Compile Include="Models\Notification.cs" />
     <Compile Include="Models\NotificationViewModel.cs" />
+    <Compile Include="Models\PasswordResetOTP.cs" />
     <Compile Include="Models\PayrollModel.cs" />
     <Compile Include="Models\RegisterGuardViewModel.cs" />
     <Compile Include="Models\RegisterInstructorViewModel.cs" />

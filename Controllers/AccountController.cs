@@ -3,6 +3,7 @@ using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
 using PiranaSecuritySystem.Models;
 using System;
+using System.Data.Entity;
 using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
@@ -378,14 +379,209 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // Helper method to redirect to local URL
-        private ActionResult RedirectToLocal(string returnUrl)
+        //
+        // GET: /Account/ForgotPassword
+        [AllowAnonymous]
+        public ActionResult ForgotPassword()
         {
-            if (Url.IsLocalUrl(returnUrl))
+            return View();
+        }
+
+        //
+        // POST: /Account/ForgotPassword
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
             {
-                return Redirect(returnUrl);
+                var user = await UserManager.FindByEmailAsync(model.Email);
+
+                // Check if user exists and is a Resident
+                if (user != null && await UserManager.IsInRoleAsync(user.Id, "Resident"))
+                {
+                    // Generate OTP
+                    var otp = GenerateOTP();
+                    var otpExpiry = DateTime.Now.AddMinutes(15); // OTP valid for 15 minutes
+
+                    // Store OTP in database
+                    using (var db = new ApplicationDbContext())
+                    {
+                        // Invalidate any previous OTPs for this email
+                        var previousOtps = db.PasswordResetOTPs.Where(o => o.Email == model.Email && !o.IsUsed);
+                        foreach (var prevOtp in previousOtps)
+                        {
+                            prevOtp.IsUsed = true;
+                        }
+
+                        var passwordReset = new PasswordResetOTP
+                        {
+                            Email = model.Email,
+                            OTP = otp,
+                            ExpiryTime = otpExpiry,
+                            IsUsed = false,
+                            CreatedAt = DateTime.Now
+                        };
+
+                        db.PasswordResetOTPs.Add(passwordReset);
+                        await db.SaveChangesAsync();
+                    }
+
+                    // Send OTP via email
+                    await SendOTPEmail(user.Email, otp);
+
+                    // Redirect to OTP verification page
+                    return RedirectToAction("VerifyOTP", new { email = model.Email });
+                }
+                else
+                {
+                    // Don't reveal that the user does not exist or is not a resident
+                    // Show same success message for security
+                    return RedirectToAction("ForgotPasswordConfirmation");
+                }
             }
-            return RedirectToAction("Index", "Home");
+
+            // If we got this far, something failed, redisplay form
+            return View(model);
+        }
+
+        //
+        // GET: /Account/VerifyOTP
+        [AllowAnonymous]
+        public ActionResult VerifyOTP(string email)
+        {
+            var model = new VerifyOTPViewModel { Email = email };
+            return View(model);
+        }
+
+        //
+        // POST: /Account/VerifyOTP
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> VerifyOTP(VerifyOTPViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new ApplicationDbContext())
+                {
+                    // Find valid OTP
+                    var otpRecord = await db.PasswordResetOTPs
+                        .Where(o => o.Email == model.Email &&
+                                   o.OTP == model.OTP &&
+                                   o.ExpiryTime > DateTime.Now &&
+                                   !o.IsUsed)
+                        .OrderByDescending(o => o.CreatedAt)
+                        .FirstOrDefaultAsync();
+
+                    if (otpRecord != null)
+                    {
+                        // Mark OTP as used
+                        otpRecord.IsUsed = true;
+                        await db.SaveChangesAsync();
+
+                        // Generate reset token and redirect to reset password
+                        var user = await UserManager.FindByEmailAsync(model.Email);
+                        if (user != null && await UserManager.IsInRoleAsync(user.Id, "Resident"))
+                        {
+                            var code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
+                            return RedirectToAction("ResetPassword", new { code = code, email = model.Email });
+                        }
+                        else
+                        {
+                            ModelState.AddModelError("", "User not found or not authorized for password reset.");
+                        }
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("", "Invalid or expired OTP. Please try again.");
+                    }
+                }
+            }
+
+            return View(model);
+        }
+
+        //
+        // GET: /Account/ResetPassword
+        [AllowAnonymous]
+        public ActionResult ResetPassword(string code, string email)
+        {
+            if (code == null || email == null)
+            {
+                return View("Error");
+            }
+
+            var model = new ResetPasswordViewModel
+            {
+                Code = code,
+                Email = email
+            };
+            return View(model);
+        }
+
+        //
+        // POST: /Account/ResetPassword
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await UserManager.FindByEmailAsync(model.Email);
+            if (user == null || !(await UserManager.IsInRoleAsync(user.Id, "Resident")))
+            {
+                // Don't reveal that the user does not exist
+                return RedirectToAction("ResetPasswordConfirmation", "Account");
+            }
+
+            var result = await UserManager.ResetPasswordAsync(user.Id, model.Code, model.Password);
+            if (result.Succeeded)
+            {
+                // Create notification for password reset
+                using (var db = new ApplicationDbContext())
+                {
+                    var notification = new Notification
+                    {
+                        UserId = user.Id,
+                        UserType = "Resident",
+                        Title = "Password Reset",
+                        Message = "Your password was reset successfully.",
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = "/Resident/Dashboard",
+                        NotificationType = "Security"
+                    };
+                    db.Notifications.Add(notification);
+                    await db.SaveChangesAsync();
+                }
+
+                return RedirectToAction("ResetPasswordConfirmation", "Account");
+            }
+
+            AddErrors(result);
+            return View();
+        }
+
+        //
+        // GET: /Account/ForgotPasswordConfirmation
+        [AllowAnonymous]
+        public ActionResult ForgotPasswordConfirmation()
+        {
+            return View();
+        }
+
+        //
+        // GET: /Account/ResetPasswordConfirmation
+        [AllowAnonymous]
+        public ActionResult ResetPasswordConfirmation()
+        {
+            return View();
         }
 
         //
@@ -420,85 +616,6 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         //
-        // GET: /Account/ForgotPassword
-        [AllowAnonymous]
-        public ActionResult ForgotPassword()
-        {
-            return View();
-        }
-
-        //
-        // POST: /Account/ForgotPassword
-        [HttpPost]
-        [AllowAnonymous]
-        [ValidateAntiForgeryToken]
-        public async Task<ActionResult> ForgotPassword(ForgotPasswordViewModel model)
-        {
-            if (ModelState.IsValid)
-            {
-                var user = await UserManager.FindByNameAsync(model.Email);
-                if (user == null || !(await UserManager.IsEmailConfirmedAsync(user.Id)))
-                {
-                    // Don't reveal that the user does not exist or is not confirmed
-                    return View("ForgotPasswordConfirmation");
-                }
-            }
-
-            // If we got this far, something failed, redisplay form
-            return View(model);
-        }
-
-        //
-        // GET: /Account/ForgotPasswordConfirmation
-        [AllowAnonymous]
-        public ActionResult ForgotPasswordConfirmation()
-        {
-            return View();
-        }
-
-        //
-        // GET: /Account/ResetPassword
-        [AllowAnonymous]
-        public ActionResult ResetPassword(string code)
-        {
-            return code == null ? View("Error") : View();
-        }
-
-        //
-        // POST: /Account/ResetPassword
-        [HttpPost]
-        [AllowAnonymous]
-        [ValidateAntiForgeryToken]
-        public async Task<ActionResult> ResetPassword(ResetPasswordViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-            var user = await UserManager.FindByNameAsync(model.Email);
-            if (user == null)
-            {
-                // Don't reveal that the user does not exist
-                return RedirectToAction("ResetPasswordConfirmation", "Account");
-            }
-            var result = await UserManager.ResetPasswordAsync(user.Id, model.Code, model.Password);
-            if (result.Succeeded)
-            {
-                return RedirectToAction("ResetPasswordConfirmation", "Account");
-            }
-            AddErrors(result);
-            return View();
-        }
-
-        //
-        // GET: /Account/ResetPasswordConfirmation
-        [AllowAnonymous]
-        public ActionResult ResetPasswordConfirmation()
-        {
-            return View();
-        }
-
-        //
         // POST: /Account/LogOff
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -516,6 +633,88 @@ namespace PiranaSecuritySystem.Controllers
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
             Session.Clear();
+            return RedirectToAction("Index", "Home");
+        }
+
+        // Helper method to generate OTP
+        private string GenerateOTP()
+        {
+            var random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
+
+        // Helper method to send OTP email
+        private async Task SendOTPEmail(string email, string otp)
+        {
+            try
+            {
+                var subject = "Pirana Guarding - Password Reset OTP";
+                var body = $@"
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body {{ font-family: Arial, sans-serif; }}
+                            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                            .header {{ background: #0069aa; color: white; padding: 20px; text-align: center; }}
+                            .content {{ padding: 20px; background: #f8f9fa; }}
+                            .otp {{ font-size: 32px; font-weight: bold; color: #0069aa; text-align: center; margin: 20px 0; }}
+                            .footer {{ text-align: center; color: #6c757d; font-size: 12px; margin-top: 20px; }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class='container'>
+                            <div class='header'>
+                                <h2>PIRANA GUARDING</h2>
+                                <p>Secure Access Management System</p>
+                            </div>
+                            <div class='content'>
+                                <h3>Password Reset Request</h3>
+                                <p>You have requested to reset your password. Use the OTP below to verify your identity:</p>
+                                <div class='otp'>{otp}</div>
+                                <p>This OTP will expire in 15 minutes.</p>
+                                <p>If you didn't request this reset, please ignore this email.</p>
+                            </div>
+                            <div class='footer'>
+                                <p>&copy; {DateTime.Now.Year} Pirana Guarding. All rights reserved.</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>";
+
+                // Using WebMail helper to send email
+                // Configure these settings in your Web.config
+                WebMail.SmtpServer = "smtp.gmail.com"; // Configure your SMTP server
+                WebMail.SmtpPort = 587;
+                WebMail.EnableSsl = true;
+                WebMail.UserName = "your-email@gmail.com"; // Configure your email
+                WebMail.Password = "your-app-password"; // Configure your password
+                WebMail.From = "noreply@piranaguarding.com";
+
+                await Task.Run(() =>
+                {
+                    WebMail.Send(
+                        to: email,
+                        subject: subject,
+                        body: body,
+                        isBodyHtml: true
+                    );
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Email sending failed: {ex.Message}");
+                // Log the error but don't throw - we don't want to reveal email failures to users
+            }
+        }
+
+        // Helper method to redirect to local URL
+        private ActionResult RedirectToLocal(string returnUrl)
+        {
+            if (Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
             return RedirectToAction("Index", "Home");
         }
 

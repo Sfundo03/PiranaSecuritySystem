@@ -83,7 +83,7 @@ namespace PiranaSecuritySystem.Models
         public DbSet<GuardRate> GuardRates { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<TaxConfiguration> TaxConfigurations { get; set; }
-
+        public DbSet<PasswordResetOTP> PasswordResetOTPs { get; set; }
         public DbSet<Resident> Residents { get; set; }
         public DbSet<Guard> Guards { get; set; }
 

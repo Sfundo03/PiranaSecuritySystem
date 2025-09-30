@@ -109,4 +109,18 @@ namespace PiranaSecuritySystem.Models
         [Display(Name = "Email")]
         public string Email { get; set; }
     }
+
+    public class VerifyOTPViewModel
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; }
+
+        [Required]
+        [Display(Name = "OTP Code")]
+        [StringLength(6, MinimumLength = 6, ErrorMessage = "OTP must be 6 digits")]
+        [RegularExpression(@"^\d{6}$", ErrorMessage = "OTP must be 6 digits")]
+        public string OTP { get; set; }
+    }
 }
