@@ -662,6 +662,9 @@
                     }
                 });
             }, 5000);
+
+            // Auto-refresh notifications every 30 seconds
+            setInterval(loadNotifications, 30000);
         });
 
         // Function to load dashboard statistics
@@ -714,8 +717,8 @@
                 if (data.success) {
                     showSuccess(data.message);
                     document.getElementById('checkinModal').style.display = 'none';
-                    // Create a notification for the check-in
-                    createNotification('Check-in Recorded', `You have successfully ${status.toLowerCase()} at ${new Date().toLocaleTimeString()}`, 'Checkin');
+                    // Reload notifications to show the new check-in notification
+                    loadNotifications();
                 } else {
                     showError(data.message);
                 }
@@ -735,18 +738,18 @@
                 const notificationCount = document.getElementById('notificationCount');
                 const markAllAsRead = document.getElementById('markAllAsRead');
 
-                if (data && data.length > 0) {
+                if (data && data.success && data.notifications && data.notifications.length > 0) {
                     let html = '';
                     let unreadCount = 0;
 
-                    data.forEach(notification => {
+                    data.notifications.forEach(notification => {
                         if (!notification.isRead) unreadCount++;
 
                         html += `<div class="notification-item ${notification.isRead ? '' : 'unread'}" data-id="${notification.notificationId}">
                             <div class="notification-content">
                                 <div class="notification-title d-flex justify-content-between">
                                     <strong>${notification.title}</strong>
-                                    <span class="notification-time small text-muted">${formatTimeAgo(notification.createdAt)}</span>
+                                    <span class="notification-time small text-muted">${notification.timeAgo || formatTimeAgo(notification.createdAt)}</span>
                                 </div>
                                 <div class="notification-message">${notification.message}</div>
                                 <div class="mt-1">
@@ -769,10 +772,49 @@
 
                     // Show mark all as read button if there are unread notifications
                     markAllAsRead.style.display = unreadCount > 0 ? 'block' : 'none';
+
+                    // Add click event to mark individual notifications as read
+                    document.querySelectorAll('.notification-item.unread').forEach(item => {
+                        item.addEventListener('click', function() {
+                            const notificationId = this.getAttribute('data-id');
+                            markNotificationAsRead(notificationId);
+                        });
+                    });
+                } else {
+                    notificationList.innerHTML = '<div class="notification-item text-center py-3"><i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>';
+                    notificationCount.style.display = 'none';
+                    markAllAsRead.style.display = 'none';
                 }
             })
             .catch(error => {
                 console.error('Error loading notifications:', error);
+                notificationList.innerHTML = '<div class="notification-item text-center py-3 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error loading notifications</div>';
+            });
+        }
+
+        // Function to mark individual notification as read
+        function markNotificationAsRead(notificationId) {
+            fetch('@Url.Action("MarkAsRead", "Notification")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: parseInt(notificationId) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI
+                    const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                    if (notificationItem) {
+                        notificationItem.classList.remove('unread');
+                    }
+                    // Reload notifications to update count
+                    loadNotifications();
+                }
+            })
+            .catch(error => {
+                console.error('Error marking notification as read:', error);
             });
         }
 
@@ -834,18 +876,28 @@
 
         // Helper function to format time ago
         function formatTimeAgo(dateString) {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffInSeconds = Math.floor((now - date) / 1000);
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffInSeconds = Math.floor((now - date) / 1000);
 
-            if (diffInSeconds < 60) {
+                if (diffInSeconds < 60) {
+                    return 'Just now';
+                } else if (diffInSeconds < 3600) {
+                    const minutes = Math.floor(diffInSeconds / 60);
+                    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+                } else if (diffInSeconds < 86400) {
+                    const hours = Math.floor(diffInSeconds / 3600);
+                    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+                } else if (diffInSeconds < 604800) {
+                    const days = Math.floor(diffInSeconds / 86400);
+                    return `${days} day${days > 1 ? 's' : ''} ago`;
+                } else {
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                }
+            } catch (error) {
+                console.error('Error formatting time ago:', error);
                 return 'Just now';
-            } else if (diffInSeconds < 3600) {
-                return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-            } else if (diffInSeconds < 86400) {
-                return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-            } else {
-                return `${Math.floor(diffInSeconds / 86400)} days ago`;
             }
         }
 
@@ -866,7 +918,8 @@
                 case 'Shift': return 'bg-info';
                 case 'System': return 'bg-secondary';
                 case 'Security': return 'bg-warning';
-                case 'Checkin': return 'bg-success';
+                case 'CheckIn': return 'bg-success';
+                case 'CheckOut': return 'bg-success';
                 case 'Report': return 'bg-primary';
                 default: return 'bg-secondary';
             }

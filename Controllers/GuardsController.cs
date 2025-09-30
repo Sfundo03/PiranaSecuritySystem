@@ -239,23 +239,14 @@ namespace PiranaSecuritySystem.Controllers
 
                 db.SaveChanges();
 
-                // Create a notification
-                var currentUserId = User.Identity.GetUserId();
-                var notification = new Notification
-                {
-                    GuardId = checkInData.GuardId,
-                    UserId = currentUserId,
-                    UserType = "Guard",
-                    Title = "Check-in Recorded",
-                    Message = $"{guard.Guard_FName} {guard.Guard_LName} has {checkInData.Status.ToLower()} at {checkInData.ActualTime}",
-                    NotificationType = "CheckIn",
-                    IsRead = false,
-                    CreatedAt = DateTime.Now,
-                    IsImportant = checkInData.IsLate
-                };
-
-                db.Notifications.Add(notification);
-                db.SaveChanges();
+                // Create notification for check-in/check-out
+                CreateGuardNotification(
+                    guard.GuardId,
+                    checkInData.Status.Contains("Check") ? "Check-Out Successful" : "Check-In Successful",
+                    $"You have {checkInData.Status.ToLower()} at {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
+                    checkInData.Status.Contains("Check") ? "CheckOut" : "CheckIn",
+                    false
+                );
 
                 return Json(new { success = true, message = "Check-in recorded successfully" });
             }
@@ -447,20 +438,13 @@ namespace PiranaSecuritySystem.Controllers
                     db.SaveChanges();
 
                     // Create notification for guard about the filed incident
-                    var guardNotification = new Notification
-                    {
-                        GuardId = guard.GuardId,
-                        UserId = currentUserId,
-                        UserType = "Guard",
-                        Title = "Incident Report Filed",
-                        Message = $"You have successfully filed a {incidentReport.IncidentType.ToLower()} incident report at {incidentReport.Location} on {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
-                        NotificationType = "Incident",
-                        IsRead = false,
-                        CreatedAt = DateTime.Now,
-                        IsImportant = true,
-                        PriorityLevel = 3
-                    };
-                    db.Notifications.Add(guardNotification);
+                    CreateGuardNotification(
+                        guard.GuardId,
+                        "Incident Report Filed",
+                        $"You have successfully filed a {incidentReport.IncidentType.ToLower()} incident report at {incidentReport.Location} on {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
+                        "Incident",
+                        true
+                    );
 
                     // Create notification for directors about new incident from guard
                     var directors = db.Directors.Where(d => d.IsActive).ToList();
@@ -737,21 +721,13 @@ namespace PiranaSecuritySystem.Controllers
                 db.SaveChanges();
 
                 // Create notification for status change
-                var notification = new Notification
-                {
-                    GuardId = guard.GuardId,
-                    UserId = currentUserId,
-                    UserType = "Guard",
-                    Title = "Incident Status Updated",
-                    Message = $"Your incident report #{incident.IncidentReportId} ({incident.IncidentType}) status has been changed from '{oldStatus}' to '{newStatus}'",
-                    NotificationType = "Incident",
-                    IsRead = false,
-                    CreatedAt = DateTime.Now,
-                    IsImportant = true
-                };
-
-                db.Notifications.Add(notification);
-                db.SaveChanges();
+                CreateGuardNotification(
+                    guard.GuardId,
+                    "Incident Status Updated",
+                    $"Your incident report #{incident.IncidentReportId} ({incident.IncidentType}) status has been changed from '{oldStatus}' to '{newStatus}'",
+                    "Incident",
+                    true
+                );
 
                 return Json(new { success = true, message = "Incident status updated successfully" });
             }
@@ -897,22 +873,14 @@ namespace PiranaSecuritySystem.Controllers
                 shift.Status = "In Progress";
                 db.SaveChanges();
 
-                // Notification with proper formatting
-                var notification = new Notification
-                {
-                    GuardId = guard.GuardId,
-                    UserId = currentUserId,
-                    UserType = "Guard",
-                    Title = "Check-In Successful",
-                    Message = $"You have checked in for your {shift.ShiftType.ToLower()} shift at {shift.Location}",
-                    NotificationType = "CheckIn",
-                    IsRead = false,
-                    CreatedAt = DateTime.Now,
-                    IsImportant = isLate
-                };
-
-                db.Notifications.Add(notification);
-                db.SaveChanges();
+                // Create notification for check-in
+                CreateGuardNotification(
+                    guard.GuardId,
+                    "Check-In Successful",
+                    $"You have checked in for your {shift.ShiftType.ToLower()} shift at {shift.Location} on {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
+                    "CheckIn",
+                    isLate
+                );
 
                 return Json(new { success = true, message = isLate ? "Checked in (Late Arrival)" : "Check-in successful!" });
             }
@@ -975,22 +943,14 @@ namespace PiranaSecuritySystem.Controllers
                 shift.Status = "Completed";
                 db.SaveChanges();
 
-                // Notification with proper formatting
-                var notification = new Notification
-                {
-                    GuardId = guard.GuardId,
-                    UserId = currentUserId,
-                    UserType = "Guard",
-                    Title = "Check-Out Successful",
-                    Message = $"You have checked out from your {shift.ShiftType.ToLower()} shift at {shift.Location}",
-                    NotificationType = "CheckOut",
-                    IsRead = false,
-                    CreatedAt = DateTime.Now,
-                    IsImportant = isLate
-                };
-
-                db.Notifications.Add(notification);
-                db.SaveChanges();
+                // Create notification for check-out
+                CreateGuardNotification(
+                    guard.GuardId,
+                    "Check-Out Successful",
+                    $"You have checked out from your {shift.ShiftType.ToLower()} shift at {shift.Location} on {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
+                    "CheckOut",
+                    isLate
+                );
 
                 return Json(new { success = true, message = isLate ? "Checked out (Late Departure)" : "Check-out successful!" });
             }
@@ -1165,6 +1125,36 @@ namespace PiranaSecuritySystem.Controllers
             {
                 System.Diagnostics.Debug.WriteLine($"Error in CreateNotification: {ex.Message}");
                 return Json(new { success = false, message = "Error creating notification" });
+            }
+        }
+
+        // Helper method to create guard notifications
+        private void CreateGuardNotification(int guardId, string title, string message, string notificationType, bool isImportant = false)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var notification = new Notification
+                {
+                    GuardId = guardId,
+                    UserId = currentUserId,
+                    UserType = "Guard",
+                    Title = title,
+                    Message = FormatNotificationMessage(message),
+                    NotificationType = notificationType,
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    IsImportant = isImportant,
+                    PriorityLevel = isImportant ? 3 : 1
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating guard notification: {ex.Message}");
+                // Don't throw, just log the error
             }
         }
 

@@ -120,8 +120,16 @@ namespace PiranaSecuritySystem.Controllers
 
                 if (originalIncident != null && originalIncident.Status != incidentReport.Status)
                 {
-                    // Status has changed - notify the resident
-                    CreateStatusChangeNotification(incidentReport, originalIncident.Status);
+                    // Status has changed - notify the guard if it's a guard-reported incident
+                    if (incidentReport.GuardId.HasValue)
+                    {
+                        CreateGuardStatusChangeNotification(incidentReport, originalIncident.Status);
+                    }
+                    // Also notify resident if it's a resident-reported incident
+                    else if (!string.IsNullOrEmpty(incidentReport.ResidentId))
+                    {
+                        CreateStatusChangeNotification(incidentReport, originalIncident.Status);
+                    }
                 }
 
                 db.Entry(incidentReport).State = EntityState.Modified;
@@ -227,6 +235,33 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error creating status change notification: {ex.Message}");
+                // Don't throw, just log the error
+            }
+        }
+
+        private void CreateGuardStatusChangeNotification(IncidentReport incident, string oldStatus)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    GuardId = incident.GuardId.Value,
+                    UserType = "Guard",
+                    Title = "Incident Status Updated",
+                    Message = $"Your incident report #{incident.IncidentReportId} ({incident.IncidentType}) status has been changed from '{oldStatus}' to '{incident.Status}'",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    RelatedUrl = Url.Action("Details", "Guard", new { id = incident.IncidentReportId }),
+                    NotificationType = "Incident",
+                    IsImportant = true
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating guard status change notification: {ex.Message}");
                 // Don't throw, just log the error
             }
         }
