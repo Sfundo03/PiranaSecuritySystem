@@ -118,6 +118,9 @@ namespace PiranaSecuritySystem.Controllers
                     IsPersistent = model.RememberMe
                 }, identity);
 
+                // Create login notification for default admin
+                CreateUserLoginNotification("Admin", "Default Admin", 0, "System");
+
                 return RedirectToAction("Dashboard", "Admin");
             }
 
@@ -141,6 +144,9 @@ namespace PiranaSecuritySystem.Controllers
                     IsPersistent = model.RememberMe
                 }, identity);
 
+                // Create login notification for default director
+                CreateUserLoginNotification("Director", "Default Director", 0, "System");
+
                 return RedirectToAction("Dashboard", "Director");
             }
 
@@ -156,6 +162,9 @@ namespace PiranaSecuritySystem.Controllers
                         var user = await UserManager.FindByEmailAsync(model.Email);
                         if (user != null)
                         {
+                            // Create login notification for all user types
+                            await CreateUserLoginNotificationAsync(user);
+
                             // Check for Director role to add notification
                             if (await UserManager.IsInRoleAsync(user.Id, "Director"))
                             {
@@ -213,6 +222,159 @@ namespace PiranaSecuritySystem.Controllers
                 ModelState.AddModelError("", "An error occurred during login: " + ex.Message);
                 ViewBag.ErrorMessage = "An error occurred during login. Please try again.";
                 return View(model);
+            }
+        }
+
+        // Helper method to create login notifications for all users
+        private async Task CreateUserLoginNotificationAsync(ApplicationUser user)
+        {
+            try
+            {
+                using (var db = new ApplicationDbContext())
+                {
+                    string userType = "User";
+                    string userName = user.UserName;
+                    int userId = 0;
+                    string site = null;
+                    string relatedUrl = "/Admin/Dashboard";
+
+                    // Determine user type and get additional info using synchronous methods
+                    if (UserManager.IsInRole(user.Id, "Guard"))
+                    {
+                        userType = "Guard";
+                        var guard = db.Guards.FirstOrDefault(g => g.UserId == user.Id);
+                        if (guard != null)
+                        {
+                            userName = $"{guard.Guard_FName} {guard.Guard_LName}";
+                            userId = guard.GuardId;
+                            site = guard.Site;
+                            relatedUrl = "/Admin/ManageGuards";
+                        }
+                    }
+                    else if (UserManager.IsInRole(user.Id, "Instructor"))
+                    {
+                        userType = "Instructor";
+                        var instructor = db.Instructors.FirstOrDefault(i => i.UserId == user.Id);
+                        if (instructor != null)
+                        {
+                            userName = instructor.FullName;
+                            userId = instructor.Id;
+                            site = instructor.Site;
+                            relatedUrl = "/Admin/ManageInstructors";
+                        }
+                    }
+                    else if (UserManager.IsInRole(user.Id, "Admin"))
+                    {
+                        userType = "Admin";
+                        userName = "Administrator";
+                        relatedUrl = "/Admin/Dashboard";
+                    }
+                    else if (UserManager.IsInRole(user.Id, "Director"))
+                    {
+                        userType = "Director";
+                        userName = "Director";
+                        relatedUrl = "/Director/Dashboard";
+                    }
+                    else if (UserManager.IsInRole(user.Id, "Resident"))
+                    {
+                        userType = "Resident";
+                        // Use ResidentInfo instead of Resident
+                        var resident = db.ResidentInfos.FirstOrDefault(r => r.UserId == user.Id);
+                        if (resident != null)
+                        {
+                            // For ResidentInfo, we don't have FirstName/LastName, so use UserName
+                            userName = user.UserName;
+                            userId = resident.Id;
+                            relatedUrl = "/Resident/Dashboard";
+                        }
+                        else
+                        {
+                            // If no ResidentInfo found, still create notification with basic info
+                            userName = user.UserName;
+                            relatedUrl = "/Resident/Dashboard";
+                        }
+                    }
+
+                    // Create notification for admin about the login
+                    var notification = new Notification
+                    {
+                        Title = "Login Activity",
+                        Message = $"{userType} {userName} logged in at {DateTime.Now.ToString("hh:mm tt")} on {DateTime.Now.ToString("MMM dd, yyyy")}" +
+                                 (string.IsNullOrEmpty(site) ? "" : $" from {site}"),
+                        NotificationType = "Login",
+                        UserId = "Admin", // Notify admin about all logins
+                        UserType = "Admin",
+                        CreatedAt = DateTime.Now,
+                        IsRead = false,
+                        Source = "LoginSystem",
+                        RelatedUrl = relatedUrl
+                    };
+
+                    db.Notifications.Add(notification);
+                    await db.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating login notification: {ex.Message}");
+                // Don't throw - login should still succeed even if notification fails
+            }
+        }
+
+        // Helper method for default users (admin/director)
+        private void CreateUserLoginNotification(string userType, string userName, int userId, string site = null)
+        {
+            try
+            {
+                using (var db = new ApplicationDbContext())
+                {
+                    string relatedUrl = "/Admin/Dashboard"; // Default URL
+
+                    // Determine the related URL based on user type using traditional switch
+                    switch (userType.ToLower())
+                    {
+                        case "guard":
+                            relatedUrl = "/Admin/ManageGuards";
+                            break;
+                        case "instructor":
+                            relatedUrl = "/Admin/ManageInstructors";
+                            break;
+                        case "admin":
+                            relatedUrl = "/Admin/Dashboard";
+                            break;
+                        case "director":
+                            relatedUrl = "/Director/Dashboard";
+                            break;
+                        case "resident":
+                            relatedUrl = "/Resident/Dashboard";
+                            break;
+                        default:
+                            relatedUrl = "/Admin/Dashboard";
+                            break;
+                    }
+
+                    var notification = new Notification
+                    {
+                        Title = "Login Activity",
+                        Message = $"{userType} {userName} logged in at {DateTime.Now.ToString("hh:mm tt")} on {DateTime.Now.ToString("MMM dd, yyyy")}" +
+                                 (string.IsNullOrEmpty(site) ? "" : $" from {site}"),
+                        NotificationType = "Login",
+                        UserId = "Admin", // Notify admin about all logins
+                        UserType = "Admin",
+                        CreatedAt = DateTime.Now,
+                        IsRead = false,
+                        Source = "LoginSystem",
+                        RelatedUrl = relatedUrl
+                    };
+
+                    db.Notifications.Add(notification);
+                    db.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating login notification: {ex.Message}");
+                // Don't throw - login should still succeed even if notification fails
             }
         }
 

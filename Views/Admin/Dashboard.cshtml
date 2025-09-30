@@ -297,6 +297,15 @@
                 padding: 15px;
                 border-radius: 50%;
             }
+
+        /* Notification type badges */
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+
+        .bg-teal {
+            background-color: #20c997 !important;
+        }
     </style>
 </head>
 <body>
@@ -339,9 +348,9 @@
                         {
                             foreach (var notification in Model.Notifications.Take(10))
                             {
-                                <div class="notification-item @(notification.IsRead ? "" : "unread")"
-                                     data-id="@notification.Id"
-                                     data-url="@Url.Action("NotificationDetails", "Admin", new { id = notification.Id })">
+                                <div class="notification-item @(!notification.IsRead ? "unread" : "")"
+                                     data-id="@notification.NotificationId"
+                                     data-url="@(notification.RelatedUrl ?? "#")">
                                     <div class="notification-content">
                                         <div class="notification-title">@notification.Title</div>
                                         <div class="notification-message">@notification.Message</div>
@@ -449,7 +458,7 @@
                             </div>
                         </div>
 
-                        <!-- Rest of your dashboard content -->
+                        <!-- Guard and Instructor Management -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <div class="dashboard-card">
@@ -468,6 +477,73 @@
                                         <p class="card-text">Register and manage instructors</p>
                                         @Html.ActionLink("Manage Instructors", "ManageInstructors", null, new { @class = "btn btn-custom me-2" })
                                         @Html.ActionLink("Register Instructor", "RegisterInstructor", null, new { @class = "btn btn-outline-custom" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity Section -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <div class="dashboard-card">
+                                    <div class="card-header-custom">
+                                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Activity</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Recent Guard Registrations</h6>
+                                                @{
+                                                    var recentGuards = (ViewBag.RecentGuards as List<PiranaSecuritySystem.Models.Guard>) ?? new List<PiranaSecuritySystem.Models.Guard>();
+                                                }
+                                                @if (recentGuards.Any())
+                                                {
+                                                    <ul class="list-group">
+                                                        @foreach (var guard in recentGuards.Take(5))
+                                                        {
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <strong>@guard.Guard_FName @guard.Guard_LName</strong>
+                                                                    <br>
+                                                                    <small class="text-muted">Registered: @guard.DateRegistered.ToString("MMM dd, yyyy")</small>
+                                                                </div>
+                                                                <span class="badge bg-primary">@guard.SiteUsername</span>
+                                                            </li>
+                                                        }
+                                                    </ul>
+                                                }
+                                                else
+                                                {
+                                                    <p class="text-muted">No recent guard registrations</p>
+                                                }
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Recent Instructor Registrations</h6>
+                                                @{
+                                                    var recentInstructors = (ViewBag.RecentInstructors as List<PiranaSecuritySystem.Models.Instructor>) ?? new List<PiranaSecuritySystem.Models.Instructor>();
+                                                }
+                                                @if (recentInstructors.Any())
+                                                {
+                                                    <ul class="list-group">
+                                                        @foreach (var instructor in recentInstructors.Take(5))
+                                                        {
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <div>
+                                                                    <strong>@instructor.FullName</strong>
+                                                                    <br>
+                                                                    <small class="text-muted">Registered: @instructor.DateRegistered.ToString("MMM dd, yyyy")</small>
+                                                                </div>
+                                                                <span class="badge bg-success">@instructor.EmployeeId</span>
+                                                            </li>
+                                                        }
+                                                    </ul>
+                                                }
+                                                else
+                                                {
+                                                    <p class="text-muted">No recent instructor registrations</p>
+                                                }
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -546,214 +622,210 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        $(document).ready(function () {
-            console.log("Admin dashboard loaded");
+    $(document).ready(function () {
+        console.log("Admin dashboard loaded");
 
-            // Profile image upload functionality
-            $('.profile-image-container').click(function() {
-                $('#profileImageUpload').click();
-            });
-
-            $('#profileImageUpload').change(function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    var reader = new FileReader();
-
-                    reader.onload = function(e) {
-                        $('#profileImage').attr('src', e.target.result);
-                    }
-
-                    reader.readAsDataURL(e.target.files[0]);
-                }
-            });
-
-            // Save profile changes
-            $('#saveProfileBtn').click(function() {
-                // Get form values
-                var firstName = $('#firstName').val();
-                var lastName = $('#lastName').val();
-                var email = $('#email').val();
-                var phone = $('#phone').val();
-                var address = $('#address').val();
-
-                // Validate required fields
-                if (!firstName || !lastName || !email) {
-                    alert('Please fill in all required fields: First Name, Last Name, and Email');
-                    return;
-                }
-
-                // Validate email format
-                var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
-                if (!emailRegex.test(email)) {
-                    alert('Please enter a valid email address');
-                    return;
-                }
-
-                // In a real application, you would send this data to the server
-                // For this example, we'll just show a success message
-                alert('Profile updated successfully!');
-
-                // Close the modal
-                $('#profileModal').modal('hide');
-            });
-
-            // Notification bell functionality
-            $('#adminNotificationBell').click(function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                $('#adminNotificationDropdown').toggle();
-                loadAdminNotifications();
-            });
-
-            // Close dropdown when clicking outside
-            $(document).click(function (e) {
-                if (!$(e.target).closest('.notification-bell').length) {
-                    $('#adminNotificationDropdown').hide();
-                }
-            });
-
-            // Mark notification as read and navigate when clicked
-            $(document).on('click', '.notification-item', function (e) {
-                e.preventDefault();
-                var notificationId = $(this).data('id');
-                var url = $(this).data('url');
-
-                if (notificationId) {
-                    markNotificationAsRead(notificationId);
-                    $(this).removeClass('unread');
-
-                    // Navigate to related URL if available
-                    if (url && url !== '#') {
-                        window.location.href = url;
-                    }
-                }
-            });
-
-            // Mark all as read
-            $('#markAllAsRead').click(function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                markAllNotificationsAsRead();
-            });
-
-            // Auto-refresh notifications every 30 seconds
-            setInterval(loadAdminNotifications, 30000);
-
-            // Load notifications function
-            function loadAdminNotifications() {
-                $.get('@Url.Action("GetNotifications", "Admin")', function (data) {
-                    if (data.error) {
-                        console.error('Error loading notifications:', data.error);
-                        return;
-                    }
-
-                    updateNotificationUI(data);
-                }).fail(function(xhr, status, error) {
-                    console.error('Failed to load notifications:', error);
-                });
-            }
-
-            function updateNotificationUI(data) {
-                var notificationList = $('#adminNotificationList');
-                notificationList.empty();
-
-                if (data.notifications && data.notifications.length > 0) {
-                    $.each(data.notifications, function (index, notification) {
-                        var item = $('<div>').addClass('notification-item ' + (notification.IsRead ? '' : 'unread'))
-                            .attr('data-id', notification.Id)
-                            .attr('data-url', notification.RelatedUrl || '#')
-                            .html('<div class="notification-content">' +
-                                  '<div class="notification-title">' + (notification.Title || 'Notification') + '</div>' +
-                                  '<div class="notification-message">' + notification.Message + '</div>' +
-                                  '<div class="notification-time">' +
-                                  new Date(notification.CreatedAt).toLocaleString() + '</div>' +
-                                  (notification.Type ?
-                                  '<span class="notification-type badge ' + getNotificationTypeClass(notification.Type) + '">' +
-                                  notification.Type + '</span>' : '') +
-                                  '</div>');
-
-                        notificationList.append(item);
-                    });
-
-                    // Add view all link if there are more than 10 notifications
-                    if (data.notifications.length > 10) {
-                        notificationList.append('<div class="notification-footer text-center py-2">' +
-                            '<a href="@Url.Action("Notifications", "Admin")" class="text-primary">View all notifications</a></div>');
-                    }
-                } else {
-                    notificationList.append('<div class="notification-item text-center py-3">' +
-                        '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
-                }
-
-                // Update notification count
-                updateNotificationCount(data.unreadCount || 0);
-            }
-
-            function getNotificationTypeClass(type) {
-                switch (type.toLowerCase()) {
-                    case 'login': return 'bg-success';
-                    case 'incident': return 'bg-danger';
-                    case 'system': return 'bg-info';
-                    case 'security': return 'bg-warning';
-                    case 'guard': return 'bg-primary';
-                    case 'instructor': return 'bg-purple';
-                    case 'checkin': return 'bg-teal';
-                    default: return 'bg-secondary';
-                }
-            }
-
-            function updateNotificationCount(count) {
-                var badge = $('#adminNotificationBell .badge');
-                var markAllLink = $('#markAllAsRead');
-
-                if (count > 0) {
-                    badge.text(count).show();
-                    markAllLink.show();
-                } else {
-                    badge.hide();
-                    markAllLink.hide();
-                }
-            }
-
-            function markNotificationAsRead(notificationId) {
-                $.post('@Url.Action("MarkNotificationAsRead", "Admin")', { id: notificationId })
-                    .done(function(response) {
-                        if (response.success) {
-                            // Update unread count
-                            var currentCount = parseInt($('#adminNotificationBell .badge').text()) || 0;
-                            if (currentCount > 0) {
-                                updateNotificationCount(currentCount - 1);
-                            }
-                        }
-                    })
-                    .fail(function() {
-                        console.error('Failed to mark notification as read');
-                    });
-            }
-
-            function markAllNotificationsAsRead() {
-                $.post('@Url.Action("MarkAllNotificationsAsRead", "Admin")')
-                    .done(function(response) {
-                        if (response.success) {
-                            $('.notification-item').removeClass('unread');
-                            updateNotificationCount(0);
-                            $('#adminNotificationDropdown').hide();
-                        }
-                    })
-                    .fail(function() {
-                        console.error('Failed to mark all notifications as read');
-                    });
-            }
-
-            // Initial load of notifications
-            loadAdminNotifications();
-
-            // Refresh dashboard every 5 minutes to get updated stats
-            setInterval(function () {
-                console.log("Refreshing dashboard statistics...");
-                window.location.reload();
-            }, 300000); // 5 minutes
+        // Profile image upload functionality
+        $('.profile-image-container').click(function() {
+            $('#profileImageUpload').click();
         });
+
+        $('#profileImageUpload').change(function(e) {
+            if (e.target.files && e.target.files[0]) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+                    $('#profileImage').attr('src', e.target.result);
+                }
+
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Save profile changes
+        $('#saveProfileBtn').click(function() {
+            var firstName = $('#firstName').val();
+            var lastName = $('#lastName').val();
+            var email = $('#email').val();
+            var phone = $('#phone').val();
+            var address = $('#address').val();
+
+            if (!firstName || !lastName || !email) {
+                alert('Please fill in all required fields: First Name, Last Name, and Email');
+                return;
+            }
+
+            var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address');
+                return;
+            }
+
+            alert('Profile updated successfully!');
+            $('#profileModal').modal('hide');
+        });
+
+        // Notification bell functionality
+        $('#adminNotificationBell').click(function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $('#adminNotificationDropdown').toggle();
+            loadAdminNotifications();
+        });
+
+        // Close dropdown when clicking outside
+        $(document).click(function (e) {
+            if (!$(e.target).closest('.notification-bell').length) {
+                $('#adminNotificationDropdown').hide();
+            }
+        });
+
+        // Mark notification as read and navigate when clicked
+        $(document).on('click', '.notification-item', function (e) {
+            e.preventDefault();
+            var notificationId = $(this).data('id');
+            var url = $(this).data('url');
+
+            if (notificationId) {
+                markNotificationAsRead(notificationId);
+                $(this).removeClass('unread');
+
+                if (url && url !== '#') {
+                    window.location.href = url;
+                }
+            }
+        });
+
+        // Mark all as read
+        $('#markAllAsRead').click(function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            markAllNotificationsAsRead();
+        });
+
+        // Load notifications function
+        function loadAdminNotifications() {
+            $.get('@Url.Action("GetNotifications", "Admin")', function (data) {
+                if (data.success) {
+                    updateNotificationUI(data);
+                } else {
+                    console.error('Error loading notifications:', data.error);
+                    showNotificationError();
+                }
+            }).fail(function(xhr, status, error) {
+                console.error('Failed to load notifications:', error);
+                showNotificationError();
+            });
+        }
+
+        function showNotificationError() {
+            var notificationList = $('#adminNotificationList');
+            notificationList.html('<div class="notification-item text-center py-3 text-danger">' +
+                '<i class="fas fa-exclamation-triangle me-2"></i>Error loading notifications</div>');
+        }
+
+        function updateNotificationUI(data) {
+            var notificationList = $('#adminNotificationList');
+            notificationList.empty();
+
+            if (data.notifications && data.notifications.length > 0) {
+                $.each(data.notifications, function (index, notification) {
+                    var item = $('<div>').addClass('notification-item ' + (!notification.IsRead ? 'unread' : ''))
+                        .attr('data-id', notification.Id)
+                        .attr('data-url', notification.RelatedUrl || '#')
+                        .html('<div class="notification-content">' +
+                              '<div class="notification-title">' + (notification.Title || 'Notification') + '</div>' +
+                              '<div class="notification-message">' + (notification.Message || 'No message') + '</div>' +
+                              '<div class="notification-time">' + (notification.TimeAgo || new Date(notification.CreatedAt).toLocaleString()) + '</div>' +
+                              (notification.Type ?
+                              '<span class="notification-type badge ' + getNotificationTypeClass(notification.Type) + '">' +
+                              notification.Type + '</span>' : '') +
+                              '</div>');
+
+                    notificationList.append(item);
+                });
+
+                if (data.notifications.length > 10) {
+                    notificationList.append('<div class="notification-footer text-center py-2">' +
+                        '<a href="@Url.Action("Notifications", "Admin")" class="text-primary">View all notifications</a></div>');
+                }
+            } else {
+                notificationList.append('<div class="notification-item text-center py-3">' +
+                    '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
+            }
+
+            updateNotificationCount(data.unreadCount || 0);
+        }
+
+        function getNotificationTypeClass(type) {
+            switch (type.toLowerCase()) {
+                case 'login': return 'bg-success';
+                case 'incident': return 'bg-danger';
+                case 'system': return 'bg-info';
+                case 'security': return 'bg-warning';
+                case 'guard': return 'bg-primary';
+                case 'instructor': return 'bg-purple';
+                case 'checkin': return 'bg-teal';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function updateNotificationCount(count) {
+            var badge = $('#adminNotificationBell .badge');
+            var markAllLink = $('#markAllAsRead');
+
+            if (count > 0) {
+                badge.text(count).show();
+                markAllLink.show();
+            } else {
+                badge.hide();
+                markAllLink.hide();
+            }
+        }
+
+        function markNotificationAsRead(notificationId) {
+            $.post('@Url.Action("MarkNotificationAsRead", "Admin")', { id: notificationId })
+                .done(function(response) {
+                    if (response.success) {
+                        var currentCount = parseInt($('#adminNotificationBell .badge').text()) || 0;
+                        if (currentCount > 0) {
+                            updateNotificationCount(currentCount - 1);
+                        }
+                    }
+                })
+                .fail(function() {
+                    console.error('Failed to mark notification as read');
+                });
+        }
+
+        function markAllNotificationsAsRead() {
+            $.post('@Url.Action("MarkAllNotificationsAsRead", "Admin")')
+                .done(function(response) {
+                    if (response.success) {
+                        $('.notification-item').removeClass('unread');
+                        updateNotificationCount(0);
+                        $('#adminNotificationDropdown').hide();
+                    }
+                })
+                .fail(function() {
+                    console.error('Failed to mark all notifications as read');
+                });
+        }
+
+        // Initial load of notifications
+        loadAdminNotifications();
+
+        // Auto-refresh notifications every 30 seconds
+        setInterval(loadAdminNotifications, 30000);
+
+        // Refresh dashboard every 5 minutes to get updated stats
+        setInterval(function () {
+            console.log("Refreshing dashboard statistics...");
+            window.location.reload();
+        }, 300000);
+    });
     </script>
 </body>
 </html>

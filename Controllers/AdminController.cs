@@ -45,6 +45,20 @@ namespace PiranaSecuritySystem.Controllers
                     ActiveInstructors = db.Instructors.Count(i => i.IsActive)
                 };
 
+                // Load notifications for admin - SIMPLIFIED QUERY
+                var notifications = db.Notifications
+                    .Where(n => n.UserType == "Admin" || n.UserId == "Admin")
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(10)
+                    .ToList();
+
+                dashboardStats.Notifications = notifications ?? new List<Notification>();
+                dashboardStats.UnreadNotificationCount = notifications.Count(n => !n.IsRead);
+
+                // Load recent activity
+                ViewBag.RecentGuards = db.Guards.OrderByDescending(g => g.DateRegistered).Take(5).ToList();
+                ViewBag.RecentInstructors = db.Instructors.OrderByDescending(i => i.DateRegistered).Take(5).ToList();
+
                 return View(dashboardStats);
             }
             catch (Exception ex)
@@ -54,11 +68,33 @@ namespace PiranaSecuritySystem.Controllers
                     TotalGuards = 0,
                     TotalInstructors = 0,
                     ActiveGuards = 0,
-                    ActiveInstructors = 0
+                    ActiveInstructors = 0,
+                    UnreadNotificationCount = 0,
+                    Notifications = new List<Notification>()
                 };
 
                 ViewBag.Error = "Error loading statistics: " + ex.Message;
                 return View(errorStats);
+            }
+        }
+
+        // GET: Admin/Notifications
+        public ActionResult Notifications()
+        {
+            try
+            {
+                var notifications = db.Notifications
+                    .Where(n => n.UserType == "Admin" || n.UserId == "Admin")
+                    .OrderByDescending(n => n.CreatedAt)
+                    .ToList();
+
+                ViewBag.UnreadCount = notifications.Count(n => !n.IsRead);
+                return View(notifications);
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Error = "Error loading notifications: " + ex.Message;
+                return View(new List<Notification>());
             }
         }
 
@@ -67,7 +103,6 @@ namespace PiranaSecuritySystem.Controllers
         {
             var model = new RegisterGuardViewModel
             {
-                // Initialize site options
                 SiteOptions = new List<SelectListItem>
                 {
                     new SelectListItem { Value = "Site A", Text = "Site A" },
@@ -78,12 +113,10 @@ namespace PiranaSecuritySystem.Controllers
             return View(model);
         }
 
-        // POST: Admin/RegisterGuard - UPDATED VERSION
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterGuard(RegisterGuardViewModel model)
         {
-            // Ensure site options are populated if we need to return the view
             model.SiteOptions = new List<SelectListItem>
             {
                 new SelectListItem { Value = "Site A", Text = "Site A" },
@@ -156,8 +189,8 @@ namespace PiranaSecuritySystem.Controllers
                         Street = model.Street,
                         City = model.City,
                         PostalCode = model.PostalCode,
-                        Site = model.Site, // Save the site
-                        SiteUsername = siteUsername // Save the site-specific username
+                        Site = model.Site,
+                        SiteUsername = siteUsername
                     };
 
                     db.Guards.Add(guard);
@@ -171,10 +204,8 @@ namespace PiranaSecuritySystem.Controllers
                         var errorMessages = ex.EntityValidationErrors
                             .SelectMany(x => x.ValidationErrors)
                             .Select(x => x.ErrorMessage);
-
                         var fullErrorMessage = string.Join("; ", errorMessages);
                         System.Diagnostics.Debug.WriteLine($"Validation errors: {fullErrorMessage}");
-
                         ModelState.AddModelError("", "Validation failed: " + fullErrorMessage);
                         return View(model);
                     }
@@ -184,27 +215,21 @@ namespace PiranaSecuritySystem.Controllers
                         return View(model);
                     }
 
-                    // Send email with credentials - UPDATED: Don't await, fire and forget
+                    // Send email with credentials
                     string fullName = $"{model.Guard_FName} {model.Guard_LName}";
+                    bool emailSent = await SendGuardCredentialsEmail(model.Email, model.Password, fullName);
 
-                    // Fire and forget email sending to prevent hanging
-                    _ = Task.Run(async () =>
+                    if (!emailSent)
                     {
-                        try
-                        {
-                            await SendGuardCredentialsEmail(model.Email, model.Password, fullName);
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Email sending failed (non-critical): {ex.Message}");
-                            // Don't throw - email failure shouldn't prevent registration
-                        }
-                    });
+                        // Log email failure but don't prevent registration
+                        System.Diagnostics.Debug.WriteLine($"Email sending failed for guard: {model.Email}");
+                    }
 
-                    // Create notification for director
-                    CreateNewStaffNotification("Guard", fullName);
+                    // Create notifications for admin and director
+                    CreateNewStaffNotification("Guard", fullName, guard.GuardId, model.Site);
+                    CreateDirectorNotification("Guard", fullName, guard.GuardId, model.Site);
 
-                    TempData["SuccessMessage"] = $"Guard {fullName} has been registered successfully! Credentials have been sent to their email.";
+                    TempData["SuccessMessage"] = $"Guard {fullName} has been registered successfully! {(emailSent ? "Credentials have been sent to their email." : "Credentials email failed to send.")}";
                     return RedirectToAction("ManageGuards");
                 }
 
@@ -225,10 +250,8 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // Helper method to generate site username
         private string GenerateSiteUsername(string sitePrefix)
         {
-            // Get all existing usernames for this site
             var existingUsernames = db.Guards
                 .Where(g => g.SiteUsername.StartsWith(sitePrefix))
                 .Select(g => g.SiteUsername)
@@ -238,7 +261,6 @@ namespace PiranaSecuritySystem.Controllers
 
             if (existingUsernames.Any())
             {
-                // Extract the number part from all existing usernames and find the maximum
                 var numbers = existingUsernames
                     .Select(username =>
                     {
@@ -258,14 +280,12 @@ namespace PiranaSecuritySystem.Controllers
                 }
             }
 
-            // Format with leading zeros (001, 002, etc.)
             return $"{sitePrefix}{nextNumber:D3}";
         }
 
         // GET: Admin/ManageGuards
         public ActionResult ManageGuards()
         {
-            // Check for success message from registration
             if (TempData["SuccessMessage"] != null)
             {
                 ViewBag.SuccessMessage = TempData["SuccessMessage"];
@@ -286,7 +306,6 @@ namespace PiranaSecuritySystem.Controllers
             return View(guard);
         }
 
-        // POST: Admin/UpdateGuardStatus/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult UpdateGuardStatus(int id, bool isActive, string statusReason = null)
@@ -299,26 +318,21 @@ namespace PiranaSecuritySystem.Controllers
                     return HttpNotFound();
                 }
 
-                // Store old status for notification
                 var oldStatus = guard.IsActive;
                 guard.IsActive = isActive;
 
-                // Update the user account status as well if needed
                 var user = db.Users.FirstOrDefault(u => u.Id == guard.UserId);
                 if (user != null)
                 {
-                    // Check if ApplicationUser has IsActive property using reflection
                     var isActiveProperty = user.GetType().GetProperty("IsActive");
                     if (isActiveProperty != null && isActiveProperty.CanWrite)
                     {
                         isActiveProperty.SetValue(user, isActive);
                     }
-                    // If not, we'll just update the guard status without affecting the user
                 }
 
                 db.SaveChanges();
 
-                // Create notification about status change
                 if (oldStatus != isActive)
                 {
                     var notification = new Notification
@@ -328,7 +342,8 @@ namespace PiranaSecuritySystem.Controllers
                         NotificationType = "Guard",
                         CreatedAt = DateTime.Now,
                         IsRead = false,
-                        UserId = "Admin"
+                        UserId = "Admin",
+                        UserType = "Admin"
                     };
                     db.Notifications.Add(notification);
                     db.SaveChanges();
@@ -344,7 +359,6 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // NEW: Simple status update method for AJAX calls from the ManageGuards view
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<JsonResult> UpdateGuardStatusAjax(int id, bool isActive)
@@ -357,22 +371,18 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Guard not found." });
                 }
 
-                // Store old status
                 var oldStatus = guard.IsActive;
                 guard.IsActive = isActive;
 
-                // Update user account to prevent/login allow login
                 var user = await UserManager.FindByIdAsync(guard.UserId);
                 if (user != null)
                 {
                     if (!isActive)
                     {
-                        // Deactivate - prevent login
                         user.LockoutEnabled = true;
                         user.LockoutEndDateUtc = DateTime.UtcNow.AddYears(100);
                         user.EmailConfirmed = false;
 
-                        // Also try to remove password as additional security
                         if (await UserManager.HasPasswordAsync(user.Id))
                         {
                             await UserManager.RemovePasswordAsync(user.Id);
@@ -380,19 +390,16 @@ namespace PiranaSecuritySystem.Controllers
                     }
                     else
                     {
-                        // Reactivate - allow login
                         user.LockoutEnabled = false;
                         user.LockoutEndDateUtc = null;
                         user.EmailConfirmed = true;
 
-                        // Generate and set a new temporary password
                         var tempPassword = GenerateTemporaryPassword();
                         if (!await UserManager.HasPasswordAsync(user.Id))
                         {
                             var addPasswordResult = await UserManager.AddPasswordAsync(user.Id, tempPassword);
                             if (addPasswordResult.Succeeded)
                             {
-                                // Send reactivation email with temporary password
                                 await SendGuardReactivationEmail(guard.Email, tempPassword, $"{guard.Guard_FName} {guard.Guard_LName}");
                             }
                         }
@@ -411,13 +418,11 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
-                // Log the error
                 System.Diagnostics.Debug.WriteLine($"Error updating guard status: {ex.Message}");
                 return Json(new { success = false, message = "Error updating status: " + ex.Message });
             }
         }
 
-        // Helper method to send guard reactivation email
         private async Task SendGuardReactivationEmail(string email, string tempPassword, string fullName)
         {
             try
@@ -482,7 +487,6 @@ namespace PiranaSecuritySystem.Controllers
             return View(guard);
         }
 
-        // POST: Admin/EditGuard/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult EditGuard(Guard model)
@@ -497,7 +501,6 @@ namespace PiranaSecuritySystem.Controllers
                         return HttpNotFound();
                     }
 
-                    // Update guard properties
                     guard.Guard_FName = model.Guard_FName;
                     guard.Guard_LName = model.Guard_LName;
                     guard.IdentityNumber = model.IdentityNumber;
@@ -511,7 +514,6 @@ namespace PiranaSecuritySystem.Controllers
                     guard.PostalCode = model.PostalCode;
                     guard.IsActive = model.IsActive;
 
-                    // Also update the associated user's email if it exists
                     var user = db.Users.FirstOrDefault(u => u.Id == guard.UserId);
                     if (user != null && user.Email != model.Email)
                     {
@@ -539,14 +541,12 @@ namespace PiranaSecuritySystem.Controllers
         {
             var model = new RegisterInstructorViewModel
             {
-                // Initialize site options
                 SiteOptions = new List<SelectListItem>
                 {
                     new SelectListItem { Value = "Site A", Text = "Site A" },
                     new SelectListItem { Value = "Site B", Text = "Site B" },
                     new SelectListItem { Value = "Site C", Text = "Site C" }
                 },
-                // Initialize group options
                 GroupOptions = new List<SelectListItem>
                 {
                     new SelectListItem { Value = "Group A", Text = "Group A" },
@@ -558,12 +558,10 @@ namespace PiranaSecuritySystem.Controllers
             return View(model);
         }
 
-        // POST: Admin/RegisterInstructor - UPDATED VERSION
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RegisterInstructor(RegisterInstructorViewModel model)
         {
-            // Ensure site options and group options are populated if we need to return the view
             model.SiteOptions = new List<SelectListItem>
             {
                 new SelectListItem { Value = "Site A", Text = "Site A" },
@@ -620,12 +618,11 @@ namespace PiranaSecuritySystem.Controllers
                         }
                     }
 
-                    // Auto-generate Employee ID
                     string employeeId = GenerateEmployeeId();
 
                     var instructor = new Instructor
                     {
-                        EmployeeId = employeeId, // Use auto-generated ID instead of model.EmployeeId
+                        EmployeeId = employeeId,
                         FullName = model.FullName,
                         Email = model.Email,
                         PhoneNumber = model.PhoneNumber,
@@ -633,9 +630,9 @@ namespace PiranaSecuritySystem.Controllers
                         DateRegistered = DateTime.Now,
                         IsActive = true,
                         UserId = user.Id,
-                        Site = model.Site, // Save the site
-                        SiteUsername = siteUsername, // Save the site-specific user
-                        Group = model.Group // Add Group property
+                        Site = model.Site,
+                        SiteUsername = siteUsername,
+                        Group = model.Group
                     };
 
                     db.Instructors.Add(instructor);
@@ -649,10 +646,8 @@ namespace PiranaSecuritySystem.Controllers
                         var errorMessages = ex.EntityValidationErrors
                             .SelectMany(x => x.ValidationErrors)
                             .Select(x => x.ErrorMessage);
-
                         var fullErrorMessage = string.Join("; ", errorMessages);
                         System.Diagnostics.Debug.WriteLine($"Validation errors: {fullErrorMessage}");
-
                         ModelState.AddModelError("", "Validation failed: " + fullErrorMessage);
                         return View(model);
                     }
@@ -662,24 +657,17 @@ namespace PiranaSecuritySystem.Controllers
                         return View(model);
                     }
 
-                    // Send email with credentials - UPDATED: Don't await, fire and forget
-                    _ = Task.Run(async () =>
+                    bool emailSent = await SendInstructorCredentialsEmail(model.Email, model.Password, model.FullName);
+
+                    if (!emailSent)
                     {
-                        try
-                        {
-                            await SendInstructorCredentialsEmail(model.Email, model.Password, model.FullName);
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Email sending failed (non-critical): {ex.Message}");
-                            // Don't throw - email failure shouldn't prevent registration
-                        }
-                    });
+                        System.Diagnostics.Debug.WriteLine($"Email sending failed for instructor: {model.Email}");
+                    }
 
-                    // Create notification for director
-                    CreateNewStaffNotification("Instructor", model.FullName);
+                    CreateNewStaffNotification("Instructor", model.FullName, instructor.Id, model.Site);
+                    CreateDirectorNotification("Instructor", model.FullName, instructor.Id, model.Site);
 
-                    TempData["SuccessMessage"] = $"Instructor {model.FullName} has been registered successfully! Employee ID: {employeeId}. Credentials have been sent to their email.";
+                    TempData["SuccessMessage"] = $"Instructor {model.FullName} has been registered successfully! Employee ID: {employeeId}. {(emailSent ? "Credentials have been sent to their email." : "Credentials email failed to send.")}";
                     return RedirectToAction("ManageInstructors");
                 }
 
@@ -689,21 +677,14 @@ namespace PiranaSecuritySystem.Controllers
             return View(model);
         }
 
-        // Add this method to generate Employee ID
         private string GenerateEmployeeId()
         {
-            // Get the current year
             string year = DateTime.Now.Year.ToString();
-
-            // Get the count of instructors for this year
             int instructorCount = db.Instructors
                 .Count(i => i.DateRegistered.Year == DateTime.Now.Year) + 1;
-
-            // Format: INST-YYYY-001, INST-YYYY-002, etc.
             return $"INST-{year}-{instructorCount:D3}";
         }
 
-        // Add these helper methods for instructors
         private string GetInstructorSitePrefix(string site)
         {
             switch (site)
@@ -717,7 +698,6 @@ namespace PiranaSecuritySystem.Controllers
 
         private string GenerateInstructorSiteUsername(string sitePrefix)
         {
-            // Get all existing usernames for this site
             var existingUsernames = db.Instructors
                 .Where(i => i.SiteUsername.StartsWith(sitePrefix))
                 .Select(i => i.SiteUsername)
@@ -726,7 +706,6 @@ namespace PiranaSecuritySystem.Controllers
             int nextNumber = 1;
             if (existingUsernames.Any())
             {
-                // Extract the number part from all existing usernames and find the maximum
                 var numbers = existingUsernames
                     .Select(username =>
                     {
@@ -744,14 +723,12 @@ namespace PiranaSecuritySystem.Controllers
                     nextNumber = numbers.Max() + 1;
                 }
             }
-            // Format with leading zeros (001, 002, etc.)
             return $"{sitePrefix}{nextNumber:D3}";
         }
 
         // GET: Admin/ManageInstructors
         public ActionResult ManageInstructors()
         {
-            // Check for success message from registration
             if (TempData["SuccessMessage"] != null)
             {
                 ViewBag.SuccessMessage = TempData["SuccessMessage"];
@@ -770,25 +747,22 @@ namespace PiranaSecuritySystem.Controllers
                 return HttpNotFound();
             }
 
-            // Map Instructor to EditInstructorViewModel
             var viewModel = new EditInstructorViewModel
             {
                 Id = instructor.Id,
                 FullName = instructor.FullName,
-                EmployeeId = instructor.EmployeeId, // Add this line
+                EmployeeId = instructor.EmployeeId,
                 Email = instructor.Email,
                 PhoneNumber = instructor.PhoneNumber,
                 Specialization = instructor.Specialization,
                 Site = instructor.Site,
                 Group = instructor.Group,
                 IsActive = instructor.IsActive
-                // SiteOptions and GroupOptions are already set in the constructor
             };
 
             return View(viewModel);
         }
 
-        // POST: Admin/EditInstructor/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult EditInstructor(EditInstructorViewModel model)
@@ -803,9 +777,8 @@ namespace PiranaSecuritySystem.Controllers
                         return HttpNotFound();
                     }
 
-                    // Update instructor properties
                     instructor.FullName = model.FullName;
-                    instructor.EmployeeId = model.EmployeeId; // Add this line
+                    instructor.EmployeeId = model.EmployeeId;
                     instructor.Email = model.Email;
                     instructor.PhoneNumber = model.PhoneNumber;
                     instructor.Specialization = model.Specialization;
@@ -813,7 +786,6 @@ namespace PiranaSecuritySystem.Controllers
                     instructor.Site = model.Site;
                     instructor.Group = model.Group;
 
-                    // Update user email if changed
                     var user = db.Users.FirstOrDefault(u => u.Id == instructor.UserId);
                     if (user != null && user.Email != model.Email)
                     {
@@ -847,7 +819,6 @@ namespace PiranaSecuritySystem.Controllers
             return View(instructor);
         }
 
-        // POST: Admin/UpdateInstructorStatus/5 - UPDATED VERSION
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> UpdateInstructorStatus(int id, bool isActive, string statusReason = null)
@@ -861,44 +832,34 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("ManageInstructors");
                 }
 
-                // Store old status for notification
                 var oldStatus = instructor.IsActive;
                 instructor.IsActive = isActive;
 
-                // Update the user account status to prevent login
                 var user = await UserManager.FindByIdAsync(instructor.UserId);
                 if (user != null)
                 {
                     if (!isActive)
                     {
-                        // Deactivate the user account - prevent login
-                        // Method 1: Remove password (most effective)
                         var removePasswordResult = await UserManager.RemovePasswordAsync(user.Id);
                         if (!removePasswordResult.Succeeded)
                         {
-                            // If removing password fails, try locking out
                             user.LockoutEnabled = true;
-                            user.LockoutEndDateUtc = DateTime.UtcNow.AddYears(100); // Lock for 100 years
+                            user.LockoutEndDateUtc = DateTime.UtcNow.AddYears(100);
                         }
-
-                        // Method 2: Add to archived role or mark as archived
-                        user.EmailConfirmed = false; // This will prevent login
+                        user.EmailConfirmed = false;
                     }
                     else
                     {
-                        // Reactivate the user account
                         user.LockoutEnabled = false;
                         user.LockoutEndDateUtc = null;
                         user.EmailConfirmed = true;
 
-                        // If password was removed, set a temporary one
                         if (!await UserManager.HasPasswordAsync(user.Id))
                         {
                             var tempPassword = GenerateTemporaryPassword();
                             var addPasswordResult = await UserManager.AddPasswordAsync(user.Id, tempPassword);
                             if (addPasswordResult.Succeeded)
                             {
-                                // Send email with new temporary password
                                 await SendReactivationEmail(instructor.Email, tempPassword, instructor.FullName);
                             }
                         }
@@ -909,7 +870,6 @@ namespace PiranaSecuritySystem.Controllers
 
                 db.SaveChanges();
 
-                // Create notification about status change
                 if (oldStatus != isActive)
                 {
                     var notification = new Notification
@@ -919,7 +879,8 @@ namespace PiranaSecuritySystem.Controllers
                         NotificationType = "Instructor",
                         CreatedAt = DateTime.Now,
                         IsRead = false,
-                        UserId = "Admin"
+                        UserId = "Admin",
+                        UserType = "Admin"
                     };
                     db.Notifications.Add(notification);
                     db.SaveChanges();
@@ -935,7 +896,6 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // NEW: Simple status update method for AJAX calls from the ManageInstructors view
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<JsonResult> UpdateInstructorStatusAjax(int id, bool isActive)
@@ -948,22 +908,18 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Instructor not found." });
                 }
 
-                // Store old status
                 var oldStatus = instructor.IsActive;
                 instructor.IsActive = isActive;
 
-                // Update user account to prevent/login allow login
                 var user = await UserManager.FindByIdAsync(instructor.UserId);
                 if (user != null)
                 {
                     if (!isActive)
                     {
-                        // Deactivate - prevent login
                         user.LockoutEnabled = true;
                         user.LockoutEndDateUtc = DateTime.UtcNow.AddYears(100);
                         user.EmailConfirmed = false;
 
-                        // Also try to remove password as additional security
                         if (await UserManager.HasPasswordAsync(user.Id))
                         {
                             await UserManager.RemovePasswordAsync(user.Id);
@@ -971,19 +927,16 @@ namespace PiranaSecuritySystem.Controllers
                     }
                     else
                     {
-                        // Reactivate - allow login
                         user.LockoutEnabled = false;
                         user.LockoutEndDateUtc = null;
                         user.EmailConfirmed = true;
 
-                        // Generate and set a new temporary password
                         var tempPassword = GenerateTemporaryPassword();
                         if (!await UserManager.HasPasswordAsync(user.Id))
                         {
                             var addPasswordResult = await UserManager.AddPasswordAsync(user.Id, tempPassword);
                             if (addPasswordResult.Succeeded)
                             {
-                                // Send reactivation email with temporary password
                                 await SendReactivationEmail(instructor.Email, tempPassword, instructor.FullName);
                             }
                         }
@@ -1002,13 +955,11 @@ namespace PiranaSecuritySystem.Controllers
             }
             catch (Exception ex)
             {
-                // Log the error
                 System.Diagnostics.Debug.WriteLine($"Error updating instructor status: {ex.Message}");
                 return Json(new { success = false, message = "Error updating status: " + ex.Message });
             }
         }
 
-        // Helper method to generate temporary password
         private string GenerateTemporaryPassword()
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -1017,7 +968,6 @@ namespace PiranaSecuritySystem.Controllers
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
-        // Helper method to send reactivation email
         private async Task SendReactivationEmail(string email, string tempPassword, string fullName)
         {
             try
@@ -1077,39 +1027,147 @@ namespace PiranaSecuritySystem.Controllers
             return RedirectToAction("Index", "Payroll");
         }
 
-        private void EnsureRolesExist()
+        // NOTIFICATION METHODS
+
+        [HttpGet]
+        public JsonResult GetNotifications()
         {
-            var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
+            try
+            {
+                var allNotifications = db.Notifications.ToList();
+                var adminNotifications = allNotifications
+                    .Where(n => n.UserType == "Admin" || n.UserId == "Admin")
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(20)
+                    .ToList();
 
-            if (!roleManager.RoleExists("Guard"))
-                roleManager.Create(new IdentityRole("Guard"));
+                var notificationData = adminNotifications.Select(n => new
+                {
+                    Id = n.NotificationId,
+                    Title = n.Title ?? "Notification",
+                    Message = n.Message ?? "No message content",
+                    IsRead = n.IsRead,
+                    CreatedAt = n.CreatedAt.ToString("MMM dd, yyyy HH:mm"),
+                    Type = n.NotificationType ?? "System",
+                    RelatedUrl = n.RelatedUrl ?? "#",
+                    TimeAgo = GetTimeAgo(n.CreatedAt)
+                }).ToList();
 
-            if (!roleManager.RoleExists("Instructor"))
-                roleManager.Create(new IdentityRole("Instructor"));
+                var unreadCount = adminNotifications.Count(n => !n.IsRead);
 
-            if (!roleManager.RoleExists("Admin"))
-                roleManager.Create(new IdentityRole("Admin"));
-
-            if (!roleManager.RoleExists("Director"))
-                roleManager.Create(new IdentityRole("Director"));
+                return Json(new
+                {
+                    success = true,
+                    notifications = notificationData,
+                    unreadCount = unreadCount
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = true,
+                    notifications = new List<object>(),
+                    unreadCount = 0,
+                    error = ex.Message
+                }, JsonRequestBehavior.AllowGet);
+            }
         }
 
-        private void CreateNewStaffNotification(string staffType, string staffName)
+        private string GetTimeAgo(DateTime date)
+        {
+            try
+            {
+                if (date == DateTime.MinValue || date.Year <= 2000)
+                    return "Just now";
+
+                TimeSpan timeSince = DateTime.Now - date;
+
+                if (timeSince.TotalSeconds < 60)
+                    return "Just now";
+                else if (timeSince.TotalMinutes < 60)
+                    return $"{(int)timeSince.TotalMinutes} minute{(timeSince.TotalMinutes >= 2 ? "s" : "")} ago";
+                else if (timeSince.TotalHours < 24)
+                    return $"{(int)timeSince.TotalHours} hour{(timeSince.TotalHours >= 2 ? "s" : "")} ago";
+                else if (timeSince.TotalDays < 7)
+                    return $"{(int)timeSince.TotalDays} day{(timeSince.TotalDays >= 2 ? "s" : "")} ago";
+                else if (timeSince.TotalDays < 30)
+                    return $"{(int)(timeSince.TotalDays / 7)} week{((int)(timeSince.TotalDays / 7) >= 2 ? "s" : "")} ago";
+                else if (timeSince.TotalDays < 365)
+                    return $"{(int)(timeSince.TotalDays / 30)} month{((int)(timeSince.TotalDays / 30) >= 2 ? "s" : "")} ago";
+                else
+                    return date.ToString("MMM dd, yyyy");
+            }
+            catch
+            {
+                return "Just now";
+            }
+        }
+
+        [HttpPost]
+        public JsonResult MarkNotificationAsRead(int id)
+        {
+            try
+            {
+                var notification = db.Notifications.Find(id);
+                if (notification != null)
+                {
+                    notification.IsRead = true;
+                    notification.DateRead = DateTime.Now;
+                    db.SaveChanges();
+                    return Json(new { success = true });
+                }
+                return Json(new { success = false, error = "Notification not found" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public JsonResult MarkAllNotificationsAsRead()
+        {
+            try
+            {
+                var allNotifications = db.Notifications.ToList();
+                var unreadNotifications = allNotifications
+                    .Where(n => (n.UserType == "Admin" || n.UserId == "Admin") && !n.IsRead)
+                    .ToList();
+
+                foreach (var notification in unreadNotifications)
+                {
+                    notification.IsRead = true;
+                    notification.DateRead = DateTime.Now;
+                }
+
+                db.SaveChanges();
+                return Json(new { success = true, message = $"{unreadNotifications.Count} notifications marked as read" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        private void CreateNewStaffNotification(string staffType, string staffName, int staffId, string site = null)
         {
             try
             {
                 var notification = new Notification
                 {
-                    Title = $"New {staffType} Added",
-                    Message = $"A new {staffType.ToLower()} ({staffName}) has been registered in the system",
-                    NotificationType = staffType.ToLower(),
+                    Title = $"New {staffType} Registered",
+                    Message = $"You registered a {staffType.ToLower()} ({staffName}) with ID: {staffId} at {DateTime.Now.ToString("hh:mm tt")} on {DateTime.Now.ToString("MMM dd, yyyy")}" +
+                             (string.IsNullOrEmpty(site) ? "" : $" at {site}"),
+                    NotificationType = staffType,
                     RelatedUrl = staffType.ToLower() == "guard"
                         ? Url.Action("ManageGuards", "Admin")
                         : Url.Action("ManageInstructors", "Admin"),
-                    UserId = "Director", // Send to all directors
-                    UserType = "Director",
+                    UserId = "Admin",
+                    UserType = "Admin",
                     CreatedAt = DateTime.Now,
-                    IsRead = false
+                    IsRead = false,
+                    Source = "Registration"
                 };
 
                 db.Notifications.Add(notification);
@@ -1118,11 +1176,41 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error creating notification: {ex.Message}");
-                // Don't throw, just log the error
             }
         }
 
-        private async Task SendGuardCredentialsEmail(string email, string password, string fullName)
+        private void CreateDirectorNotification(string staffType, string staffName, int staffId, string site = null)
+        {
+            try
+            {
+                var notification = new Notification
+                {
+                    Title = $"New {staffType} Registration",
+                    Message = $"A new {staffType.ToLower()} ({staffName}) with ID: {staffId} was registered at {DateTime.Now.ToString("hh:mm tt")} on {DateTime.Now.ToString("MMM dd, yyyy")}" +
+                             (string.IsNullOrEmpty(site) ? "" : $" at {site}"),
+                    NotificationType = staffType,
+                    RelatedUrl = staffType.ToLower() == "guard"
+                        ? Url.Action("ManageGuards", "Admin")
+                        : Url.Action("ManageInstructors", "Admin"),
+                    UserId = "Director",
+                    UserType = "Director",
+                    CreatedAt = DateTime.Now,
+                    IsRead = false,
+                    Source = "Registration"
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating director notification: {ex.Message}");
+            }
+        }
+
+        // FIXED EMAIL METHODS
+
+        private async Task<bool> SendGuardCredentialsEmail(string email, string password, string fullName)
         {
             try
             {
@@ -1168,16 +1256,16 @@ namespace PiranaSecuritySystem.Controllers
 </body>
 </html>";
 
-                await SendEmailAsync(email, subject, body);
+                return await SendEmailAsync(email, subject, body);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error sending email to {email}: {ex.Message}");
-                // Don't throw - email failure shouldn't prevent registration
+                return false;
             }
         }
 
-        private async Task SendInstructorCredentialsEmail(string email, string password, string fullName)
+        private async Task<bool> SendInstructorCredentialsEmail(string email, string password, string fullName)
         {
             try
             {
@@ -1223,53 +1311,94 @@ namespace PiranaSecuritySystem.Controllers
 </body>
 </html>";
 
-                await SendEmailAsync(email, subject, body);
+                return await SendEmailAsync(email, subject, body);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error sending email to {email}: {ex.Message}");
-                // Don't throw - email failure shouldn't prevent registration
+                return false;
             }
         }
 
-        // UPDATED: Email sending method with timeout and better error handling
-        private async Task SendEmailAsync(string toEmail, string subject, string body)
+        private async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
         {
             try
             {
-                // Configure these settings in your web.config or app settings
-                string fromEmail = ConfigurationManager.AppSettings["EmailFrom"] ?? "noreply@piranasecurity.com";
+                // Get configuration from Web.config
+                string fromEmail = ConfigurationManager.AppSettings["EmailFrom"] ?? "sfundozuma@gmail.com";
                 string smtpServer = ConfigurationManager.AppSettings["SmtpServer"] ?? "smtp.gmail.com";
                 int smtpPort = int.Parse(ConfigurationManager.AppSettings["SmtpPort"] ?? "587");
-                string smtpUsername = ConfigurationManager.AppSettings["SmtpUsername"] ?? "your-email@gmail.com";
-                string smtpPassword = ConfigurationManager.AppSettings["SmtpPassword"] ?? "your-app-password";
+                string smtpUsername = ConfigurationManager.AppSettings["SmtpUsername"] ?? "sfundozuma@gmail.com";
+                string smtpPassword = ConfigurationManager.AppSettings["SmtpPassword"] ?? "ndzpxdnonagyhabu";
                 bool enableSsl = bool.Parse(ConfigurationManager.AppSettings["EnableSsl"] ?? "true");
+                string displayName = ConfigurationManager.AppSettings["EmailDisplayName"] ?? "Pirana Security System";
+                int timeout = int.Parse(ConfigurationManager.AppSettings["SmtpTimeout"] ?? "30000");
 
                 using (var message = new MailMessage())
                 {
-                    message.From = new MailAddress(fromEmail, "Pirana Security System");
+                    message.From = new MailAddress(fromEmail, displayName);
                     message.To.Add(new MailAddress(toEmail));
                     message.Subject = subject;
                     message.Body = body;
                     message.IsBodyHtml = true;
 
+                    // Add reply-to header
+                    message.ReplyToList.Add(new MailAddress(fromEmail, displayName));
+
                     using (var smtpClient = new SmtpClient(smtpServer, smtpPort))
                     {
                         smtpClient.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
                         smtpClient.EnableSsl = enableSsl;
-                        smtpClient.Timeout = 30000; // 30 seconds timeout
+                        smtpClient.Timeout = timeout;
+                        smtpClient.DeliveryMethod = SmtpDeliveryMethod.Network;
+
+                        // For Gmail, you might need to configure these additional settings
+                        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                        ServicePointManager.ServerCertificateValidationCallback = (s, certificate, chain, sslPolicyErrors) => true;
 
                         await smtpClient.SendMailAsync(message);
                     }
                 }
 
                 System.Diagnostics.Debug.WriteLine($"Email sent successfully to: {toEmail}");
+                return true;
+            }
+            catch (SmtpException smtpEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"SMTP Error sending email to {toEmail}: {smtpEx.Message}");
+                System.Diagnostics.Debug.WriteLine($"SMTP Status Code: {smtpEx.StatusCode}");
+                if (smtpEx.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Inner Exception: {smtpEx.InnerException.Message}");
+                }
+                return false;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error sending email to {toEmail}: {ex.Message}");
-                // Don't throw - let the calling method handle gracefully
+                System.Diagnostics.Debug.WriteLine($"General Error sending email to {toEmail}: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
+                return false;
             }
+        }
+
+        private void EnsureRolesExist()
+        {
+            var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
+
+            if (!roleManager.RoleExists("Guard"))
+                roleManager.Create(new IdentityRole("Guard"));
+
+            if (!roleManager.RoleExists("Instructor"))
+                roleManager.Create(new IdentityRole("Instructor"));
+
+            if (!roleManager.RoleExists("Admin"))
+                roleManager.Create(new IdentityRole("Admin"));
+
+            if (!roleManager.RoleExists("Director"))
+                roleManager.Create(new IdentityRole("Director"));
         }
 
         private void AddErrors(IdentityResult result)
