@@ -137,7 +137,7 @@ async function getTodayGuardCheckIns(guardId) {
     }
 }
 
-// QR CODE GENERATION
+// QR CODE GENERATION - UPDATED TO SHOW MANUAL CODE ONLY ON FAILURE
 function generateQRCode() {
     if (!isValidGuard || !currentGuardData) {
         showMessage("Please validate your identity first.", "error");
@@ -170,55 +170,88 @@ function generateQRCode() {
     }
 
     const token = generateShortCode();
+    console.log("Generated token:", token);
 
     try {
         // Clear the QR code div
         qrcodeDiv.innerHTML = "";
 
-        // Create a canvas element
-        const canvas = document.createElement("canvas");
+        // Create container for QR code
+        const container = document.createElement('div');
+        container.className = 'qr-container';
 
-        // Generate QR code
-        QRCode.toCanvas(canvas, token, {
-            width: 200,
-            margin: 1,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        }, function (error) {
-            if (error) {
-                console.error("QR generation failed:", error);
-                message.textContent = "QR generation failed. Please try again.";
-                message.className = "error";
-                generateSimpleQRCode(token, qrcodeDiv);
-                return;
+        // Generate QR code using the qrcode-generator library
+        const typeNumber = 4; // QR code type
+        const errorCorrectionLevel = 'L'; // Error correction level
+
+        // Check if QR code library is available
+        if (typeof qrcode === 'undefined') {
+            throw new Error("QR code library not loaded");
+        }
+
+        const qr = qrcode(typeNumber, errorCorrectionLevel);
+        qr.addData(token);
+        qr.make();
+
+        // Create canvas element for QR code
+        const canvas = document.createElement('canvas');
+        const size = 200;
+        canvas.width = size;
+        canvas.height = size;
+        canvas.style.border = '1px solid #eee';
+
+        const ctx = canvas.getContext('2d');
+
+        // Set background to white
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+
+        // Set QR code color to black
+        ctx.fillStyle = '#000000';
+
+        // Get QR code modules and draw them
+        const moduleCount = qr.getModuleCount();
+        const tileSize = size / moduleCount;
+
+        for (let row = 0; row < moduleCount; row++) {
+            for (let col = 0; col < moduleCount; col++) {
+                if (qr.isDark(row, col)) {
+                    ctx.fillRect(
+                        col * tileSize,
+                        row * tileSize,
+                        tileSize,
+                        tileSize
+                    );
+                }
             }
+        }
 
-            // Add canvas to the div
-            qrcodeDiv.appendChild(canvas);
+        // Add canvas to container
+        container.appendChild(canvas);
 
-            // Add clear button
-            const clearBtn = document.createElement("button");
-            clearBtn.textContent = "Clear QR Code";
-            clearBtn.onclick = clearQRCode;
-            clearBtn.style.marginTop = "10px";
-            clearBtn.style.padding = "5px 10px";
-            clearBtn.style.backgroundColor = "#6c757d";
-            clearBtn.style.color = "white";
-            clearBtn.style.border = "none";
-            clearBtn.style.borderRadius = "3px";
-            clearBtn.style.cursor = "pointer";
-            qrcodeDiv.appendChild(clearBtn);
+        // Add to main QR code div
+        qrcodeDiv.appendChild(container);
 
-            message.textContent = "QR Code generated. Please scan and enter the code: " + token;
-            message.className = "success";
+        // Add clear button
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = 'Clear QR Code';
+        clearBtn.onclick = clearQRCode;
+        clearBtn.style.marginTop = '15px';
+        clearBtn.style.padding = '8px 16px';
+        clearBtn.style.backgroundColor = '#6c757d';
+        clearBtn.style.color = 'white';
+        clearBtn.style.border = 'none';
+        clearBtn.style.borderRadius = '4px';
+        clearBtn.style.cursor = 'pointer';
+        qrcodeDiv.appendChild(clearBtn);
 
-            console.log("QR Code generated successfully with token:", token);
-        });
+        showMessage("QR Code generated successfully! Scan the code below.", "success");
+        console.log("QR Code generated successfully with token:", token);
 
     } catch (error) {
         console.error("QR Code generation error:", error);
-        generateSimpleQRCode(token, qrcodeDiv);
+        // Fallback to manual code display only when QR generation fails
+        generateManualCodeOnly(token, qrcodeDiv);
     }
 
     sessionStorage.setItem("lastToken", token);
@@ -226,44 +259,57 @@ function generateQRCode() {
     scannedCodeInput.focus();
 }
 
-function clearQRCode() {
-    const qrcodeDiv = document.getElementById("qrcode");
-    qrcodeDiv.innerHTML = "";
-    document.getElementById("statusMessage").textContent = "";
-    document.getElementById("statusMessage").className = "";
-    sessionStorage.removeItem("lastToken");
-    sessionStorage.removeItem("tokenTime");
-}
-
-function generateSimpleQRCode(token, qrcodeDiv) {
+function generateManualCodeOnly(token, qrcodeDiv) {
     const container = document.createElement('div');
+    container.className = 'qr-container';
     container.style.textAlign = 'center';
     container.style.padding = '20px';
     container.style.border = '2px dashed #ccc';
     container.style.borderRadius = '10px';
     container.style.background = '#f9f9f9';
 
+    const instruction = document.createElement('p');
+    instruction.style.color = '#666';
+    instruction.style.marginBottom = '15px';
+    instruction.style.fontWeight = 'bold';
+    instruction.textContent = 'QR Code unavailable. Please use this manual code:';
+
     const codeDisplay = document.createElement('div');
+    codeDisplay.className = 'manual-code';
+    codeDisplay.textContent = token;
     codeDisplay.style.fontSize = '24px';
     codeDisplay.style.fontWeight = 'bold';
     codeDisplay.style.letterSpacing = '3px';
     codeDisplay.style.margin = '10px 0';
-    codeDisplay.style.padding = '10px';
+    codeDisplay.style.padding = '15px';
     codeDisplay.style.background = '#000';
     codeDisplay.style.color = '#fff';
     codeDisplay.style.borderRadius = '5px';
-    codeDisplay.textContent = token;
+    codeDisplay.style.fontFamily = "'Courier New', monospace";
+    codeDisplay.style.textAlign = 'center';
 
-    const instruction = document.createElement('p');
-    instruction.style.color = '#666';
-    instruction.textContent = 'Enter this code manually:';
+    const note = document.createElement('p');
+    note.style.color = '#888';
+    note.style.fontSize = '12px';
+    note.style.marginTop = '10px';
+    note.textContent = 'Enter this code in the scanned code field below.';
 
     container.appendChild(instruction);
     container.appendChild(codeDisplay);
+    container.appendChild(note);
     qrcodeDiv.appendChild(container);
 
-    console.log("Simple QR Code representation generated with token:", token);
-    showMessage("Code generated. Please enter this code: " + token, "success");
+    console.log("Manual code generated due to QR failure:", token);
+    showMessage("Manual code generated. Please enter this code: " + token, "warning");
+}
+
+function clearQRCode() {
+    const qrcodeDiv = document.getElementById("qrcode");
+    qrcodeDiv.innerHTML = "<p style='color: #666;'>QR code will appear here after generation</p>";
+    document.getElementById("statusMessage").textContent = "";
+    document.getElementById("statusMessage").className = "";
+    sessionStorage.removeItem("lastToken");
+    sessionStorage.removeItem("tokenTime");
 }
 
 // MAIN FUNCTIONS
