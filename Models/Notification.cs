@@ -56,6 +56,15 @@ namespace PiranaSecuritySystem.Models
 
         public int PriorityLevel { get; set; } = 1;
 
+        // New property to track incident status changes
+        public int? RelatedIncidentId { get; set; }
+
+        [StringLength(50)]
+        public string OldStatus { get; set; }
+
+        [StringLength(50)]
+        public string NewStatus { get; set; }
+
         public virtual ApplicationUser User { get; set; }
 
         // Helper method to get formatted time ago

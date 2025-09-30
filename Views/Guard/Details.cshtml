@@ -2,7 +2,7 @@
 
 @{
     ViewBag.Title = "Incident Details";
-    Layout = "~/Views/Shared/_Layout.cshtml"; // Make sure this matches your layout
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <!DOCTYPE html>
@@ -160,6 +160,64 @@
             padding: 20px;
             margin-top: 10px;
         }
+
+        .feedback-section {
+            background-color: #f0f8ff;
+            border: 1px solid #cce5ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .download-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: background 0.3s ease;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+            .download-btn:hover {
+                background: #219653;
+                color: white;
+                text-decoration: none;
+            }
+
+            .download-btn:disabled {
+                background: #bdc3c7;
+                cursor: not-allowed;
+            }
+
+        .file-info {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #27ae60;
+        }
+
+        .no-feedback {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .feedback-content {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -273,12 +331,78 @@
                 </div>
             </div>
 
+            <!-- Feedback Section -->
+            <div class="feedback-section">
+                <h4 class="detail-label">
+                    <i class="fas fa-comment me-2"></i>Director Feedback
+                </h4>
 
+                @if (!string.IsNullOrEmpty(Model.Feedback))
+                {
+                    <div class="feedback-content">
+                        <div class="detail-value">@Model.Feedback</div>
+                        @if (Model.FeedbackDate.HasValue)
+                        {
+                            <div class="file-info">
+                                <i class="fas fa-calendar me-1"></i>
+                                Feedback provided on: @Model.FeedbackDate.Value.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="no-feedback">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No feedback provided yet for this incident.
+                    </div>
+                }
+
+                <!-- PDF Download Section -->
+                @if (!string.IsNullOrEmpty(Model.FeedbackAttachment) || !string.IsNullOrEmpty(Model.FeedbackFileData))
+                {
+                    <div class="mt-3">
+                        <div class="detail-label">
+                            <i class="fas fa-file-pdf me-2"></i>Feedback Attachment
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.FeedbackFileName))
+                        {
+                            <div class="file-info">
+                                <i class="fas fa-file me-1"></i>File: @Model.FeedbackFileName
+                                @if (Model.FeedbackFileSize.HasValue)
+                                {
+                                    <span> • Size: @((Model.FeedbackFileSize.Value / 1024f).ToString("0.0")) KB</span>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.FeedbackFileType))
+                                {
+                                    <span> • Type: @Model.FeedbackFileType</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="no-feedback mt-3">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        No PDF attachment available for this incident.
+                    </div>
+                }
+            </div>
 
             <div class="text-center mt-4">
-                <a href="@Url.Action("MyIncidentReports", "Guard")" class="btn btn-primary">
+                <a href="@Url.Action("MyIncidentReports", "Guard")" class="btn btn-primary me-2">
                     <i class="fas fa-arrow-left me-2"></i>Back to Incidents
                 </a>
+                @if (!string.IsNullOrEmpty(Model.FeedbackAttachment) || !string.IsNullOrEmpty(Model.FeedbackFileData))
+                {
+                    <a href="@Url.Action("DownloadFeedbackAttachment", "Guard", new { id = Model.IncidentReportId })"
+                       class="btn btn-success"
+                       target="_blank">
+                        <i class="fas fa-download me-2"></i>Download PDF
+                    </a>
+                }
             </div>
         </div>
     </div>

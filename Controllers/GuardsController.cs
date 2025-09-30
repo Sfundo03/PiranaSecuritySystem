@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
+using System.Web;
 using System.Web.Mvc;
 
 namespace PiranaSecuritySystem.Controllers
@@ -445,22 +446,42 @@ namespace PiranaSecuritySystem.Controllers
                     db.IncidentReports.Add(incidentReport);
                     db.SaveChanges();
 
-                    // Create notification
-                    var notification = new Notification
+                    // Create notification for guard about the filed incident
+                    var guardNotification = new Notification
                     {
                         GuardId = guard.GuardId,
                         UserId = currentUserId,
                         UserType = "Guard",
-                        Title = "Incident Reported",
-                        Message = $"You have reported a {incidentReport.IncidentType.ToLower()} incident at {incidentReport.Location}",
+                        Title = "Incident Report Filed",
+                        Message = $"You have successfully filed a {incidentReport.IncidentType.ToLower()} incident report at {incidentReport.Location} on {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
                         NotificationType = "Incident",
                         IsRead = false,
                         CreatedAt = DateTime.Now,
                         IsImportant = true,
                         PriorityLevel = 3
                     };
+                    db.Notifications.Add(guardNotification);
 
-                    db.Notifications.Add(notification);
+                    // Create notification for directors about new incident from guard
+                    var directors = db.Directors.Where(d => d.IsActive).ToList();
+                    foreach (var director in directors)
+                    {
+                        var directorNotification = new Notification
+                        {
+                            UserId = director.DirectorId.ToString(),
+                            UserType = "Director",
+                            Title = "New Incident Reported by Guard",
+                            Message = $"A new {incidentReport.IncidentType} incident has been filed by Guard {guard.Guard_FName} {guard.Guard_LName} (ID: {guard.GuardId}) at {incidentReport.Location} on {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
+                            IsRead = false,
+                            CreatedAt = DateTime.Now,
+                            RelatedUrl = Url.Action("IncidentDetails", "Director", new { id = incidentReport.IncidentReportId }),
+                            NotificationType = "Incident",
+                            IsImportant = incidentReport.Priority == "High" || incidentReport.Priority == "Critical",
+                            PriorityLevel = incidentReport.Priority == "Critical" ? 4 : incidentReport.Priority == "High" ? 3 : 2
+                        };
+                        db.Notifications.Add(directorNotification);
+                    }
+
                     db.SaveChanges();
 
                     TempData["SuccessMessage"] = "Incident reported successfully!";
@@ -551,6 +572,193 @@ namespace PiranaSecuritySystem.Controllers
                 System.Diagnostics.Debug.WriteLine($"Error in MyIncidentReports: {ex.Message}");
                 TempData["ErrorMessage"] = "An error occurred while loading your incident reports.";
                 return RedirectToAction("Dashboard");
+            }
+        }
+
+        // GET: Guard/Details
+        public ActionResult Details(int id)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found.";
+                    return RedirectToAction("Dashboard");
+                }
+
+                var incident = db.IncidentReports.FirstOrDefault(i => i.IncidentReportId == id && i.GuardId == guard.GuardId);
+
+                if (incident == null)
+                {
+                    TempData["ErrorMessage"] = "Incident not found or you don't have permission to view it.";
+                    return RedirectToAction("MyIncidentReports");
+                }
+
+                return View("~/Views/Guard/Details.cshtml", incident);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in Details: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading incident details.";
+                return RedirectToAction("MyIncidentReports");
+            }
+        }
+
+        // GET: Guard/DownloadFeedbackAttachment
+        public ActionResult DownloadFeedbackAttachment(int id)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found.";
+                    return RedirectToAction("Dashboard");
+                }
+
+                var incident = db.IncidentReports.FirstOrDefault(i => i.IncidentReportId == id && i.GuardId == guard.GuardId);
+
+                if (incident == null)
+                {
+                    TempData["ErrorMessage"] = "Incident not found or you don't have permission to access it.";
+                    return RedirectToAction("MyIncidentReports");
+                }
+
+                // Check if there's a file attachment
+                if (!string.IsNullOrEmpty(incident.FeedbackFileData))
+                {
+                    // Handle base64 encoded file data
+                    byte[] fileBytes = Convert.FromBase64String(incident.FeedbackFileData);
+                    string fileName = incident.FeedbackFileName ?? $"Feedback_Incident_{id}.pdf";
+                    string contentType = incident.FeedbackFileType ?? "application/pdf";
+
+                    return File(fileBytes, contentType, fileName);
+                }
+                else if (!string.IsNullOrEmpty(incident.FeedbackAttachment))
+                {
+                    // Handle file path attachment (legacy support)
+                    string filePath = Server.MapPath(incident.FeedbackAttachment);
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        string fileName = System.IO.Path.GetFileName(filePath);
+                        byte[] fileBytes = System.IO.File.ReadAllBytes(filePath);
+                        string contentType = MimeMapping.GetMimeMapping(fileName);
+
+                        return File(fileBytes, contentType, fileName);
+                    }
+                    else
+                    {
+                        TempData["ErrorMessage"] = "Attachment file not found.";
+                        return RedirectToAction("Details", new { id = id });
+                    }
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "No attachment available for this incident.";
+                    return RedirectToAction("Details", new { id = id });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in DownloadFeedbackAttachment: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while downloading the attachment.";
+                return RedirectToAction("Details", new { id = id });
+            }
+        }
+
+        // GET: Guard/GetIncidentFeedback
+        [HttpGet]
+        public JsonResult GetIncidentFeedback(int id)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { error = "Guard profile not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var incident = db.IncidentReports.FirstOrDefault(i => i.IncidentReportId == id && i.GuardId == guard.GuardId);
+
+                if (incident == null)
+                {
+                    return Json(new { error = "Incident not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                bool hasAttachment = !string.IsNullOrEmpty(incident.FeedbackFileData) || !string.IsNullOrEmpty(incident.FeedbackAttachment);
+
+                return Json(new
+                {
+                    feedback = incident.Feedback,
+                    hasAttachment = hasAttachment,
+                    fileName = incident.FeedbackFileName,
+                    fileSize = incident.FeedbackFileSize,
+                    fileType = incident.FeedbackFileType,
+                    feedbackDate = incident.FeedbackDate?.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetIncidentFeedback: {ex.Message}");
+                return Json(new { error = "Error loading feedback" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // POST: Guard/UpdateIncidentStatus
+        [HttpPost]
+        public JsonResult UpdateIncidentStatus(int incidentId, string newStatus)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" });
+                }
+
+                var incident = db.IncidentReports.FirstOrDefault(i => i.IncidentReportId == incidentId && i.GuardId == guard.GuardId);
+
+                if (incident == null)
+                {
+                    return Json(new { success = false, message = "Incident not found" });
+                }
+
+                string oldStatus = incident.Status;
+                incident.Status = newStatus;
+                db.SaveChanges();
+
+                // Create notification for status change
+                var notification = new Notification
+                {
+                    GuardId = guard.GuardId,
+                    UserId = currentUserId,
+                    UserType = "Guard",
+                    Title = "Incident Status Updated",
+                    Message = $"Your incident report #{incident.IncidentReportId} ({incident.IncidentType}) status has been changed from '{oldStatus}' to '{newStatus}'",
+                    NotificationType = "Incident",
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    IsImportant = true
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Incident status updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in UpdateIncidentStatus: {ex.Message}");
+                return Json(new { success = false, message = "Error updating incident status" });
             }
         }
 
@@ -1079,8 +1287,6 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         // Helper method to format notification messages
-
-        // Helper method to format notification messages
         private string FormatNotificationMessage(string message)
         {
             if (string.IsNullOrEmpty(message))
@@ -1117,18 +1323,6 @@ namespace PiranaSecuritySystem.Controllers
                 default: return "badge bg-secondary";
             }
         }
-
-        public ActionResult Details(int id)
-        {
-            var incident = db.IncidentReports.Find(id);
-            if (incident == null)
-            {
-                return HttpNotFound();
-            }
-            return View(incident);
-        }
-
-
 
         // Helper method to get incident types for dropdown
         private List<SelectListItem> GetIncidentTypes()

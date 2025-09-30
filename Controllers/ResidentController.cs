@@ -517,18 +517,18 @@ namespace PiranaSecuritySystem.Controllers
         private List<SelectListItem> GetCommonLocations()
         {
             return new List<SelectListItem>
-    {
-        new SelectListItem { Value = "Main Entrance", Text = "Main Entrance" },
-        new SelectListItem { Value = "Parking Lot", Text = "Parking Lot" },
-        new SelectListItem { Value = "Lobby Area", Text = "Lobby Area" },
-        new SelectListItem { Value = "Elevator", Text = "Elevator" },
-        new SelectListItem { Value = "Stairwell", Text = "Stairwell" },
-        new SelectListItem { Value = "Common Room", Text = "Common Room" },
-        new SelectListItem { Value = "Gym", Text = "Gym" },
-        new SelectListItem { Value = "Pool Area", Text = "Pool Area" },
-        new SelectListItem { Value = "Park", Text = "Park" },
-        new SelectListItem { Value = "Other", Text = "Other" }
-    };
+            {
+                new SelectListItem { Value = "Main Entrance", Text = "Main Entrance" },
+                new SelectListItem { Value = "Parking Lot", Text = "Parking Lot" },
+                new SelectListItem { Value = "Lobby Area", Text = "Lobby Area" },
+                new SelectListItem { Value = "Elevator", Text = "Elevator" },
+                new SelectListItem { Value = "Stairwell", Text = "Stairwell" },
+                new SelectListItem { Value = "Common Room", Text = "Common Room" },
+                new SelectListItem { Value = "Gym", Text = "Gym" },
+                new SelectListItem { Value = "Pool Area", Text = "Pool Area" },
+                new SelectListItem { Value = "Park", Text = "Park" },
+                new SelectListItem { Value = "Other", Text = "Other" }
+            };
         }
 
         // POST: Resident/ReportIncident
@@ -584,7 +584,7 @@ namespace PiranaSecuritySystem.Controllers
                     };
                     db.Notifications.Add(residentNotification);
 
-                    // Notify directors about new incident report
+                    // Notify directors about new incident report from resident
                     try
                     {
                         var directors = db.Directors.Where(d => d.IsActive).ToList();
@@ -594,12 +594,14 @@ namespace PiranaSecuritySystem.Controllers
                             {
                                 UserId = director.DirectorId.ToString(),
                                 UserType = "Director",
-                                Title = "New Incident Reported",
-                                Message = $"New incident reported by {resident.FullName}: {model.IncidentType} (Priority: {incident.Priority})",
+                                Title = "New Incident Reported by Resident",
+                                Message = $"A new {model.IncidentType} incident has been filed by Resident {resident.FullName} (ID: {resident.Id}) at {model.Location} on {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
                                 IsRead = false,
                                 CreatedAt = DateTime.Now,
                                 RelatedUrl = Url.Action("IncidentDetails", "Director", new { id = incident.IncidentReportId }),
-                                NotificationType = "Incident"
+                                NotificationType = "Incident",
+                                IsImportant = model.Priority == "High" || model.Priority == "Critical",
+                                PriorityLevel = model.Priority == "Critical" ? 4 : model.Priority == "High" ? 3 : 2
                             };
                             db.Notifications.Add(directorNotification);
                         }

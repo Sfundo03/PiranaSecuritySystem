@@ -427,7 +427,7 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // GET: Director/GetNotifications
+        // GET: Director/GetNotifications - UPDATED VERSION
         [HttpGet]
         public JsonResult GetNotifications()
         {
@@ -455,14 +455,15 @@ namespace PiranaSecuritySystem.Controllers
                     .Take(20)
                     .Select(n => new
                     {
-                        n.NotificationId,
-                        n.Title,
-                        n.Message,
-                        n.IsRead,
-                        n.CreatedAt,
-                        n.RelatedUrl,
-                        n.NotificationType,
-                        n.IsImportant
+                        NotificationId = n.NotificationId,
+                        Title = n.Title,
+                        Message = n.Message,
+                        IsRead = n.IsRead,
+                        CreatedAt = n.CreatedAt,
+                        RelatedUrl = n.RelatedUrl,
+                        NotificationType = n.NotificationType,
+                        IsImportant = n.IsImportant,
+                        PriorityLevel = n.PriorityLevel
                     })
                     .ToList();
 

@@ -33,13 +33,13 @@
             position: absolute;
             right: 0;
             top: 100%;
-            width: 350px;
+            width: 400px;
             background: white;
             border: 1px solid #dee2e6;
             border-radius: 0.375rem;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
             z-index: 1000;
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
         }
 
@@ -47,20 +47,65 @@
             padding: 0.75rem;
             border-bottom: 1px solid #dee2e6;
             cursor: pointer;
-            transition: background-color 0.15s ease-in-out;
+            transition: all 0.2s ease;
         }
-
-            .notification-item:hover {
-                background-color: #f8f9fa;
-            }
 
             .notification-item.unread {
                 background-color: #f0f8ff;
-                border-left: 3px solid #007bff;
+                border-left: 4px solid #007bff;
+            }
+
+            .notification-item.priority-high {
+                border-left: 4px solid #ffc107;
+            }
+
+            .notification-item.priority-critical {
+                border-left: 4px solid #dc3545;
+            }
+
+            .notification-item:hover {
+                background-color: #e3f2fd;
+                transform: translateX(2px);
             }
 
             .notification-item:last-child {
                 border-bottom: none;
+            }
+
+        .notification-type.badge {
+            font-size: 0.7rem;
+        }
+
+        .badge.bg-warning {
+            color: #000;
+        }
+
+        .notification-header {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .notification-footer {
+            padding: 0.75rem;
+            background-color: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .mark-all-read {
+            font-size: 0.875rem;
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+            .mark-all-read:hover {
+                text-decoration: underline;
             }
     </style>
 </head>
@@ -89,7 +134,7 @@
                             </span>
                         </a>
                         <div class="notification-dropdown" id="directorNotificationDropdown" aria-live="polite" aria-label="Notifications List" role="region" tabindex="-1">
-                            <div class="notification-header p-3 border-bottom d-flex justify-content-between align-items-center">
+                            <div class="notification-header">
                                 <span>All Notifications</span>
                                 <a href="#" class="mark-all-read small text-decoration-none" id="markAllAsRead" style="display: none;">Mark all as read</a>
                             </div>
@@ -98,7 +143,7 @@
                                     <i class="fas fa-bell-slash me-2"></i>No notifications
                                 </div>
                             </div>
-                            <div class="notification-footer text-center p-2 border-top">
+                            <div class="notification-footer">
                                 <a href="@Url.Action("Notifications", "Director")" class="text-primary small fw-semibold">View all notifications</a>
                             </div>
                         </div>
@@ -286,6 +331,7 @@
             loadDashboardStats();
             loadRecentIncidents();
             loadNotifications();
+            startNotificationAutoRefresh();
 
             const notificationBell = document.getElementById('directorNotificationBell');
             const notificationDropdown = document.getElementById('directorNotificationDropdown');
@@ -310,6 +356,7 @@
 
             document.getElementById('markAllAsRead').addEventListener('click', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 markAllNotificationsAsRead();
             });
 
@@ -424,12 +471,6 @@
                 });
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
         function loadNotifications() {
             fetch('@Url.Action("GetNotifications", "Director")')
                 .then(response => response.json())
@@ -453,8 +494,11 @@
 
                             const timeAgo = getTimeAgo(new Date(notification.CreatedAt));
                             const typeClass = getNotificationTypeClass(notification.NotificationType);
+                            const priorityClass = getPriorityBadgeClass(notification.PriorityLevel || 1);
+                            const priorityDisplay = notification.PriorityLevel > 2 ? `Priority ${notification.PriorityLevel}` : '';
 
-                            html += `<div class="notification-item ${isUnread ? 'unread' : ''}" data-id="${notification.NotificationId}">
+                            html += `<div class="notification-item ${isUnread ? 'unread' : ''} ${notification.PriorityLevel > 2 ? 'priority-high' : ''} ${notification.PriorityLevel > 3 ? 'priority-critical' : ''}"
+                                     data-id="${notification.NotificationId}" data-url="${notification.RelatedUrl || '#'}">
                                 <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div class="notification-title">
                                         <strong>${notification.Title}</strong>
@@ -464,7 +508,10 @@
                                 <div class="notification-message">${notification.Message}</div>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="notification-time">${timeAgo}</small>
-                                    ${isUnread ? '<span class="badge bg-primary">New</span>' : ''}
+                                    <div>
+                                        ${priorityDisplay ? `<span class="badge ${priorityClass} me-1">${priorityDisplay}</span>` : ''}
+                                        ${isUnread ? '<span class="badge bg-primary">New</span>' : ''}
+                                    </div>
                                 </div>
                             </div>`;
                         });
@@ -474,11 +521,19 @@
                         notificationCount.style.display = data.unreadCount > 0 ? 'block' : 'none';
                         markAllAsRead.style.display = data.unreadCount > 0 ? 'block' : 'none';
 
-                        // Add click handlers to mark notifications as read
+                        // Add click handlers to mark notifications as read and navigate
                         document.querySelectorAll('.notification-item').forEach(item => {
                             item.addEventListener('click', function() {
                                 const notificationId = this.getAttribute('data-id');
+                                const url = this.getAttribute('data-url');
                                 markNotificationAsRead(notificationId);
+
+                                // Navigate to related URL if available and not '#'
+                                if (url && url !== '#') {
+                                    setTimeout(() => {
+                                        window.location.href = url;
+                                    }, 300);
+                                }
                             });
                         });
                     } else {
@@ -560,6 +615,19 @@
             });
         }
 
+        function startNotificationAutoRefresh() {
+            // Auto-refresh notifications every 30 seconds
+            setInterval(() => {
+                loadNotifications();
+            }, 30000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         function getPriorityClass(priority) {
             if (!priority) return 'bg-secondary';
             switch (priority.toLowerCase()) {
@@ -588,6 +656,19 @@
                 case 'warning': return 'bg-warning';
                 case 'info': return 'bg-info';
                 case 'success': return 'bg-success';
+                case 'incident': return 'bg-danger';
+                case 'system': return 'bg-secondary';
+                case 'security': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getPriorityBadgeClass(priorityLevel) {
+            switch (priorityLevel) {
+                case 1: return 'bg-secondary';
+                case 2: return 'bg-info';
+                case 3: return 'bg-warning';
+                case 4: return 'bg-danger';
                 default: return 'bg-secondary';
             }
         }
