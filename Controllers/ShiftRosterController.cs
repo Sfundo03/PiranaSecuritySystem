@@ -170,7 +170,7 @@ namespace PiranaSecuritySystem.Controllers
 
                 if (viewModel.GenerateFor30Days)
                 {
-                    // Generate roster for 30 days with 4-4-4 fixed rotation
+                    // Generate roster for 30 days with 2-2-2 fixed rotation
                     Generate30DayRosterWithFixedRotation(selectedGuards, viewModel);
                     TempData["SuccessMessage"] = $"Rosters for 30 days starting from {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
                 }
@@ -211,7 +211,7 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // NEW: Generate 30-day roster with fixed 4-4-4 rotation
+        // UPDATED: Generate 30-day roster with fixed 2-2-2 rotation
         private void Generate30DayRosterWithFixedRotation(List<Guard> selectedGuards, RosterViewModel viewModel)
         {
             var allRosters = new List<ShiftRoster>();
@@ -234,29 +234,29 @@ namespace PiranaSecuritySystem.Controllers
                     continue;
                 }
 
-                // Calculate rotation position based on days from start date
-                int cycleDay = day % 12; // 12-day cycle (4 Day + 4 Night + 4 Off)
+                // Calculate rotation position based on days from start date - 6-day cycle (2 Day + 2 Night + 2 Off)
+                int cycleDay = day % 6;
 
                 // Determine which group has which shift based on the cycle day
                 List<Guard> dayShiftGuards, nightShiftGuards, offDutyGuards;
 
-                if (cycleDay < 4)
+                if (cycleDay < 2)
                 {
-                    // Days 0-3: Group1=Day, Group2=Night, Group3=Off
+                    // Days 0-1: Group1=Day, Group2=Night, Group3=Off
                     dayShiftGuards = group1;
                     nightShiftGuards = group2;
                     offDutyGuards = group3;
                 }
-                else if (cycleDay < 8)
+                else if (cycleDay < 4)
                 {
-                    // Days 4-7: Group1=Night, Group2=Off, Group3=Day
+                    // Days 2-3: Group1=Night, Group2=Off, Group3=Day
                     dayShiftGuards = group3;
                     nightShiftGuards = group1;
                     offDutyGuards = group2;
                 }
                 else
                 {
-                    // Days 8-11: Group1=Off, Group2=Day, Group3=Night
+                    // Days 4-5: Group1=Off, Group2=Day, Group3=Night
                     dayShiftGuards = group2;
                     nightShiftGuards = group3;
                     offDutyGuards = group1;
@@ -273,7 +273,7 @@ namespace PiranaSecuritySystem.Controllers
             db.SaveChanges();
         }
 
-        // NEW: Create roster entries for guards
+        // Create roster entries for guards
         private List<ShiftRoster> CreateRosterEntries(List<Guard> guards, string shiftType, DateTime date, string site)
         {
             return guards.Select(guard => new ShiftRoster
@@ -296,7 +296,7 @@ namespace PiranaSecuritySystem.Controllers
             return ex;
         }
 
-        // UPDATED: Auto-generate shift assignments with 4-4-4 fixed rotation
+        // UPDATED: Auto-generate shift assignments with 2-2-2 fixed rotation
         private void AutoGenerateShifts(List<Guard> selectedGuards, RosterViewModel viewModel)
         {
             // For single day creation, we need to determine the rotation based on existing history
@@ -328,34 +328,34 @@ namespace PiranaSecuritySystem.Controllers
                 var prevNightShift = previousRosters.Where(r => r.ShiftType == "Night").Select(r => r.Guard).ToList();
                 var prevOffDuty = previousRosters.Where(r => r.ShiftType == "Off").Select(r => r.Guard).ToList();
 
-                // Calculate days since rotation start
+                // Calculate days since rotation start - now using 6-day cycle
                 var rotationStartDate = GetRotationStartDate(viewModel.Site, previousDate);
                 var daysInRotation = (previousDate - rotationStartDate).Days;
-                var nextCycleDay = (daysInRotation + 1) % 12;
+                var nextCycleDay = (daysInRotation + 1) % 6;
 
-                // Determine next shift assignment based on 4-4-4 rotation
-                if (nextCycleDay < 4)
+                // Determine next shift assignment based on 2-2-2 rotation
+                if (nextCycleDay < 2)
                 {
-                    // Continue Day shift for group that was on Day, or rotate
+                    // Continue current pattern for first 2 days
                     dayShiftGuards = prevDayShift;
                     nightShiftGuards = prevNightShift;
                     offDutyGuards = prevOffDuty;
                 }
-                else if (nextCycleDay == 4)
+                else if (nextCycleDay == 2)
                 {
                     // Rotate: Day->Night, Night->Off, Off->Day
                     dayShiftGuards = prevOffDuty;
                     nightShiftGuards = prevDayShift;
                     offDutyGuards = prevNightShift;
                 }
-                else if (nextCycleDay < 8)
+                else if (nextCycleDay < 4)
                 {
-                    // Continue current pattern
+                    // Continue current pattern for next 2 days
                     dayShiftGuards = prevOffDuty;
                     nightShiftGuards = prevDayShift;
                     offDutyGuards = prevNightShift;
                 }
-                else if (nextCycleDay == 8)
+                else if (nextCycleDay == 4)
                 {
                     // Rotate again: Day->Off, Night->Day, Off->Night
                     dayShiftGuards = prevNightShift;
@@ -364,7 +364,7 @@ namespace PiranaSecuritySystem.Controllers
                 }
                 else
                 {
-                    // Continue current pattern
+                    // Continue current pattern for last 2 days
                     dayShiftGuards = prevNightShift;
                     nightShiftGuards = prevOffDuty;
                     offDutyGuards = prevDayShift;
@@ -523,7 +523,7 @@ namespace PiranaSecuritySystem.Controllers
                 }
                 else
                 {
-                    // Auto-generate new shift assignments with 4-4-4 rotation
+                    // Auto-generate new shift assignments with 2-2-2 rotation
                     AutoGenerateShifts(selectedGuards, viewModel);
                     SaveRosterToDatabase(viewModel);
                 }
