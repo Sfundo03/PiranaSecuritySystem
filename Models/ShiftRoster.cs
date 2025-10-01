@@ -119,4 +119,15 @@ namespace PiranaSecuritySystem.Models
             OffDutyGuards = new List<Guard>();
         }
     }
+
+    public class GuardShiftHistory
+    {
+        public int GuardId { get; set; }
+        public string GuardName { get; set; }
+        public string LastShiftType { get; set; }
+        public int ConsecutiveDays { get; set; }
+        public DateTime LastShiftDate { get; set; }
+        public int TotalNightShifts { get; set; }
+        public int TotalDayShifts { get; set; }
+    }
 }
