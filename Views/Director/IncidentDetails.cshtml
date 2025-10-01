@@ -43,7 +43,7 @@
                                                         Model.Status == "In Progress" ? "badge-primary" :
                                                         Model.Status == "Pending" ? "badge-warning" : "badge-secondary";
                                     }
-                                    <span class="badge @statusClass text-white">@Model.Status</span>
+                                    <span class="badge @statusClass text-dark">@Model.Status</span>
                                 </p>
                             </div>
                         </div>
@@ -230,7 +230,7 @@
                         <div class="timeline-content">
                             <h6 class="font-weight-bold">Status Updated</h6>
                             <p class="text-muted">@Model.FeedbackDate.Value.ToString("MM/dd/yyyy HH:mm")</p>
-                            <p>Status was changed to <span class="badge badge-success">@Model.Status</span></p>
+                            <p>Status was changed to <span class="badge badge-success text-dark">@Model.Status</span></p>
                             @if (!string.IsNullOrEmpty(Model.Feedback))
                             {
                                 <p>Feedback provided: @Model.Feedback</p>
