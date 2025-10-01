@@ -170,34 +170,8 @@ namespace PiranaSecuritySystem.Controllers
 
                 if (viewModel.GenerateFor30Days)
                 {
-                    // Generate roster for 30 days
-                    for (int i = 0; i < 30; i++)
-                    {
-                        var currentDate = viewModel.RosterDate.AddDays(i);
-
-                        // Check if roster already exists for this specific date
-                        var existingRoster = db.ShiftRosters.Any(r => r.RosterDate == currentDate && r.Site == viewModel.Site);
-                        if (existingRoster)
-                        {
-                            // Skip this date if roster already exists
-                            continue;
-                        }
-
-                        var dailyViewModel = new RosterViewModel
-                        {
-                            RosterDate = currentDate,
-                            Site = viewModel.Site,
-                            GuardIdList = guardIds,
-                            GenerateFor30Days = viewModel.GenerateFor30Days
-                        };
-
-                        // Auto-generate shifts for this day
-                        AutoGenerateShifts(selectedGuards, dailyViewModel);
-
-                        // Save to database
-                        SaveRosterToDatabase(dailyViewModel);
-                    }
-
+                    // Generate roster for 30 days with 2-2-2 fixed rotation
+                    Generate30DayRosterWithFixedRotation(selectedGuards, viewModel);
                     TempData["SuccessMessage"] = $"Rosters for 30 days starting from {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
                 }
                 else
@@ -237,6 +211,81 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // UPDATED: Generate 30-day roster with fixed 2-2-2 rotation
+        private void Generate30DayRosterWithFixedRotation(List<Guard> selectedGuards, RosterViewModel viewModel)
+        {
+            var allRosters = new List<ShiftRoster>();
+
+            // Divide guards into 3 groups of 4 for the rotation
+            var group1 = selectedGuards.Take(4).ToList();
+            var group2 = selectedGuards.Skip(4).Take(4).ToList();
+            var group3 = selectedGuards.Skip(8).Take(4).ToList();
+
+            // Generate roster for each day
+            for (int day = 0; day < 30; day++)
+            {
+                var currentDate = viewModel.RosterDate.AddDays(day);
+
+                // Check if roster already exists for this specific date
+                var existingRoster = db.ShiftRosters.Any(r => r.RosterDate == currentDate && r.Site == viewModel.Site);
+                if (existingRoster)
+                {
+                    // Skip this date if roster already exists
+                    continue;
+                }
+
+                // Calculate rotation position based on days from start date - 6-day cycle (2 Day + 2 Night + 2 Off)
+                int cycleDay = day % 6;
+
+                // Determine which group has which shift based on the cycle day
+                List<Guard> dayShiftGuards, nightShiftGuards, offDutyGuards;
+
+                if (cycleDay < 2)
+                {
+                    // Days 0-1: Group1=Day, Group2=Night, Group3=Off
+                    dayShiftGuards = group1;
+                    nightShiftGuards = group2;
+                    offDutyGuards = group3;
+                }
+                else if (cycleDay < 4)
+                {
+                    // Days 2-3: Group1=Night, Group2=Off, Group3=Day
+                    dayShiftGuards = group3;
+                    nightShiftGuards = group1;
+                    offDutyGuards = group2;
+                }
+                else
+                {
+                    // Days 4-5: Group1=Off, Group2=Day, Group3=Night
+                    dayShiftGuards = group2;
+                    nightShiftGuards = group3;
+                    offDutyGuards = group1;
+                }
+
+                // Create roster entries
+                allRosters.AddRange(CreateRosterEntries(dayShiftGuards, "Day", currentDate, viewModel.Site));
+                allRosters.AddRange(CreateRosterEntries(nightShiftGuards, "Night", currentDate, viewModel.Site));
+                allRosters.AddRange(CreateRosterEntries(offDutyGuards, "Off", currentDate, viewModel.Site));
+            }
+
+            // Save all rosters to database
+            db.ShiftRosters.AddRange(allRosters);
+            db.SaveChanges();
+        }
+
+        // Create roster entries for guards
+        private List<ShiftRoster> CreateRosterEntries(List<Guard> guards, string shiftType, DateTime date, string site)
+        {
+            return guards.Select(guard => new ShiftRoster
+            {
+                RosterDate = date,
+                ShiftType = shiftType,
+                GuardId = guard.GuardId,
+                Site = site,
+                CreatedDate = DateTime.Now
+            }).ToList();
+        }
+
         // Helper method to get the deepest inner exception
         private Exception GetInnerException(Exception ex)
         {
@@ -247,58 +296,120 @@ namespace PiranaSecuritySystem.Controllers
             return ex;
         }
 
-        // FIXED: Auto-generate shift assignments
+        // UPDATED: Auto-generate shift assignments with 2-2-2 fixed rotation
         private void AutoGenerateShifts(List<Guard> selectedGuards, RosterViewModel viewModel)
         {
-            // Use a safe minimum date that SQL Server can handle
-            DateTime safeMinDate = new DateTime(1753, 1, 1);
+            // For single day creation, we need to determine the rotation based on existing history
+            // or start a new rotation if no history exists
 
             // Extract guard IDs for the query
             var guardIds = selectedGuards.Select(g => g.GuardId).ToList();
 
-            // Get previous roster data for fair rotation
-            var previousRosters = db.ShiftRosters
-                .Where(r => r.RosterDate < viewModel.RosterDate && guardIds.Contains(r.GuardId))
+            // Get the most recent roster for this site to continue the rotation
+            var latestRoster = db.ShiftRosters
+                .Where(r => r.Site == viewModel.Site && r.RosterDate < viewModel.RosterDate)
                 .OrderByDescending(r => r.RosterDate)
-                .ToList();
+                .FirstOrDefault();
 
-            // Create guard assignments with shift history using safe minimum date
-            var guardAssignments = selectedGuards.Select(guard => new
+            List<Guard> dayShiftGuards, nightShiftGuards, offDutyGuards;
+
+            if (latestRoster != null)
             {
-                Guard = guard,
-                LastNightShift = previousRosters
-                    .Where(r => r.GuardId == guard.GuardId && r.ShiftType == "Night")
-                    .OrderByDescending(r => r.RosterDate)
-                    .FirstOrDefault()?.RosterDate ?? safeMinDate,
-                LastDayShift = previousRosters
-                    .Where(r => r.GuardId == guard.GuardId && r.ShiftType == "Day")
-                    .OrderByDescending(r => r.RosterDate)
-                    .FirstOrDefault()?.RosterDate ?? safeMinDate,
-                NightShiftCount = previousRosters.Count(r => r.GuardId == guard.GuardId && r.ShiftType == "Night"),
-                DayShiftCount = previousRosters.Count(r => r.GuardId == guard.GuardId && r.ShiftType == "Day")
-            }).ToList();
+                // Continue rotation from previous day
+                var previousDate = latestRoster.RosterDate;
 
-            // Sort by least recent night shift, then by night shift count
-            var nightShiftCandidates = guardAssignments
-                .OrderBy(g => g.LastNightShift)
-                .ThenBy(g => g.NightShiftCount)
-                .Take(4)
-                .ToList();
+                // Get previous day's assignments
+                var previousRosters = db.ShiftRosters
+                    .Include(r => r.Guard)
+                    .Where(r => r.RosterDate == previousDate && r.Site == viewModel.Site)
+                    .ToList();
 
-            // Remove night shift candidates and get day shift candidates
-            var remainingForDay = guardAssignments.Except(nightShiftCandidates)
-                .OrderBy(g => g.LastDayShift)
-                .ThenBy(g => g.DayShiftCount)
-                .Take(4)
-                .ToList();
+                var prevDayShift = previousRosters.Where(r => r.ShiftType == "Day").Select(r => r.Guard).ToList();
+                var prevNightShift = previousRosters.Where(r => r.ShiftType == "Night").Select(r => r.Guard).ToList();
+                var prevOffDuty = previousRosters.Where(r => r.ShiftType == "Off").Select(r => r.Guard).ToList();
 
-            // Remaining are off duty
-            var offDuty = guardAssignments.Except(nightShiftCandidates).Except(remainingForDay).ToList();
+                // Calculate days since rotation start - now using 6-day cycle
+                var rotationStartDate = GetRotationStartDate(viewModel.Site, previousDate);
+                var daysInRotation = (previousDate - rotationStartDate).Days;
+                var nextCycleDay = (daysInRotation + 1) % 6;
+
+                // Determine next shift assignment based on 2-2-2 rotation
+                if (nextCycleDay < 2)
+                {
+                    // Continue current pattern for first 2 days
+                    dayShiftGuards = prevDayShift;
+                    nightShiftGuards = prevNightShift;
+                    offDutyGuards = prevOffDuty;
+                }
+                else if (nextCycleDay == 2)
+                {
+                    // Rotate: Day->Night, Night->Off, Off->Day
+                    dayShiftGuards = prevOffDuty;
+                    nightShiftGuards = prevDayShift;
+                    offDutyGuards = prevNightShift;
+                }
+                else if (nextCycleDay < 4)
+                {
+                    // Continue current pattern for next 2 days
+                    dayShiftGuards = prevOffDuty;
+                    nightShiftGuards = prevDayShift;
+                    offDutyGuards = prevNightShift;
+                }
+                else if (nextCycleDay == 4)
+                {
+                    // Rotate again: Day->Off, Night->Day, Off->Night
+                    dayShiftGuards = prevNightShift;
+                    nightShiftGuards = prevOffDuty;
+                    offDutyGuards = prevDayShift;
+                }
+                else
+                {
+                    // Continue current pattern for last 2 days
+                    dayShiftGuards = prevNightShift;
+                    nightShiftGuards = prevOffDuty;
+                    offDutyGuards = prevDayShift;
+                }
+            }
+            else
+            {
+                // No previous roster - start new rotation
+                // Divide guards into 3 groups of 4
+                var group1 = selectedGuards.Take(4).ToList();
+                var group2 = selectedGuards.Skip(4).Take(4).ToList();
+                var group3 = selectedGuards.Skip(8).Take(4).ToList();
+
+                // Start with Group1=Day, Group2=Night, Group3=Off
+                dayShiftGuards = group1;
+                nightShiftGuards = group2;
+                offDutyGuards = group3;
+            }
 
             // Assign to viewModel
-            viewModel.DayShiftGuards = remainingForDay.Select(g => g.Guard).ToList();
-            viewModel.NightShiftGuards = nightShiftCandidates.Select(g => g.Guard).ToList();
-            viewModel.OffDutyGuards = offDuty.Select(g => g.Guard).ToList();
+            viewModel.DayShiftGuards = dayShiftGuards;
+            viewModel.NightShiftGuards = nightShiftGuards;
+            viewModel.OffDutyGuards = offDutyGuards;
+        }
+
+        // Helper method to find rotation start date
+        private DateTime GetRotationStartDate(string site, DateTime currentDate)
+        {
+            // Look back up to 30 days to find when the rotation started
+            for (int i = 0; i < 30; i++)
+            {
+                var checkDate = currentDate.AddDays(-i);
+                var roster = db.ShiftRosters
+                    .Where(r => r.RosterDate == checkDate && r.Site == site)
+                    .ToList();
+
+                if (!roster.Any())
+                {
+                    // No roster found for this date, rotation likely started the next day
+                    return checkDate.AddDays(1);
+                }
+            }
+
+            // If no break found, assume rotation started 30 days ago
+            return currentDate.AddDays(-30);
         }
 
         // Save roster to database
@@ -404,11 +515,18 @@ namespace PiranaSecuritySystem.Controllers
                     .Where(g => viewModel.GuardIdList.Contains(g.GuardId))
                     .ToList();
 
-                // Auto-generate new shift assignments
-                AutoGenerateShifts(selectedGuards, viewModel);
-
-                // Save new roster items
-                SaveRosterToDatabase(viewModel);
+                // For editing, maintain the same groups but recalculate if guards changed
+                if (viewModel.DayShiftGuards.Count == 4 && viewModel.NightShiftGuards.Count == 4 && viewModel.OffDutyGuards.Count == 4)
+                {
+                    // Keep the same shift assignment if valid
+                    SaveRosterToDatabase(viewModel);
+                }
+                else
+                {
+                    // Auto-generate new shift assignments with 2-2-2 rotation
+                    AutoGenerateShifts(selectedGuards, viewModel);
+                    SaveRosterToDatabase(viewModel);
+                }
 
                 TempData["SuccessMessage"] = $"Roster for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} updated successfully!";
                 return RedirectToAction("Index");
