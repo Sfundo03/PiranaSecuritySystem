@@ -252,38 +252,6 @@
                 color: var(--light-text);
             }
 
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.5);
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 600px;
-            border-radius: 8px;
-            color: #333;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
         .form-group {
             margin-bottom: 15px;
         }
@@ -420,7 +388,7 @@
                 }
 
                 <div class="dashboard-actions">
-                    <div class="action-card" onclick="openModal('detailsModal')">
+                    <div class="action-card" onclick="window.location.href='@Url.Action("Profile", "Resident")'">
                         <i class="fas fa-user-circle"></i>
                         <h3>My Details</h3>
                         <p>View and update your personal information</p>
@@ -453,55 +421,9 @@
         </div>
     </div>
 
-    <!-- My Details Modal -->
-    <div id="detailsModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('detailsModal')">&times;</span>
-            <h2>My Details</h2>
-            @using (Html.BeginForm("UpdateProfile", "Resident", FormMethod.Post))
-            {
-                @Html.AntiForgeryToken()
-                @Html.Hidden("Id", Model.Resident.Id)
-
-                <div class="form-group">
-                    <label for="FullName">Full Name</label>
-                    <input type="text" id="FullName" name="FullName" class="form-control" value="@Model.Resident.FullName" />
-                </div>
-
-                <div class="form-group">
-                    <label for="Email">Email</label>
-                    <input type="email" id="Email" name="Email" class="form-control" value="@Model.Resident.Email" />
-                </div>
-
-                <div class="form-group">
-                    <label for="PhoneNumber">Phone Number</label>
-                    <input type="text" id="PhoneNumber" name="PhoneNumber" class="form-control" value="@Model.Resident.PhoneNumber" />
-                </div>
-
-                <button type="submit" class="btn btn-custom">Update Details</button>
-            }
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // Modal functions
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = 'block';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function (event) {
-            if (event.target.className === 'modal') {
-                event.target.style.display = 'none';
-            }
-        }
-
         $(document).ready(function () {
             console.log("Resident dashboard loaded");
 
@@ -530,7 +452,6 @@
                     markNotificationAsRead(notificationId);
                     $(this).removeClass('unread');
 
-                    // Navigate to related URL if available
                     if (url && url !== '#') {
                         window.location.href = url;
                     }
@@ -544,14 +465,9 @@
                 markAllNotificationsAsRead();
             });
 
-            // Load notifications function
             function loadResidentNotifications() {
                 $.get('@Url.Action("GetNotifications", "Resident")', function (data) {
-                    if (data.error) {
-                        console.error('Error loading notifications:', data.error);
-                        return;
-                    }
-
+                    if (data.error) return console.error('Error loading notifications:', data.error);
                     updateNotificationUI(data);
                 }).fail(function(xhr, status, error) {
                     console.error('Failed to load notifications:', error);
@@ -580,7 +496,6 @@
                         notificationList.append(item);
                     });
 
-                    // Add view all link if there are more than 10 notifications
                     if (data.notifications.length > 10) {
                         notificationList.append('<div class="notification-footer text-center py-2">' +
                             '<a href="#" class="text-primary">View all notifications</a></div>');
@@ -590,7 +505,6 @@
                         '<i class="fas fa-bell-slash text-muted me-2"></i>No notifications</div>');
                 }
 
-                // Update notification count
                 updateNotificationCount(data.unreadCount || 0);
             }
 
@@ -624,11 +538,8 @@
                 $.post('@Url.Action("MarkNotificationAsRead", "Resident")', { id: notificationId })
                     .done(function(response) {
                         if (response.success) {
-                            // Update unread count
                             var currentCount = parseInt($('#residentNotificationBell .badge').text()) || 0;
-                            if (currentCount > 0) {
-                                updateNotificationCount(currentCount - 1);
-                            }
+                            if (currentCount > 0) updateNotificationCount(currentCount - 1);
                         }
                     })
                     .fail(function() {
@@ -650,10 +561,8 @@
                     });
             }
 
-            // Auto-refresh notifications every 30 seconds
             setInterval(loadResidentNotifications, 30000);
 
-            // Show success/error messages from TempData
             if ('@TempData["SuccessMessage"]') {
                 setTimeout(function () {
                     $('.alert-success').fadeOut('slow');
@@ -674,22 +583,14 @@
     {
         switch (type?.ToLower())
         {
-            case "login":
-                return "bg-success";
-            case "incident":
-                return "bg-danger";
-            case "system":
-                return "bg-info";
-            case "security":
-                return "bg-warning";
-            case "guard":
-                return "bg-primary";
-            case "instructor":
-                return "bg-purple";
-            case "checkin":
-                return "bg-teal";
-            default:
-                return "bg-secondary";
+            case "login": return "bg-success";
+            case "incident": return "bg-danger";
+            case "system": return "bg-info";
+            case "security": return "bg-warning";
+            case "guard": return "bg-primary";
+            case "instructor": return "bg-purple";
+            case "checkin": return "bg-teal";
+            default: return "bg-secondary";
         }
     }
 }

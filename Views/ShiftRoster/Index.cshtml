@@ -220,7 +220,13 @@
         <div class="header-actions">
             @Html.ActionLink("Create New Roster", "Create", null, new { @class = "btn btn-primary" })
             @Html.ActionLink("Back", "Dashboard", "Instructor", null, new { @class = "btn btn-secondary" })
+            @Html.ActionLink("Delete Entire Roster", "DeleteAll", "ShiftRoster", null, new
+            {
+                @class = "btn btn-danger",
+                onclick = "return confirm('⚠ Are you sure you want to delete ALL rosters? This action cannot be undone.');"
+            })
         </div>
+
 
         @if (!Model.Any())
         {
@@ -271,10 +277,13 @@
                                 }
                             </td>
                             <td>
-                                <div class="action-buttons">
-                                    @Html.ActionLink("Edit", "Edit", new { date = item.RosterDate.ToString("yyyy-MM-dd"), site = item.Site }, new { @class = "btn btn-warning btn-sm" })
-                                    @Html.ActionLink("Delete", "Delete", new { date = item.RosterDate.ToString("yyyy-MM-dd"), site = item.Site }, new { @class = "btn btn-danger btn-sm" })
-                                </div>
+                                @Html.ActionLink(
+    "Delete",
+    "Delete",
+    new { date = item.RosterDate.ToString("yyyy-MM-dd"), site = item.Site },
+    new { @class = "btn btn-danger btn-sm", onclick = "return confirm('Are you sure you want to delete this roster?');" }
+)
+
                             </td>
                         </tr>
                     }

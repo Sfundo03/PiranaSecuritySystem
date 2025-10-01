@@ -418,43 +418,39 @@ namespace PiranaSecuritySystem.Controllers
             return View(viewModel);
         }
 
-        // GET: ShiftRoster/Delete/5
+        // DELETE roster for a given date and site directly
         public ActionResult Delete(DateTime date, string site)
         {
             var rosterItems = db.ShiftRosters
-                .Include(r => r.Guard)
                 .Where(r => r.RosterDate == date && r.Site == site)
                 .ToList();
 
             if (!rosterItems.Any())
             {
-                return HttpNotFound();
+                TempData["ErrorMessage"] = $"No roster found for {date:yyyy-MM-dd} at {site}.";
+            }
+            else
+            {
+                db.ShiftRosters.RemoveRange(rosterItems);
+                db.SaveChanges();
+
+                TempData["SuccessMessage"] = $"Roster for {date:yyyy-MM-dd} at {site} deleted successfully!";
             }
 
-            var viewModel = new RosterDisplayViewModel
-            {
-                RosterDate = date,
-                Site = site,
-                DayShiftGuards = rosterItems.Where(r => r.ShiftType == "Day").Select(r => r.Guard).ToList(),
-                NightShiftGuards = rosterItems.Where(r => r.ShiftType == "Night").Select(r => r.Guard).ToList(),
-                OffDutyGuards = rosterItems.Where(r => r.ShiftType == "Off").Select(r => r.Guard).ToList()
-            };
-
-            return View(viewModel);
-        }
-
-        // POST: ShiftRoster/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public ActionResult DeleteConfirmed(DateTime date, string site)
-        {
-            var rosterItems = db.ShiftRosters.Where(r => r.RosterDate == date && r.Site == site);
-            db.ShiftRosters.RemoveRange(rosterItems);
-            db.SaveChanges();
-
-            TempData["SuccessMessage"] = $"Roster for {date:yyyy-MM-dd} at {site} deleted successfully!";
             return RedirectToAction("Index");
         }
+
+
+        public ActionResult DeleteAll()
+        {
+            db.Database.ExecuteSqlCommand("DELETE FROM GuardCheckIns");
+            db.Database.ExecuteSqlCommand("DELETE FROM ShiftRosters");
+
+            TempData["SuccessMessage"] = "All rosters and related guard check-ins have been deleted!";
+            return RedirectToAction("Index");
+        }
+
+
 
         // Helper method to populate site dropdown
         private void PopulateSiteDropdown()
