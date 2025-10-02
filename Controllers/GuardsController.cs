@@ -904,8 +904,53 @@ namespace PiranaSecuritySystem.Controllers
             return Redirect("~/Content/Guard/Index.html");
         }
 
-       
-        
+        // NEW: Get current logged-in guard information
+        [HttpGet]
+        public JsonResult GetCurrentGuardInfo()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return Json(new { success = false, message = "User not authenticated. Please log in again." }, JsonRequestBehavior.AllowGet);
+                }
+
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId && g.IsActive);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard profile not found or inactive." }, JsonRequestBehavior.AllowGet);
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    guardData = new
+                    {
+                        guardId = guard.GuardId,
+                        fullName = guard.Guard_FName + " " + guard.Guard_LName,
+                        siteUsername = guard.SiteUsername,
+                        email = guard.Email,
+                        phoneNumber = guard.PhoneNumber
+                    },
+                    message = "Guard auto-validated successfully"
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetCurrentGuardInfo: {ex.Message}");
+                return Json(new
+                {
+                    success = false,
+                    message = "An error occurred while auto-validating guard"
+                }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+
+
 
         // GET: Guard/Notifications
         public ActionResult Notifications()

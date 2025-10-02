@@ -1,4 +1,4 @@
-﻿// script.js - Simplified Guard Check-In System with Immediate Check-in/Check-out
+﻿// script.js - Simplified Guard Check-In System with Auto-Authentication
 
 // Store today's data in session
 let checkinData = JSON.parse(sessionStorage.getItem("checkinData")) || [];
@@ -71,6 +71,23 @@ async function validateGuardByUsername(siteUsername) {
     } catch (error) {
         console.error("Error validating guard:", error);
         return { isValid: false, message: "Network error validating guard" };
+    }
+}
+
+// NEW: Auto-validate current logged-in guard
+async function autoValidateCurrentGuard() {
+    try {
+        console.log('Auto-validating current guard...');
+        const response = await fetch('/Guard/GetCurrentGuardInfo', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error("Error auto-validating guard:", error);
+        return { success: false, message: "Network error auto-validating guard" };
     }
 }
 
@@ -168,9 +185,137 @@ async function getGuardCurrentStatus(guardId) {
     }
 }
 
-// SIMPLIFIED VALIDATION FUNCTION
+// NEW: AUTO VALIDATION FUNCTION - Runs on page load
+async function autoValidateGuard() {
+    console.log('=== AUTO VALIDATE GUARD STARTED ===');
+
+    const validationMessage = document.getElementById("validationMessage");
+    const qrSection = document.getElementById("qrSection");
+    const checkInBtn = document.getElementById("checkInBtn");
+    const checkOutBtn = document.getElementById("checkOutBtn");
+    const autoValidationSection = document.getElementById("autoValidationSection");
+
+    // Reset UI
+    validationMessage.textContent = "";
+    validationMessage.className = "";
+    validationMessage.style.display = "none";
+    showMessage("", "");
+    qrSection.style.display = "none";
+
+    // Reset button states - BOTH ENABLED BY DEFAULT
+    checkInBtn.disabled = false;
+    checkOutBtn.disabled = false;
+
+    document.getElementById("qrcode").innerHTML = "<p style='color: #666;'>QR code will appear here after generation</p>";
+    document.getElementById("scannedCode").value = "";
+
+    try {
+        console.log('Step 1: Auto-validating current guard');
+        const result = await autoValidateCurrentGuard();
+        console.log('Auto-validation result:', result);
+
+        if (!result.success) {
+            // Auto-validation failed, show manual validation
+            autoValidationSection.style.display = 'none';
+            document.getElementById('manualValidationSection').style.display = 'block';
+            showValidationMessage(result.message || "Auto-validation failed. Please enter your username manually.", "warning");
+            return;
+        }
+
+        currentGuardData = result.guardData;
+        console.log('Guard data:', currentGuardData);
+
+        // Step 2: Get today's shift information
+        console.log('Step 2: Getting shift information');
+        const shiftResult = await getTodaysShift(currentGuardData.guardId);
+        currentShiftData = shiftResult.success ? shiftResult.shift : null;
+
+        if (currentShiftData) {
+            currentShiftType = currentShiftData.shiftType;
+            console.log('Shift data found:', currentShiftData);
+
+            // Check if guard is off duty
+            if (currentShiftType === "Off") {
+                showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are OFF DUTY today.`, "warning");
+                document.getElementById("currentGuardInfo").textContent = `${currentGuardData.fullName} - OFF DUTY`;
+                document.getElementById("currentGuardInfo").style.display = "block";
+                qrSection.style.display = "block";
+
+                // Disable both buttons for off-duty guards
+                checkInBtn.disabled = true;
+                checkOutBtn.disabled = true;
+                isValidGuard = true;
+
+                // Hide auto-validation section
+                autoValidationSection.style.display = 'none';
+                return;
+            }
+        } else {
+            currentShiftType = determineShiftType();
+            console.log('No shift data, using default:', currentShiftType);
+        }
+
+        // Step 3: Get current status from DATABASE
+        console.log('Step 3: Getting current status from database');
+        const currentStatus = await getGuardCurrentStatus(currentGuardData.guardId);
+        console.log('Current status from database:', currentStatus);
+
+        // Update guard info display
+        const shiftInfo = currentShiftData ?
+            `${currentShiftType} Shift at ${currentShiftData.location || "Main Gate"}` :
+            `${currentShiftType} Shift`;
+
+        document.getElementById("currentGuardInfo").textContent = `${currentGuardData.fullName} - ${shiftInfo}`;
+        document.getElementById("currentGuardInfo").style.display = "block";
+
+        // Step 4: SIMPLIFIED button states - BOTH BUTTONS ALWAYS ENABLED
+        qrSection.style.display = "block";
+        isValidGuard = true;
+
+        // ALWAYS enable both buttons - remove all restrictions
+        checkInBtn.disabled = false;
+        checkOutBtn.disabled = false;
+
+        // Just show status information, don't restrict actions
+        if (currentStatus.hasCheckedOut) {
+            console.log('Status: Already checked out');
+            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You have already completed your shift today.`, "success");
+        } else if (currentStatus.hasCheckedIn) {
+            console.log('Status: Checked in, can check out');
+            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are checked in and can check out now.`, "success");
+        } else {
+            console.log('Status: Not checked in, can check in');
+            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You can check in or check out now.`, "success");
+        }
+
+        // Hide auto-validation section and show QR section
+        autoValidationSection.style.display = 'none';
+
+        // Save to session storage
+        sessionStorage.setItem("guardData", JSON.stringify(currentGuardData));
+        if (currentShiftData) {
+            sessionStorage.setItem("shiftData", JSON.stringify(currentShiftData));
+        }
+
+        console.log('=== AUTO VALIDATION COMPLETED ===');
+
+    } catch (error) {
+        console.error("Auto-validation error:", error);
+        // Fall back to manual validation
+        autoValidationSection.style.display = 'none';
+        document.getElementById('manualValidationSection').style.display = 'block';
+        showValidationMessage("Auto-authentication failed. Please enter your username manually.", "error");
+        qrSection.style.display = "none";
+        document.getElementById("currentGuardInfo").style.display = "none";
+        checkInBtn.disabled = true;
+        checkOutBtn.disabled = true;
+        isValidGuard = false;
+    }
+}
+
+// MANUAL VALIDATION FUNCTION (for fallback)
 async function validateGuard() {
-    console.log('=== VALIDATE GUARD STARTED ===');
+    console.log('=== MANUAL VALIDATE GUARD STARTED ===');
 
     const siteUsername = document.getElementById("siteUsername").value.trim();
     const validationMessage = document.getElementById("validationMessage");
@@ -289,7 +434,7 @@ async function validateGuard() {
             sessionStorage.setItem("shiftData", JSON.stringify(currentShiftData));
         }
 
-        console.log('=== VALIDATION COMPLETED ===');
+        console.log('=== MANUAL VALIDATION COMPLETED ===');
 
     } catch (error) {
         console.error("Validation error:", error);
@@ -613,12 +758,16 @@ function resetForm() {
     document.getElementById("currentGuardInfo").textContent = "";
     document.getElementById("currentGuardInfo").style.display = "none";
 
+    // Hide manual validation and show auto-validation
+    document.getElementById('manualValidationSection').style.display = 'none';
+    document.getElementById('autoValidationSection').style.display = 'block';
+
     // Reset buttons to default state - BOTH ENABLED
     document.getElementById("checkInBtn").disabled = false;
     document.getElementById("checkOutBtn").disabled = false;
 
-    // Focus back to username field
-    document.getElementById("siteUsername").focus();
+    // Restart auto-validation
+    autoValidateGuard();
 }
 
 // EVENT LISTENERS
@@ -653,35 +802,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Hide QR section initially
+    // Hide sections initially
     document.getElementById('qrSection').style.display = 'none';
     document.getElementById('currentGuardInfo').style.display = 'none';
+    document.getElementById('manualValidationSection').style.display = 'none';
 
-    // Auto-validate if guard data exists in session
-    const savedGuardData = sessionStorage.getItem("guardData");
-    if (savedGuardData) {
-        try {
-            currentGuardData = JSON.parse(savedGuardData);
-            const savedShiftData = sessionStorage.getItem("shiftData");
-            if (savedShiftData) {
-                currentShiftData = JSON.parse(savedShiftData);
-                currentShiftType = currentShiftData.shiftType;
-            } else {
-                currentShiftType = determineShiftType();
-            }
-
-            document.getElementById("currentGuardInfo").textContent =
-                `${currentGuardData.fullName} - ${currentShiftData && currentShiftData.shiftType === "Off" ?
-                    "OFF DUTY" : currentShiftType + " Shift"}`;
-            document.getElementById("currentGuardInfo").style.display = "block";
-
-            // Auto-validate to get current status from database
-            validateGuard();
-        } catch (e) {
-            console.error("Error loading saved data:", e);
-            resetForm();
-        }
-    }
+    // Start auto-validation immediately
+    autoValidateGuard();
 
     console.log('Event listeners attached successfully');
 });
