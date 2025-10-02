@@ -244,6 +244,10 @@ namespace PiranaSecuritySystem.Controllers
                 };
 
                 db.GuardCheckIns.Add(checkIn);
+                db.SaveChanges(); // Save to get the CheckInId
+
+                // Create or update attendance record
+                UpdateAttendanceRecord(checkIn);
 
                 // Update shift status if RosterId is provided
                 if (checkInData.RosterId.HasValue)
@@ -280,6 +284,68 @@ namespace PiranaSecuritySystem.Controllers
                 System.Diagnostics.Debug.WriteLine($"Error in SaveCheckIn: {ex.Message}");
                 return Json(new { success = false, message = $"An error occurred while saving check-in: {ex.Message}" });
             }
+        }
+
+        // Helper method to update attendance records
+        private void UpdateAttendanceRecord(GuardCheckIn checkIn)
+        {
+            if (checkIn.Status == "Present" || checkIn.Status == "Late Arrival")
+            {
+                // Create new attendance record for check-in
+                var attendance = new Attendance
+                {
+                    GuardId = checkIn.GuardId,
+                    CheckInTime = checkIn.CheckInTime,
+                    AttendanceDate = checkIn.CheckInTime.Date,
+                    CheckInId = checkIn.CheckInId,
+                    HoursWorked = 0 // Will be updated on check-out
+                };
+                db.Attendances.Add(attendance);
+            }
+            else if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
+            {
+                // Find the corresponding check-in for today
+                var checkInRecord = db.GuardCheckIns
+                    .Where(c => c.GuardId == checkIn.GuardId &&
+                               c.CheckInTime.Date == checkIn.CheckInTime.Date &&
+                               (c.Status == "Present" || c.Status == "Late Arrival") &&
+                               c.CheckInTime < checkIn.CheckInTime)
+                    .OrderByDescending(c => c.CheckInTime)
+                    .FirstOrDefault();
+
+                if (checkInRecord != null)
+                {
+                    // Find or create attendance record
+                    var attendance = db.Attendances
+                        .FirstOrDefault(a => a.CheckInId == checkInRecord.CheckInId) ??
+                        new Attendance
+                        {
+                            GuardId = checkIn.GuardId,
+                            CheckInTime = checkInRecord.CheckInTime,
+                            AttendanceDate = checkInRecord.CheckInTime.Date,
+                            CheckInId = checkInRecord.CheckInId
+                        };
+
+                    // Update check-out time and calculate hours
+                    attendance.CheckOutTime = checkIn.CheckInTime;
+                    attendance.HoursWorked = CalculateHoursWorked(attendance.CheckInTime, checkIn.CheckInTime);
+
+                    if (attendance.AttendanceId == 0)
+                    {
+                        db.Attendances.Add(attendance);
+                    }
+                }
+            }
+        }
+
+        // Helper method to calculate hours worked
+        private double CalculateHoursWorked(DateTime checkInTime, DateTime checkOutTime)
+        {
+            if (checkOutTime <= checkInTime)
+                return 0;
+
+            TimeSpan timeWorked = checkOutTime - checkInTime;
+            return Math.Round(timeWorked.TotalHours, 2);
         }
 
 

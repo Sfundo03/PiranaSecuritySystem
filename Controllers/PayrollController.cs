@@ -86,19 +86,14 @@ namespace PiranaSecuritySystem.Controllers
                     return View();
                 }
 
-                // Get attendance records for the period
-                var attendances = db.Attendances
-                    .Where(a => a.GuardId == guardId &&
-                                a.AttendanceDate >= payPeriodStart &&
-                                a.AttendanceDate <= payPeriodEnd &&
-                                a.CheckOutTime != null)
-                    .ToList();
+                // Get attendance records for the period with proper hours calculation
+                var attendances = GetAttendanceRecordsForPeriod(guardId, payPeriodStart, payPeriodEnd);
 
                 double totalHours = attendances.Sum(a => a.HoursWorked);
 
                 if (totalHours <= 0)
                 {
-                    ModelState.AddModelError("", $"No valid attendance records found for {guard.FullName} in the selected period.");
+                    ModelState.AddModelError("", $"No valid attendance records with hours worked found for {guard.FullName} in the selected period.");
                     ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
                     return View();
                 }
@@ -137,9 +132,9 @@ namespace PiranaSecuritySystem.Controllers
                 db.SaveChanges();
 
                 // Notify director about payroll creation
-                NotifyDirectorAboutPayroll(payroll.PayrollId, guard.FullName);
+                NotifyDirectorAboutPayroll(payroll.PayrollId, guard.FullName, totalHours, grossPay);
 
-                TempData["SuccessMessage"] = $"Payroll for {guard.FullName} has been generated successfully!";
+                TempData["SuccessMessage"] = $"Payroll for {guard.FullName} has been generated successfully! Total Hours: {totalHours:F2}";
                 return RedirectToAction("Details", new { id = payroll.PayrollId });
             }
             catch (Exception ex)
@@ -151,6 +146,99 @@ namespace PiranaSecuritySystem.Controllers
                 ViewBag.GuardId = new SelectList(db.Guards.Where(g => g.IsActive), "GuardId", "FullName");
                 return View();
             }
+        }
+
+        // Helper method to get attendance records with proper hours calculation
+        private List<Attendance> GetAttendanceRecordsForPeriod(int guardId, DateTime startDate, DateTime endDate)
+        {
+            // First, ensure we have proper attendance records from check-ins
+            SyncCheckInsWithAttendance(guardId, startDate, endDate);
+
+            // Get attendance records with calculated hours
+            var attendances = db.Attendances
+                .Where(a => a.GuardId == guardId &&
+                           a.AttendanceDate >= startDate &&
+                           a.AttendanceDate <= endDate &&
+                           a.CheckOutTime != null &&
+                           a.HoursWorked > 0)
+                .ToList();
+
+            return attendances;
+        }
+
+        // Helper method to sync GuardCheckIn records with Attendance records
+        private void SyncCheckInsWithAttendance(int guardId, DateTime startDate, DateTime endDate)
+        {
+            // Get all check-in/check-out pairs for the period
+            var checkIns = db.GuardCheckIns
+                .Where(c => c.GuardId == guardId &&
+                           c.CheckInTime >= startDate &&
+                           c.CheckInTime <= endDate)
+                .OrderBy(c => c.CheckInTime)
+                .ToList();
+
+            foreach (var checkIn in checkIns)
+            {
+                // Find if attendance record already exists for this check-in
+                var existingAttendance = db.Attendances
+                    .FirstOrDefault(a => a.CheckInId == checkIn.CheckInId);
+
+                if (existingAttendance == null)
+                {
+                    // Create new attendance record from check-in
+                    var attendance = new Attendance
+                    {
+                        GuardId = guardId,
+                        CheckInTime = checkIn.CheckInTime,
+                        AttendanceDate = checkIn.CheckInTime.Date,
+                        CheckInId = checkIn.CheckInId
+                    };
+
+                    // If this is a check-out, find the corresponding check-in and calculate hours
+                    if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
+                    {
+                        // Find the corresponding check-in for this day
+                        var correspondingCheckIn = checkIns
+                            .Where(c => c.GuardId == guardId &&
+                                       c.CheckInTime.Date == checkIn.CheckInTime.Date &&
+                                       (c.Status == "Present" || c.Status == "Late Arrival") &&
+                                       c.CheckInTime < checkIn.CheckInTime)
+                            .OrderByDescending(c => c.CheckInTime)
+                            .FirstOrDefault();
+
+                        if (correspondingCheckIn != null)
+                        {
+                            attendance.CheckInTime = correspondingCheckIn.CheckInTime;
+                            attendance.CheckOutTime = checkIn.CheckInTime;
+                            attendance.HoursWorked = CalculateHoursWorked(correspondingCheckIn.CheckInTime, checkIn.CheckInTime);
+                        }
+                    }
+
+                    db.Attendances.Add(attendance);
+                }
+                else
+                {
+                    // Update existing attendance record if needed
+                    if ((checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure") &&
+                        existingAttendance.CheckOutTime == null)
+                    {
+                        existingAttendance.CheckOutTime = checkIn.CheckInTime;
+                        existingAttendance.HoursWorked = CalculateHoursWorked(existingAttendance.CheckInTime, checkIn.CheckInTime);
+                    }
+                }
+            }
+
+            db.SaveChanges();
+        }
+
+        // Helper method to calculate hours between check-in and check-out
+        private double CalculateHoursWorked(DateTime checkInTime, DateTime checkOutTime)
+        {
+            if (checkOutTime <= checkInTime)
+                return 0;
+
+            TimeSpan timeWorked = checkOutTime - checkInTime;
+            return Math.Round(timeWorked.TotalHours, 2); // Round to 2 decimal places
         }
 
         // GET: Payroll/Details/5
@@ -168,6 +256,16 @@ namespace PiranaSecuritySystem.Controllers
                 return HttpNotFound();
             }
 
+            // Get attendance records for this payroll period
+            var attendances = db.Attendances
+                .Where(a => a.GuardId == payroll.GuardId &&
+                           a.AttendanceDate >= payroll.PayPeriodStart &&
+                           a.AttendanceDate <= payroll.PayPeriodEnd &&
+                           a.CheckOutTime != null)
+                .OrderBy(a => a.AttendanceDate)
+                .ToList();
+
+            ViewBag.AttendanceRecords = attendances;
             return View(payroll);
         }
 
@@ -503,8 +601,32 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // Method to notify director about payroll creation
-        private void NotifyDirectorAboutPayroll(int payrollId, string guardName)
+        // GET: Payroll/GetAttendanceSummary
+        [Authorize(Roles = "Admin")]
+        public JsonResult GetAttendanceSummary(int guardId, DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                var attendances = GetAttendanceRecordsForPeriod(guardId, startDate, endDate);
+                double totalHours = attendances.Sum(a => a.HoursWorked);
+                int daysWorked = attendances.Select(a => a.AttendanceDate).Distinct().Count();
+
+                return Json(new
+                {
+                    success = true,
+                    totalHours = totalHours,
+                    daysWorked = daysWorked,
+                    attendanceCount = attendances.Count
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // Updated method to notify director about payroll creation
+        private void NotifyDirectorAboutPayroll(int payrollId, string guardName, double totalHours, decimal grossPay)
         {
             try
             {
@@ -517,7 +639,7 @@ namespace PiranaSecuritySystem.Controllers
                         UserId = director.DirectorId.ToString(),
                         UserType = "Director",
                         Title = "Payroll Created",
-                        Message = $"Payroll has been created for guard {guardName}",
+                        Message = $"Payroll has been created for guard {guardName}. Total Hours: {totalHours:F2}, Gross Pay: R{grossPay:F2}",
                         NotificationType = "Report",
                         CreatedAt = DateTime.Now,
                         IsImportant = true,

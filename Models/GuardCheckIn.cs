@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
 namespace PiranaSecuritySystem.Models
 {
@@ -48,5 +49,8 @@ namespace PiranaSecuritySystem.Models
         // Navigation properties
         public virtual Guard Guard { get; set; }
         public virtual ShiftRoster ShiftRoster { get; set; }
+
+        // Navigation property to Attendance
+        public virtual ICollection<Attendance> Attendances { get; set; }
     }
 }
