@@ -369,6 +369,7 @@
     <Content Include="Views\Guard\Notifications.cshtml" />
     <Content Include="Views\Guard\Details.cshtml" />
     <Content Include="Views\Admin\EditInstructor.cshtml" />
+    <Content Include="Views\Resident\Profile.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

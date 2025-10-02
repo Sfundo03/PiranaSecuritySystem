@@ -268,6 +268,11 @@
             color: #721c24;
         }
 
+        .status-inprogress {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
         .stats-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -328,6 +333,11 @@
         .status-pending {
             background-color: #e2e3e5;
             color: #383d41;
+        }
+
+        .status-awaiting-checkout {
+            background-color: #fff3cd;
+            color: #856404;
         }
 
         @@media (max-width: 768px) {
@@ -452,6 +462,10 @@
                                         {
                                             <span class="checkin-status status-checkedout">Checked Out</span>
                                         }
+                                        else if (shift.HasCheckIn && !shift.HasCheckOut)
+                                        {
+                                            <span class="checkin-status status-inprogress">Awaiting Check-Out</span>
+                                        }
                                         else if (shift.HasCheckIn)
                                         {
                                             <span class="checkin-status status-present">Present</span>
@@ -476,7 +490,7 @@
                                         }
                                         else if (shift.HasCheckIn && !shift.HasCheckOut)
                                         {
-                                            <span class="status-indicator status-checked-in">Checked In</span>
+                                            <span class="status-indicator status-awaiting-checkout">Awaiting Check-Out</span>
                                         }
                                         else if (shift.ShiftDate.Date < DateTime.Today && !shift.HasCheckIn)
                                         {
@@ -528,7 +542,7 @@
                                             }
                                             else if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
                                             {
-                                                <span class="checkin-status status-checkedout">@checkIn.Status</span>
+                                                <span class="checkin-status status-checkedout">Checked Out</span>
                                             }
                                             else
                                             {

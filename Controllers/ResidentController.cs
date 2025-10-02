@@ -1136,7 +1136,7 @@ namespace PiranaSecuritySystem.Controllers
         [Display(Name = "Incident Type")]
         public string IncidentType { get; set; }
 
-        [Required(ErrorMessage = "Description is required")]
+        [Required(ErrorMessage = "Description is required")] 
         [Display(Name = "Description")]
         [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         public string Description { get; set; }
