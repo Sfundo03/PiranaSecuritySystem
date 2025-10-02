@@ -204,7 +204,32 @@ namespace PiranaSecuritySystem.Controllers
                     }
                 }
 
-                // Create a new check-in record
+                DateTime today = DateTime.Today;
+
+                // Look for an existing record for this guard + date
+                var existing = db.GuardCheckIns
+                    .Where(c => c.GuardId == guard.GuardId && DbFunctions.TruncateTime(c.CheckInTime) == today)
+                    .OrderByDescending(c => c.CheckInTime)
+                    .FirstOrDefault();
+
+                if (checkInData.Status == "Present" || checkInData.Status == "Late Arrival")
+                {
+                    // Prevent multiple check-ins
+                    if (existing != null && (existing.Status == "Present" || existing.Status == "Late Arrival"))
+                    {
+                        return Json(new { success = false, message = "You have already checked in today." });
+                    }
+                }
+                else if (checkInData.Status == "Checked Out" || checkInData.Status == "Late Departure")
+                {
+                    // Must have a check-in before check-out
+                    if (existing == null || (existing.Status == "Checked Out" || existing.Status == "Late Departure"))
+                    {
+                        return Json(new { success = false, message = "You cannot check out before checking in, or you have already checked out." });
+                    }
+                }
+
+                // Create a new check-in/out record
                 var checkIn = new GuardCheckIn
                 {
                     GuardId = checkInData.GuardId,
@@ -242,18 +267,84 @@ namespace PiranaSecuritySystem.Controllers
                 // Create notification for check-in/check-out
                 CreateGuardNotification(
                     guard.GuardId,
-                    checkInData.Status.Contains("Check") ? "Check-Out Successful" : "Check-In Successful",
-                    $"You have {checkInData.Status.ToLower()} at {DateTime.Now.ToString("MMM dd, yyyy 'at' hh:mm tt")}",
+                    checkInData.Status == "Present" || checkInData.Status == "Late Arrival" ? "Check-In Successful" : "Check-Out Successful",
+                    $"You have {checkInData.Status.ToLower()} at {DateTime.Now:MMM dd, yyyy 'at' hh:mm tt}",
                     checkInData.Status.Contains("Check") ? "CheckOut" : "CheckIn",
                     false
                 );
 
-                return Json(new { success = true, message = "Check-in recorded successfully" });
+                return Json(new { success = true, message = $"{checkInData.Status} recorded successfully" });
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in SaveCheckIn: {ex.Message}");
                 return Json(new { success = false, message = $"An error occurred while saving check-in: {ex.Message}" });
+            }
+        }
+
+
+        // GET: Guard/Calendar
+        public ActionResult Calendar()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found. Please contact administrator.";
+                    return RedirectToAction("ProfileNotFound", "Error");
+                }
+
+                DateTime today = DateTime.Today;
+                DateTime sevenDaysAgo = today.AddDays(-7);
+
+                var shifts = db.ShiftRosters
+                    .Where(s => s.GuardId == guard.GuardId && s.RosterDate >= today)
+                    .OrderBy(s => s.RosterDate)
+                    .ToList();
+
+                var checkIns = db.GuardCheckIns
+                    .Where(c => c.GuardId == guard.GuardId && c.CheckInTime >= sevenDaysAgo)
+                    .OrderByDescending(c => c.CheckInTime)
+                    .ToList();
+
+                var viewModel = new GuardCalendarViewModel
+                {
+                    GuardId = guard.GuardId,
+                    GuardName = guard.Guard_FName + " " + guard.Guard_LName,
+                    Shifts = shifts.Select(s => new CalendarShift
+                    {
+                        ShiftId = s.RosterId,
+                        ShiftDate = s.RosterDate,
+                        ShiftType = s.ShiftType,
+                        StartTime = GetShiftStartTime(s.ShiftType),
+                        EndTime = GetShiftEndTime(s.ShiftType),
+                        Location = (string)(s.Location ?? "Main Gate"),
+                        Status = s.Status ?? "Scheduled",
+                        HasCheckIn = checkIns.Any(c => c.RosterId == s.RosterId && (c.Status == "Present" || c.Status == "Late Arrival")),
+                        HasCheckOut = checkIns.Any(c => c.RosterId == s.RosterId && (c.Status == "Checked Out" || c.Status == "Late Departure")),
+                        IsToday = s.RosterDate.Date == today,
+                        RosterId = s.RosterId
+                    }).ToList(),
+                    CheckIns = checkIns
+                };
+
+                return View("~/Views/Guard/Calendar.cshtml", viewModel);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ERROR in Calendar: {ex.Message}");
+                TempData["ErrorMessage"] = $"An error occurred while loading the calendar. Please try again.";
+                return RedirectToAction("Dashboard");
             }
         }
 
@@ -745,81 +836,7 @@ namespace PiranaSecuritySystem.Controllers
             return Redirect("~/Content/Guard/Index.html");
         }
 
-        // GET: Guard/Calendar
-        public ActionResult Calendar()
-        {
-            try
-            {
-                var currentUserId = User.Identity.GetUserId();
-
-                if (string.IsNullOrEmpty(currentUserId))
-                {
-                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
-                    return RedirectToAction("Login", "Account");
-                }
-
-                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
-
-                if (guard == null)
-                {
-                    TempData["ErrorMessage"] = "Guard profile not found. Please contact administrator.";
-                    return RedirectToAction("ProfileNotFound", "Error");
-                }
-
-                // Calculate dates outside the LINQ query
-                DateTime today = DateTime.Today;
-                DateTime sevenDaysAgo = today.AddDays(-7);
-
-                // Get upcoming shifts - use calculated date variable
-                var shifts = db.ShiftRosters
-                    .Where(s => s.GuardId == guard.GuardId && s.RosterDate >= today)
-                    .OrderBy(s => s.RosterDate)
-                    .ToList();
-
-                // Get check-ins for these shifts - use calculated date variable
-                var checkIns = db.GuardCheckIns
-                    .Where(c => c.GuardId == guard.GuardId && c.CheckInTime >= sevenDaysAgo)
-                    .OrderByDescending(c => c.CheckInTime)
-                    .ToList();
-
-                // Create view model
-                var viewModel = new GuardCalendarViewModel
-                {
-                    GuardId = guard.GuardId,
-                    GuardName = guard.Guard_FName + " " + guard.Guard_LName,
-                    Shifts = shifts.Select(s => new CalendarShift
-                    {
-                        ShiftId = s.RosterId,
-                        ShiftDate = s.RosterDate,
-                        ShiftType = s.ShiftType,
-                        StartTime = GetShiftStartTime(s.ShiftType),
-                        EndTime = GetShiftEndTime(s.ShiftType),
-                        Location = (string)(s.Location ?? "Main Gate"),
-                        Status = s.Status ?? "Scheduled",
-                        HasCheckIn = checkIns.Any(c => c.GuardId == guard.GuardId &&
-                                                     c.CheckInTime.Date == s.RosterDate.Date &&
-                                                     (c.Status == "Present" || c.Status == "Late Arrival")),
-                        HasCheckOut = checkIns.Any(c => c.GuardId == guard.GuardId &&
-                                                      c.CheckInTime.Date == s.RosterDate.Date &&
-                                                      (c.Status == "Checked Out" || c.Status == "Late Departure")),
-                        IsToday = s.RosterDate.Date == today,
-                        RosterId = s.RosterId
-                    }).ToList(),
-                    CheckIns = checkIns
-                };
-
-                return View("~/Views/Guard/Calendar.cshtml", viewModel);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"ERROR in Calendar: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
-
-                TempData["ErrorMessage"] = $"An error occurred while loading the calendar. Please try again.";
-                return RedirectToAction("Dashboard");
-            }
-        }
-
+       
         
 
         // GET: Guard/Notifications
