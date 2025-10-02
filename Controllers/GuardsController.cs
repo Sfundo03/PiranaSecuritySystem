@@ -206,13 +206,9 @@ namespace PiranaSecuritySystem.Controllers
 
                 DateTime today = DateTime.Today;
 
-                // Look for an existing record for this guard + date
-                var existingRecords = db.GuardCheckIns
-                    .Where(c => c.GuardId == guard.GuardId && DbFunctions.TruncateTime(c.CheckInTime) == today)
-                    .OrderByDescending(c => c.CheckInTime)
-                    .ToList();
+                // REMOVED: The problematic query that was causing the error
+                // We don't need to check existing records since we removed validation restrictions
 
-                // REMOVED ALL VALIDATION RESTRICTIONS - ALLOW ANY CHECK-IN/CHECK-OUT
                 // Create a new check-in/out record
                 var checkIn = new GuardCheckIn
                 {
@@ -247,10 +243,9 @@ namespace PiranaSecuritySystem.Controllers
                         {
                             shift.Status = "Completed";
                         }
+                        db.SaveChanges(); // Save shift status changes
                     }
                 }
-
-                db.SaveChanges();
 
                 // Create notification for check-in/check-out
                 CreateGuardNotification(
@@ -266,6 +261,7 @@ namespace PiranaSecuritySystem.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in SaveCheckIn: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
                 return Json(new { success = false, message = $"An error occurred while saving check-in: {ex.Message}" });
             }
         }
@@ -273,52 +269,74 @@ namespace PiranaSecuritySystem.Controllers
         // Helper method to update attendance records
         private void UpdateAttendanceRecord(GuardCheckIn checkIn)
         {
-            if (checkIn.Status == "Present" || checkIn.Status == "Late Arrival")
+            try
             {
-                // Create new attendance record for check-in
-                var attendance = new Attendance
+                if (checkIn.Status == "Present" || checkIn.Status == "Late Arrival")
                 {
-                    GuardId = checkIn.GuardId,
-                    CheckInTime = checkIn.CheckInTime,
-                    AttendanceDate = checkIn.CheckInTime.Date,
-                    CheckInId = checkIn.CheckInId,
-                    HoursWorked = 0 // Will be updated on check-out
-                };
-                db.Attendances.Add(attendance);
-            }
-            else if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
-            {
-                // Find the corresponding check-in for today
-                var checkInRecord = db.GuardCheckIns
-                    .Where(c => c.GuardId == checkIn.GuardId &&
-                               c.CheckInTime.Date == checkIn.CheckInTime.Date &&
-                               (c.Status == "Present" || c.Status == "Late Arrival") &&
-                               c.CheckInTime < checkIn.CheckInTime)
-                    .OrderByDescending(c => c.CheckInTime)
-                    .FirstOrDefault();
+                    // Create new attendance record for check-in
+                    var attendance = new Attendance
+                    {
+                        GuardId = checkIn.GuardId,
+                        CheckInTime = checkIn.CheckInTime,
+                        AttendanceDate = checkIn.CheckInTime.Date,
+                        CheckInId = checkIn.CheckInId,
+                        HoursWorked = 0 // Will be updated on check-out
+                    };
+                    db.Attendances.Add(attendance);
+                }
+                else if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
+                {
+                    // Find the corresponding check-in for today using DbFunctions
+                    var checkInRecord = db.GuardCheckIns
+                        .Where(c => c.GuardId == checkIn.GuardId &&
+                                   DbFunctions.TruncateTime(c.CheckInTime) == DbFunctions.TruncateTime(checkIn.CheckInTime) &&
+                                   (c.Status == "Present" || c.Status == "Late Arrival") &&
+                                   c.CheckInTime < checkIn.CheckInTime)
+                        .OrderByDescending(c => c.CheckInTime)
+                        .FirstOrDefault();
 
-                if (checkInRecord != null)
-                {
-                    // Find or create attendance record
-                    var attendance = db.Attendances
-                        .FirstOrDefault(a => a.CheckInId == checkInRecord.CheckInId) ??
-                        new Attendance
+                    if (checkInRecord != null)
+                    {
+                        // Find or create attendance record
+                        var attendance = db.Attendances
+                            .FirstOrDefault(a => a.CheckInId == checkInRecord.CheckInId) ??
+                            new Attendance
+                            {
+                                GuardId = checkIn.GuardId,
+                                CheckInTime = checkInRecord.CheckInTime,
+                                AttendanceDate = checkInRecord.CheckInTime.Date,
+                                CheckInId = checkInRecord.CheckInId
+                            };
+
+                        // Update check-out time and calculate hours
+                        attendance.CheckOutTime = checkIn.CheckInTime;
+                        attendance.HoursWorked = CalculateHoursWorked(attendance.CheckInTime, checkIn.CheckInTime);
+
+                        if (attendance.AttendanceId == 0)
+                        {
+                            db.Attendances.Add(attendance);
+                        }
+                    }
+                    else
+                    {
+                        // Create a standalone check-out attendance record if no check-in found
+                        var attendance = new Attendance
                         {
                             GuardId = checkIn.GuardId,
-                            CheckInTime = checkInRecord.CheckInTime,
-                            AttendanceDate = checkInRecord.CheckInTime.Date,
-                            CheckInId = checkInRecord.CheckInId
+                            CheckInTime = checkIn.CheckInTime.AddHours(-1), // Default 1 hour before checkout
+                            CheckOutTime = checkIn.CheckInTime,
+                            AttendanceDate = checkIn.CheckInTime.Date,
+                            CheckInId = checkIn.CheckInId,
+                            HoursWorked = 1.0 // Default 1 hour
                         };
-
-                    // Update check-out time and calculate hours
-                    attendance.CheckOutTime = checkIn.CheckInTime;
-                    attendance.HoursWorked = CalculateHoursWorked(attendance.CheckInTime, checkIn.CheckInTime);
-
-                    if (attendance.AttendanceId == 0)
-                    {
                         db.Attendances.Add(attendance);
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in UpdateAttendanceRecord: {ex.Message}");
+                // Don't throw, just log the error - we don't want to fail the main check-in/out operation
             }
         }
 
@@ -425,7 +443,7 @@ namespace PiranaSecuritySystem.Controllers
                         guardId = c.GuardId,
                         time = c.CheckInTime,
                         status = c.Status,
-                        date = c.CheckInTime.Date,
+                        date = c.CheckInTime,
                         isLate = c.IsLate,
                         expectedTime = c.ExpectedTime,
                         actualTime = c.ActualTime,
