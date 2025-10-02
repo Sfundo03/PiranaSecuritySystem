@@ -190,6 +190,35 @@
             .btn-reset:hover {
                 background-color: #5a6268;
             }
+
+        /* New styles for dual buttons */
+        .checkin-button {
+            background-color: #28a745;
+        }
+
+            .checkin-button:hover:not(:disabled) {
+                background-color: #218838;
+            }
+
+        .checkout-button {
+            background-color: #dc3545;
+        }
+
+            .checkout-button:hover:not(:disabled) {
+                background-color: #c82333;
+            }
+
+        .dual-buttons-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            gap: 10px;
+        }
+
+            .dual-buttons-container button {
+                flex: 1;
+                min-width: 120px;
+            }
     </style>
 </head>
 <body>
@@ -208,6 +237,13 @@
 
         <div id="qrSection">
             <h3>QR Code Authentication</h3>
+
+            <!-- Dual Check-in/Check-out Buttons - Always Visible -->
+            <div class="dual-buttons-container">
+                <button id="checkInBtn" class="checkin-button">Check In</button>
+                <button id="checkOutBtn" class="checkout-button">Check Out</button>
+            </div>
+
             <div id="qrcode">
                 <p style="color: #666;">QR code will appear here after generation</p>
             </div>
@@ -218,8 +254,6 @@
             </div>
 
             <div class="button-group">
-                <button id="checkInBtn">Check In</button>
-                <button id="checkOutBtn">Check Out</button>
                 <button id="generateQRBtn">Generate QR Code</button>
             </div>
         </div>
