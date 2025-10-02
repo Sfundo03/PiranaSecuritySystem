@@ -1,4 +1,4 @@
-﻿// script.js - Fixed Guard Check-In System with Always Visible Buttons
+﻿// script.js - Simplified Guard Check-In System with Immediate Check-in/Check-out
 
 // Store today's data in session
 let checkinData = JSON.parse(sessionStorage.getItem("checkinData")) || [];
@@ -13,7 +13,6 @@ const DAY_SHIFT_CHECKIN = "06:00";
 const DAY_SHIFT_CHECKOUT = "18:00";
 const NIGHT_SHIFT_CHECKIN = "18:00";
 const NIGHT_SHIFT_CHECKOUT = "06:00";
-const MIN_CHECKIN_DURATION_MINUTES = 60; // 1 hour minimum
 
 // Utility functions
 function generateShortCode() {
@@ -169,39 +168,7 @@ async function getGuardCurrentStatus(guardId) {
     }
 }
 
-// Check if guard can check out (minimum 1 hour after check-in)
-async function canGuardCheckOut(guardId) {
-    try {
-        const status = await getGuardCurrentStatus(guardId);
-
-        if (!status.hasCheckedIn || !status.latestCheckIn) {
-            console.log('Cannot check out: No check-in found');
-            return false;
-        }
-
-        if (status.hasCheckedOut) {
-            console.log('Cannot check out: Already checked out');
-            return false;
-        }
-
-        // Calculate time difference
-        const checkInTime = new Date(status.latestCheckIn.time);
-        const currentTime = new Date();
-        const timeDiffMinutes = (currentTime - checkInTime) / (1000 * 60);
-
-        console.log(`Check-in time: ${checkInTime}, Current time: ${currentTime}, Difference: ${timeDiffMinutes} minutes, Required: ${MIN_CHECKIN_DURATION_MINUTES} minutes`);
-
-        const canCheckOut = timeDiffMinutes >= MIN_CHECKIN_DURATION_MINUTES;
-        console.log(`Can check out: ${canCheckOut}`);
-
-        return canCheckOut;
-    } catch (error) {
-        console.error("Error checking check-out eligibility:", error);
-        return false;
-    }
-}
-
-// REVISED VALIDATION FUNCTION WITH ALWAYS VISIBLE BUTTONS
+// SIMPLIFIED VALIDATION FUNCTION
 async function validateGuard() {
     console.log('=== VALIDATE GUARD STARTED ===');
 
@@ -218,7 +185,7 @@ async function validateGuard() {
     showMessage("", "");
     qrSection.style.display = "none";
 
-    // Reset button states but keep them visible
+    // Reset button states - BOTH ENABLED BY DEFAULT
     checkInBtn.disabled = false;
     checkOutBtn.disabled = false;
 
@@ -296,43 +263,24 @@ async function validateGuard() {
         document.getElementById("currentGuardInfo").textContent = `${currentGuardData.fullName} - ${shiftInfo}`;
         document.getElementById("currentGuardInfo").style.display = "block";
 
-        // Step 4: Update button states based on DATABASE status (BOTH BUTTONS ALWAYS VISIBLE)
+        // Step 4: SIMPLIFIED button states - BOTH BUTTONS ALWAYS ENABLED
         qrSection.style.display = "block";
         isValidGuard = true;
 
+        // ALWAYS enable both buttons - remove all restrictions
+        checkInBtn.disabled = false;
+        checkOutBtn.disabled = false;
+
+        // Just show status information, don't restrict actions
         if (currentStatus.hasCheckedOut) {
-            // Guard has already completed shift
             console.log('Status: Already checked out');
             showValidationMessage(`Welcome, ${currentGuardData.fullName}! You have already completed your shift today.`, "success");
-            checkInBtn.disabled = true;
-            checkOutBtn.disabled = true;
         } else if (currentStatus.hasCheckedIn) {
-            // Guard has checked in but not checked out
             console.log('Status: Checked in, can check out');
-
-            // Check if minimum time has passed for check-out
-            const canCheckOut = await canGuardCheckOut(currentGuardData.guardId);
-
-            if (canCheckOut) {
-                showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are checked in and can now check out.`, "success");
-                checkInBtn.disabled = true; // Can't check in again
-                checkOutBtn.disabled = false; // Can check out
-            } else {
-                // Calculate remaining time
-                const checkInTime = new Date(currentStatus.latestCheckIn.time);
-                const timeDiffMinutes = (new Date() - checkInTime) / (1000 * 60);
-                const remainingMinutes = Math.ceil(MIN_CHECKIN_DURATION_MINUTES - timeDiffMinutes);
-
-                showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are checked in. You must wait ${remainingMinutes} more minutes before checking out.`, "warning");
-                checkInBtn.disabled = true; // Can't check in again
-                checkOutBtn.disabled = true; // Can't check out yet
-            }
+            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are checked in and can check out now.`, "success");
         } else {
-            // Guard has not checked in
             console.log('Status: Not checked in, can check in');
-            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You can check in now.`, "success");
-            checkInBtn.disabled = false; // Can check in
-            checkOutBtn.disabled = true; // Can't check out without checking in first
+            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You can check in or check out now.`, "success");
         }
 
         // Save to session storage
@@ -376,19 +324,8 @@ function generateQRCode() {
         return;
     }
 
-    // Double-check current status
-    getGuardCurrentStatus(currentGuardData.guardId).then(status => {
-        if (status.hasCheckedOut) {
-            showMessage("You have already completed your shift today.", "error");
-            return;
-        }
-
-        // Generate QR code
-        generateQRCodeInternal();
-    }).catch(error => {
-        console.error("Error checking status:", error);
-        generateQRCodeInternal();
-    });
+    // Generate QR code immediately
+    generateQRCodeInternal();
 }
 
 function generateQRCodeInternal() {
@@ -529,7 +466,7 @@ function clearQRCode() {
     sessionStorage.removeItem("tokenTime");
 }
 
-// CHECK IN FUNCTION
+// SIMPLIFIED CHECK IN FUNCTION - REMOVED VALIDATION RESTRICTIONS
 async function checkIn() {
     if (!isValidGuard || !currentGuardData) {
         showMessage("Please validate your identity first.", "error");
@@ -542,18 +479,12 @@ async function checkIn() {
         return;
     }
 
-    // Check if already checked in
-    const status = await getGuardCurrentStatus(currentGuardData.guardId);
-    if (status.hasCheckedIn) {
-        showMessage("You have already checked in today.", "error");
-        return;
-    }
-
+    // REMOVED: Check if already checked in - allow multiple check-ins if needed
     const expectedTime = getExpectedTime(currentShiftType, 'checkin');
     await verifyScan("Present", expectedTime);
 }
 
-// CHECK OUT FUNCTION
+// SIMPLIFIED CHECK OUT FUNCTION - REMOVED VALIDATION RESTRICTIONS
 async function checkOut() {
     if (!isValidGuard || !currentGuardData) {
         showMessage("Please validate your identity first.", "error");
@@ -566,13 +497,7 @@ async function checkOut() {
         return;
     }
 
-    // Check if minimum time has passed
-    const canCheckOut = await canGuardCheckOut(currentGuardData.guardId);
-    if (!canCheckOut) {
-        showMessage("You must wait at least 1 hour after checking in before you can check out.", "error");
-        return;
-    }
-
+    // REMOVED: All validation checks - allow direct check-out without checking in first
     const expectedTime = getExpectedTime(currentShiftType, 'checkout');
     await verifyScan("Checked Out", expectedTime);
 }
@@ -642,30 +567,14 @@ async function verifyScan(statusType, expectedTime) {
             // Clear the QR code
             clearQRCode();
 
-            // Update button states after successful action
+            // Keep both buttons enabled after action
+            document.getElementById("checkInBtn").disabled = false;
+            document.getElementById("checkOutBtn").disabled = false;
+
             if (statusType === "Present") {
-                // After check-in, disable check-in button and enable check-out (if time allows)
-                document.getElementById("checkInBtn").disabled = true;
-
-                // Check if can check out immediately
-                const canCheckOut = await canGuardCheckOut(currentGuardData.guardId);
-                document.getElementById("checkOutBtn").disabled = !canCheckOut;
-
-                if (!canCheckOut) {
-                    showMessage("You are checked in. You must wait at least 1 hour before checking out.", "warning");
-                } else {
-                    showMessage("You are checked in. You can now check out.", "success");
-                }
-
-                // Re-validate after 1 minute to update status
-                setTimeout(() => {
-                    validateGuard();
-                }, 60000);
+                showMessage("Check-in successful! You can check out at any time.", "success");
             } else {
-                // After check-out, disable both buttons
-                document.getElementById("checkInBtn").disabled = true;
-                document.getElementById("checkOutBtn").disabled = true;
-                showMessage("Shift completed successfully! Thank you.", "success");
+                showMessage("Check-out successful! Thank you.", "success");
             }
         } else {
             showMessage(result.message || "Error saving to database.", "error");
@@ -704,7 +613,7 @@ function resetForm() {
     document.getElementById("currentGuardInfo").textContent = "";
     document.getElementById("currentGuardInfo").style.display = "none";
 
-    // Reset buttons to default state (enabled but will be properly set after validation)
+    // Reset buttons to default state - BOTH ENABLED
     document.getElementById("checkInBtn").disabled = false;
     document.getElementById("checkOutBtn").disabled = false;
 
@@ -744,7 +653,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Hide QR section initially, but keep buttons visible
+    // Hide QR section initially
     document.getElementById('qrSection').style.display = 'none';
     document.getElementById('currentGuardInfo').style.display = 'none';
 

@@ -561,10 +561,12 @@ namespace PiranaSecuritySystem.Controllers
 
         public ActionResult DeleteAll()
         {
+            // Delete in correct order to respect foreign key constraints
+            db.Database.ExecuteSqlCommand("DELETE FROM Attendances");
             db.Database.ExecuteSqlCommand("DELETE FROM GuardCheckIns");
             db.Database.ExecuteSqlCommand("DELETE FROM ShiftRosters");
 
-            TempData["SuccessMessage"] = "All rosters and related guard check-ins have been deleted!";
+            TempData["SuccessMessage"] = "All rosters and related data have been deleted!";
             return RedirectToAction("Index");
         }
 

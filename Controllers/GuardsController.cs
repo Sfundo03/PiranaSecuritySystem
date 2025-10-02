@@ -207,28 +207,12 @@ namespace PiranaSecuritySystem.Controllers
                 DateTime today = DateTime.Today;
 
                 // Look for an existing record for this guard + date
-                var existing = db.GuardCheckIns
+                var existingRecords = db.GuardCheckIns
                     .Where(c => c.GuardId == guard.GuardId && DbFunctions.TruncateTime(c.CheckInTime) == today)
                     .OrderByDescending(c => c.CheckInTime)
-                    .FirstOrDefault();
+                    .ToList();
 
-                if (checkInData.Status == "Present" || checkInData.Status == "Late Arrival")
-                {
-                    // Prevent multiple check-ins
-                    if (existing != null && (existing.Status == "Present" || existing.Status == "Late Arrival"))
-                    {
-                        return Json(new { success = false, message = "You have already checked in today." });
-                    }
-                }
-                else if (checkInData.Status == "Checked Out" || checkInData.Status == "Late Departure")
-                {
-                    // Must have a check-in before check-out
-                    if (existing == null || (existing.Status == "Checked Out" || existing.Status == "Late Departure"))
-                    {
-                        return Json(new { success = false, message = "You cannot check out before checking in, or you have already checked out." });
-                    }
-                }
-
+                // REMOVED ALL VALIDATION RESTRICTIONS - ALLOW ANY CHECK-IN/CHECK-OUT
                 // Create a new check-in/out record
                 var checkIn = new GuardCheckIn
                 {
