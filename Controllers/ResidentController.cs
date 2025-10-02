@@ -55,6 +55,10 @@ namespace PiranaSecuritySystem.Controllers
                 _roleManager = value;
             }
         }
+        public ActionResult About()
+        {
+            return View();
+        }
 
         // GET: Resident/Register
         public ActionResult Register()

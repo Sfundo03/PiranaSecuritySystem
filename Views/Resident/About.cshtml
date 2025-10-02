@@ -1,273 +1,433 @@
 ﻿@{
-    ViewBag.Title = "Pirana Guarding - Resident Portal";
+    ViewBag.Title = "Pirana Guarding - Professional Security Services";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <style>
-    .resident-landing {
+    .security-landing {
         min-height: 100vh;
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-        color: white;
-        padding: 20px;
+        background: linear-gradient(135deg, #0a1f3a 0%, #1a3a5f 50%, #2c5282 100%);
+        color: #ffffff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        position: relative;
+        overflow: hidden;
     }
 
-    .resident-container {
-        max-width: 900px;
+    .security-landing::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.03"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        pointer-events: none;
+    }
+
+    .security-container {
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 40px 20px;
+        padding: 60px 20px;
+        position: relative;
+        z-index: 1;
     }
 
-    .resident-header {
+    .security-header {
         text-align: center;
-        margin-bottom: 40px;
+        margin-bottom: 60px;
+        padding: 40px 0;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     }
 
-        .resident-header h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-        }
+    .security-header h1 {
+        font-size: 3.5rem;
+        margin-bottom: 15px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
 
-        .resident-header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
+    .security-header p {
+        font-size: 1.4rem;
+        opacity: 0.9;
+        font-weight: 300;
+        letter-spacing: 1px;
+    }
 
-    .auth-tabs, .info-tabs {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        padding: 30px;
-        backdrop-filter: blur(10px);
-        margin-bottom: 30px;
+    .security-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: 15px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .info-tabs {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 40px;
+        backdrop-filter: blur(15px);
+        margin-bottom: 40px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
     }
 
     .tab-buttons {
         display: flex;
-        margin-bottom: 30px;
-        border-bottom: 2px solid #3498db;
-        flex-wrap: wrap;
+        margin-bottom: 40px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .tab-button {
-        padding: 15px 30px;
-        background: none;
+        flex: 1;
+        padding: 18px 30px;
+        background: transparent;
         border: none;
-        color: white;
+        color: rgba(255, 255, 255, 0.7);
         cursor: pointer;
         font-size: 1.1rem;
-        transition: all 0.3s ease;
+        font-weight: 600;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-        .tab-button.active {
-            background: #3498db;
-            border-radius: 5px 5px 0 0;
-        }
+    .tab-button.active {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .tab-button:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
 
     .tab-content {
         display: none;
+        animation: fadeIn 0.6s ease-in-out;
     }
 
-        .tab-content.active {
-            display: block;
-        }
-
-    .form-group {
-        margin-bottom: 20px;
+    .tab-content.active {
+        display: block;
     }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-    .form-control {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background: rgba(255, 255, 255, 0.9);
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
-    .btn-resident {
-        background: #e74c3c;
-        color: white;
-        padding: 15px 30px;
-        border: none;
-        border-radius: 5px;
-        font-size: 1.1rem;
-        cursor: pointer;
-        width: 100%;
-        transition: background 0.3s ease;
-    }
-
-        .btn-resident:hover {
-            background: #c0392b;
-        }
-
-    /* About & Contact Sections */
     .info-section {
-        margin-top: 20px;
+        margin-top: 10px;
     }
+
+    .info-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 25px;
+        background: linear-gradient(135deg, #3498db, #2ecc71);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .info-section h3 {
+        font-size: 1.8rem;
+        margin: 35px 0 20px 0;
+        color: #3498db;
+        font-weight: 600;
+        border-left: 4px solid #3498db;
+        padding-left: 15px;
+    }
+
+    .info-section p {
+        font-size: 1.15rem;
+        line-height: 1.8;
+        margin-bottom: 20px;
+        color: rgba(255, 255, 255, 0.9);
+        text-align: justify;
+    }
+
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-top: 30px;
+    }
+
+    .service-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .service-card:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .service-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        color: #3498db;
+    }
+
+    .service-card h4 {
+        font-size: 1.3rem;
+        margin-bottom: 12px;
+        color: white;
+        font-weight: 600;
+    }
+
+    .service-card p {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-align: center;
+        margin: 0;
+    }
+
+    .contact-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+        margin: 30px 0;
+    }
+
+    .contact-item {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .contact-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-3px);
+    }
+
+    .contact-icon {
+        font-size: 2rem;
+        margin-bottom: 15px;
+        color: #2ecc71;
+    }
+
+    .contact-item strong {
+        display: block;
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        color: white;
+    }
+
+    .contact-item span {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1rem;
+    }
+
+    .emergency-banner {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        padding: 25px;
+        border-radius: 12px;
+        text-align: center;
+        margin: 30px 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+    }
+
+    .emergency-banner h3 {
+        color: white;
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .emergency-banner p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    .psira-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+        padding: 10px 25px;
+        border-radius: 25px;
+        font-weight: 600;
+        margin: 20px 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.9rem;
+    }
+
+    @@media (max-width: 768px) {
+        .security-header h1 {
+            font-size: 2.5rem;
+        }
+
+        .security-header p {
+            font-size: 1.2rem;
+        }
+
+        .tab-buttons {
+            flex-direction: column;
+        }
+
+        .tab-button {
+            margin-bottom: 5px;
+        }
 
         .info-section h2 {
             font-size: 2rem;
-            margin-bottom: 15px;
-            color: #3498db;
         }
 
-        .info-section p {
-            font-size: 1.1rem;
-            line-height: 1.6;
-            margin-bottom: 10px;
+        .services-grid {
+            grid-template-columns: 1fr;
         }
+    }
 </style>
 
-<div class="resident-landing">
-    <div class="resident-container">
-
-        <div class="resident-header">
-            <h1>Pirana Guarding</h1>
-            <p>Resident Security Portal</p>
+<div class="security-landing">
+    <div class="security-container">
+        <div class="security-header">
+            <h1>PIRANA GUARDING</h1>
+            <p>Professional Security Solutions & Risk Management</p>
+            <div class="security-badge">PSIRA Registered & Certified</div>
         </div>
 
-        @if (!User.Identity.IsAuthenticated)
-        {
-            <!-- Show only Login/Register if not logged in -->
-            <div class="auth-tabs">
-                <div class="tab-buttons">
-                    <button class="tab-button active" data-tab="login">Login</button>
-                    <button class="tab-button" data-tab="register">Register</button>
-                </div>
-
-                <!-- Login Tab -->
-                <div class="tab-content active" id="login-tab">
-                    @using (Html.BeginForm("ResidentLogin", "Account", FormMethod.Post))
-                    {
-                        @Html.AntiForgeryToken()
-
-                        <div class="form-group">
-                            <label for="email">Email Address</label>
-                            <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
-                        </div>
-
-                        <button type="submit" class="btn-resident">Login</button>
-                    }
-
-                    <div style="text-align: center; margin-top: 20px;">
-                        <a href="@Url.Action("ForgotPassword", "Account")" style="color: #3498db;">Forgot Password?</a>
-                    </div>
-                </div>
-
-                <!-- Register Tab -->
-                <div class="tab-content" id="register-tab">
-                    @using (Html.BeginForm("Register", "Account", FormMethod.Post))
-                    {
-                        @Html.AntiForgeryToken()
-
-                        <div class="form-group">
-                            <label for="fullName">Full Name</label>
-                            <input type="text" id="fullName" name="FullName" class="form-control" placeholder="Enter your full name" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="regEmail">Email Address</label>
-                            <input type="email" id="regEmail" name="Email" class="form-control" placeholder="Enter your email" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="phone">Phone Number</label>
-                            <input type="tel" id="phone" name="PhoneNumber" class="form-control" placeholder="Enter your phone number" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="regPassword">Password</label>
-                            <input type="password" id="regPassword" name="Password" class="form-control" placeholder="Create a password (min 8 characters)" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="confirmPassword">Confirm Password</label>
-                            <input type="password" id="confirmPassword" name="ConfirmPassword" class="form-control" placeholder="Confirm your password" required>
-                        </div>
-
-                        <button type="submit" class="btn-resident">Register</button>
-                    }
-                </div>
+        <div class="info-tabs">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="about">About Us</button>
+                <button class="tab-button" data-tab="contact">Contact</button>
             </div>
-        }
-        else
-        {
-            <!-- Show About and Contact tabs only (Report Incident removed) -->
-            <div class="info-tabs">
-                <div class="tab-buttons">
-                    <button class="tab-button active" data-tab="about">About Us</button>
-                    <button class="tab-button" data-tab="contact">Contact Us</button>
-                </div>
 
-                <!-- About Us -->
-                <div class="tab-content active" id="about-tab">
-                    <div class="info-section">
-                        <h2>About Pirana Guarding</h2>
-                        <p>Pirana Guarding provides professional, PSIRA-registered security services backed by over 75 years of combined operational experience.</p>
-                        <p>Founded in 2019 by Douglas Benningfield and Welensky Mdluli, we specialize in Estate & Complex Security, 24/7 Control Room & Remote Monitoring, and Security Guard Training tailored to your needs.</p>
-                        <p>With advanced surveillance, well-trained guards, and a personalized approach, Pirana Guarding is committed to keeping communities safe.</p>
-                    </div>
-                </div>
+            <!-- About Us Tab -->
+            <div class="tab-content active" id="about-tab">
+                <div class="info-section">
+                    <h2>Elite Security Protection</h2>
 
-                <!-- Contact Us -->
-                <div class="tab-content" id="contact-tab">
-                    <div class="info-section">
-                        <h2>Contact Us</h2>
-                        <p><strong>Phone:</strong> 087 183 1585</p>
-                        <p><strong>Alternate Phone:</strong> 062 072 5794</p>
-                        <p><strong>Email:</strong> douglas@piranaguarding.co.za</p>
-                        <p><strong>Address:</strong> Annie Street, Fontainebleau, Gauteng, 2032</p>
-                        <p>Our team is available 24/7 to assist with your security needs or incident reports.</p>
+                    <div class="psira-badge">PSIRA Certified Security Services</div>
 
-                        <h3 style="color:#3498db; margin-top:20px;">Quick Contact Form</h3>
-                        @using (Html.BeginForm("ContactResident", "Account", FormMethod.Post))
-                        {
-                            @Html.AntiForgeryToken()
+                    <p>Pirana Guarding stands as a premier security service provider, offering professional, PSIRA-registered protection services backed by over 75 years of combined operational expertise in the security industry.</p>
 
-                            <div class="form-group">
-                                <label for="contactName">Name</label>
-                                <input type="text" id="contactName" name="Name" class="form-control" required>
-                            </div>
+                    <p>Established in 2019 by security veterans Douglas Benningfield and Welensky Mdluli, we specialize in comprehensive security solutions including Estate & Complex Security Management, 24/7 Control Room Operations, Advanced Remote Monitoring, and specialized Security Guard Training programs.</p>
 
-                            <div class="form-group">
-                                <label for="contactEmail">Email</label>
-                                <input type="email" id="contactEmail" name="Email" class="form-control" required>
-                            </div>
+                    <p>Our commitment to excellence is demonstrated through state-of-the-art surveillance technology, rigorously trained security personnel, and customized security strategies designed to address the unique needs of each client and community.</p>
 
-                            <div class="form-group">
-                                <label for="contactMessage">Message</label>
-                                <textarea id="contactMessage" name="Message" class="form-control" rows="4" required></textarea>
-                            </div>
-
-                            <button type="submit" class="btn-resident">Send Message</button>
-                        }
+                    <h3>Our Security Services</h3>
+                    <div class="services-grid">
+                        <div class="service-card">
+                            <div class="service-icon">🏘️</div>
+                            <h4>Estate Security</h4>
+                            <p>Comprehensive residential estate and complex security management with 24/7 patrols and access control.</p>
+                        </div>
+                        <div class="service-card">
+                            <div class="service-icon">📡</div>
+                            <h4>Remote Monitoring</h4>
+                            <p>Advanced 24/7 control room operations with real-time surveillance and rapid response capabilities.</p>
+                        </div>
+                        <div class="service-card">
+                            <div class="service-icon">🎓</div>
+                            <h4>Guard Training</h4>
+                            <p>Specialized security guard training programs meeting PSIRA standards and industry best practices.</p>
+                        </div>
+                        <div class="service-card">
+                            <div class="service-icon">🔒</div>
+                            <h4>Custom Solutions</h4>
+                            <p>Tailored security strategies designed to meet specific client requirements and risk profiles.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        }
+
+            <!-- Contact Tab -->
+            <div class="tab-content" id="contact-tab">
+                <div class="info-section">
+                    <h2>Security Operations Center</h2>
+
+                    <div class="emergency-banner">
+                        <h3>🚨 24/7 Emergency Response</h3>
+                        <p>Our security operations center is always active and ready to respond to your security needs</p>
+                    </div>
+
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <div class="contact-icon">📞</div>
+                            <strong>Primary Contact</strong>
+                            <span>087 183 1585</span>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">📱</div>
+                            <strong>Alternate Line</strong>
+                            <span>062 072 5794</span>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">✉️</div>
+                            <strong>Email</strong>
+                            <span>douglas@piranaguarding.co.za</span>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">🏢</div>
+                            <strong>Headquarters</strong>
+                            <span>Annie Street, Fontainebleau<br>Gauteng, 2032</span>
+                        </div>
+                    </div>
+
+                    <p style="text-align: center; margin-top: 30px; font-size: 1.1rem;">
+                        <strong>Operational Excellence:</strong> Our dedicated team of security professionals is available around the clock to ensure your safety and peace of mind. Trust Pirana Guarding for reliable, professional security services.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Tab functionality
+            // Professional tab functionality
             $('.tab-button').click(function () {
                 var tabId = $(this).data('tab');
-                $(this).siblings().removeClass('active');
+
+                // Remove active class from all buttons and add to clicked one
+                $('.tab-button').removeClass('active');
                 $(this).addClass('active');
 
-                $(this).closest('.info-tabs, .auth-tabs').find('.tab-content').removeClass('active');
+                // Hide all tab content and show selected one
+                $('.tab-content').removeClass('active');
                 $('#' + tabId + '-tab').addClass('active');
+            });
+
+            // Add smooth scrolling for better UX
+            $('a[href^="#"]').on('click', function (event) {
+                var target = $(this.getAttribute('href'));
+                if (target.length) {
+                    event.preventDefault();
+                    $('html, body').stop().animate({
+                        scrollTop: target.offset().top - 100
+                    }, 1000);
+                }
             });
         });
     </script>
