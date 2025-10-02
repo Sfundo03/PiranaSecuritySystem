@@ -33,7 +33,7 @@
         }
 
         .dashboard-container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -180,6 +180,74 @@
                 text-decoration: underline;
             }
 
+        /* Attendance Table Styles */
+        .attendance-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+            .attendance-table th {
+                background-color: var(--primary-blue);
+                color: white;
+                font-weight: 500;
+                padding: 12px 15px;
+                text-align: left;
+            }
+
+            .attendance-table td {
+                padding: 12px 15px;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .attendance-table tr:hover {
+                background-color: #f8f9fa;
+            }
+
+        .hours-badge {
+            background-color: #e8f5e8;
+            color: #2d5016;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: var(--light-text);
+        }
+
+            .no-data i {
+                font-size: 3rem;
+                margin-bottom: 15px;
+                color: #dee2e6;
+            }
+
+        /* Summary Cards */
+        .summary-card {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+            .summary-card .number {
+                font-size: 2rem;
+                font-weight: 700;
+                margin-bottom: 5px;
+            }
+
+            .summary-card .label {
+                font-size: 0.9rem;
+                opacity: 0.9;
+            }
+
         /* Delete confirmation modal */
         .modal-content {
             border-radius: 8px;
@@ -201,6 +269,22 @@
             .details-container {
                 padding: 15px;
             }
+
+            .attendance-table {
+                font-size: 0.9rem;
+            }
+
+                .attendance-table th,
+                .attendance-table td {
+                    padding: 8px 10px;
+                }
+        }
+
+        @@media (max-width: 576px) {
+            .attendance-table {
+                display: block;
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
@@ -210,10 +294,11 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3 mb-1"><i class="fas fa-file-invoice-dollar me-2"></i>Payroll Details</h1>
-                <p class="text-muted">Detailed view of payroll information</p>
+                <p class="text-muted">Detailed view of payroll information and attendance records</p>
             </div>
         </div>
 
+        <!-- Payroll Information Card -->
         <div class="dashboard-card">
             <div class="card-header-custom">
                 <div class="d-flex justify-content-between align-items-center">
@@ -229,6 +314,7 @@
                                 case "Pending":
                                     statusClass = "status-pending";
                                     break;
+                                case "Processed":
                                 case "Processing":
                                     statusClass = "status-processing";
                                     break;
@@ -270,17 +356,22 @@
 
                     <div class="detail-item">
                         <div class="detail-label"><i class="fas fa-calendar-alt me-2"></i>Pay Period</div>
-                        <div class="detail-value">@Model.PayPeriodStart.ToString("yyyy-MM-dd") to @Model.PayPeriodEnd.ToString("yyyy-MM-dd")</div>
+                        <div class="detail-value">@Model.PayPeriodStart.ToString("MMM dd, yyyy") to @Model.PayPeriodEnd.ToString("MMM dd, yyyy")</div>
                     </div>
 
                     <div class="detail-item">
                         <div class="detail-label"><i class="fas fa-clock me-2"></i>Total Hours</div>
-                        <div class="detail-value">@Html.DisplayFor(model => model.TotalHours)</div>
+                        <div class="detail-value">@Model.TotalHours.ToString("F2") hours</div>
                     </div>
 
                     <div class="detail-item">
                         <div class="detail-label"><i class="fas fa-money-bill-wave me-2"></i>Hourly Rate</div>
                         <div class="detail-value">@String.Format("{0:C}", Model.HourlyRate)</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label"><i class="fas fa-calendar-day me-2"></i>Pay Date</div>
+                        <div class="detail-value">@Model.PayDate.ToString("MMM dd, yyyy")</div>
                     </div>
 
                     <div class="detail-item">
@@ -297,12 +388,122 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Action Links -->
-                <div class="action-links">
+        <!-- Attendance Records Card -->
+        <div class="dashboard-card">
+            <div class="card-header-custom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Attendance Records</h2>
+                    <div class="text-muted">
+                        @if (ViewBag.AttendanceRecords != null)
+                        {
+                            <span>@ViewBag.AttendanceRecords.Count records found</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="details-container">
+                @if (ViewBag.AttendanceRecords != null && ViewBag.AttendanceRecords.Count > 0)
+                {
+                    <div class="table-responsive">
+                        <table class="attendance-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Check-In Time</th>
+                                    <th>Check-Out Time</th>
+                                    <th>Hours Worked</th>
+                                    <th>Shift Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var attendance in ViewBag.AttendanceRecords)
+                                {
+                                    <tr>
+                                        <td>@attendance.AttendanceDate.ToString("MMM dd, yyyy")</td>
+                                        <td>@attendance.CheckInTime.ToString("hh:mm tt")</td>
+                                        <td>
+                                            @if (attendance.CheckOutTime != null)
+                                            {
+                                                @attendance.CheckOutTime.ToString("hh:mm tt")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Not checked out</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="hours-badge">@attendance.HoursWorked.ToString("F2") hours</span>
+                                        </td>
+                                        <td>
+                                            @if (attendance.CheckOutTime != null)
+                                            {
+                                                var duration = attendance.CheckOutTime - attendance.CheckInTime;
+                                                <span>@duration.ToString(@"hh\:mm")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Attendance Summary -->
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="summary-card">
+                                <div class="number">@ViewBag.AttendanceRecords.Count</div>
+                                <div class="label">Days Worked</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="summary-card" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                                <div class="number">@Model.TotalHours.ToString("F2")</div>
+                                <div class="label">Total Hours</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="summary-card" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
+                                <div class="number">@String.Format("{0:C}", Model.GrossPay)</div>
+                                <div class="label">Gross Earnings</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="no-data">
+                        <i class="fas fa-clipboard-list"></i>
+                        <h4>No Attendance Records Found</h4>
+                        <p>No attendance records were found for this payroll period.</p>
+                        <p class="text-muted">This could be because:</p>
+                        <ul class="text-muted text-start" style="display: inline-block;">
+                            <li>No check-in/check-out records exist for this period</li>
+                            <li>Attendance records haven't been synchronized yet</li>
+                            <li>The guard didn't work during this period</li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Action Links -->
+        <div class="dashboard-card">
+            <div class="details-container">
+                <div class="action-links text-center">
                     <button type="button" class="btn btn-danger-custom me-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
                         <i class="fas fa-trash me-1"></i>Delete Payroll
                     </button>
+                    <a href="@Url.Action("Edit", new { id = Model.PayrollId })" class="btn btn-custom me-2">
+                        <i class="fas fa-edit me-1"></i>Edit Payroll
+                    </a>
                     <a href="@Url.Action("Index")" class="btn btn-outline-custom">
                         <i class="fas fa-arrow-left me-1"></i>Back to List
                     </a>
@@ -324,8 +525,11 @@
                     <div class="alert alert-warning">
                         <strong>Warning:</strong> This action cannot be undone. The payroll record for
                         <strong>@Model.Guard.FullName</strong> for the period
-                        <strong>@Model.PayPeriodStart.ToString("yyyy-MM-dd") to @Model.PayPeriodEnd.ToString("yyyy-MM-dd")</strong>
+                        <strong>@Model.PayPeriodStart.ToString("MMM dd, yyyy") to @Model.PayPeriodEnd.ToString("MMM dd, yyyy")</strong>
                         will be permanently deleted.
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> This will only delete the payroll record, not the underlying attendance data.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -369,6 +573,15 @@
                     deleteModal.hide();
                 }
             }
+
+            // Add print functionality
+            const printBtn = document.createElement('button');
+            printBtn.className = 'btn btn-outline-custom ms-2';
+            printBtn.innerHTML = '<i class="fas fa-print me-1"></i>Print';
+            printBtn.onclick = function () {
+                window.print();
+            };
+            document.querySelector('.action-links').appendChild(printBtn);
         });
     </script>
 </body>
