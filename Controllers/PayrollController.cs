@@ -103,13 +103,23 @@ namespace PiranaSecuritySystem.Controllers
 
                 // Get active tax configuration
                 var taxConfig = db.TaxConfigurations.FirstOrDefault(t => t.IsActive);
-                decimal taxAmount = 0;
 
-                if (taxConfig != null && grossPay > taxConfig.TaxThreshold)
+                // If no active tax config, create a default one
+                if (taxConfig == null)
                 {
-                    taxAmount = grossPay * (taxConfig.TaxPercentage / 100);
+                    taxConfig = new TaxConfiguration
+                    {
+                        TaxYear = DateTime.Now.Year,
+                        TaxPercentage = 15, // 15% tax
+                        TaxThreshold = 1, // R1 threshold - tax applies to all earnings
+                        IsActive = true
+                    };
+                    db.TaxConfigurations.Add(taxConfig);
+                    db.SaveChanges();
                 }
 
+                // Apply tax to ALL earnings (15% on gross pay)
+                decimal taxAmount = grossPay * (taxConfig.TaxPercentage / 100);
                 decimal netPay = grossPay - taxAmount;
 
                 // Create payroll record
@@ -132,9 +142,9 @@ namespace PiranaSecuritySystem.Controllers
                 db.SaveChanges();
 
                 // Notify director about payroll creation
-                NotifyDirectorAboutPayroll(payroll.PayrollId, guard.FullName, totalHours, grossPay);
+                NotifyDirectorAboutPayroll(payroll.PayrollId, guard.FullName, totalHours, grossPay, taxAmount, netPay);
 
-                TempData["SuccessMessage"] = $"Payroll for {guard.FullName} has been generated successfully! Total Hours: {totalHours:F2}";
+                TempData["SuccessMessage"] = $"Payroll for {guard.FullName} has been generated successfully! Total Hours: {totalHours:F2}, Gross Pay: R{grossPay:F2}, Tax: R{taxAmount:F2}, Net Pay: R{netPay:F2}";
                 return RedirectToAction("Details", new { id = payroll.PayrollId });
             }
             catch (Exception ex)
@@ -149,7 +159,6 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         // Helper method to get attendance records with proper hours calculation
-        // In PayrollController - Ensure proper hours calculation
         private List<Attendance> GetAttendanceRecordsForPeriod(int guardId, DateTime startDate, DateTime endDate)
         {
             // Get all attendance records with calculated hours
@@ -181,7 +190,7 @@ namespace PiranaSecuritySystem.Controllers
                     CheckOutTime = a.CheckOutTime.Value,
                     HoursWorked = a.HoursWorked,
                     ShiftType = a.ShiftRoster.ShiftType,
-                    RosterId = a.RosterId
+                    RosterId = (int)a.RosterId
                 })
                 .OrderBy(a => a.Date)
                 .ToList();
@@ -544,7 +553,7 @@ namespace PiranaSecuritySystem.Controllers
                 {
                     TaxYear = DateTime.Now.Year,
                     TaxPercentage = 15, // 15% tax
-                    TaxThreshold = 10000, // R10,000 threshold
+                    TaxThreshold = 1, // R1 threshold - tax applies to all earnings
                     IsActive = true
                 };
                 db.TaxConfigurations.Add(taxConfig);
@@ -624,7 +633,7 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
-        // In PayrollController - Enhanced payroll calculation
+        // Enhanced payroll calculation
         public ActionResult GeneratePayrollReport(int? month, int? year)
         {
             var targetMonth = month ?? DateTime.Now.Month;
@@ -642,6 +651,7 @@ namespace PiranaSecuritySystem.Controllers
                 TotalGuards = payrollData.Count,
                 TotalHours = payrollData.Sum(p => p.TotalHours),
                 TotalGrossPay = payrollData.Sum(p => p.GrossPay),
+                TotalTaxAmount = payrollData.Sum(p => p.TaxAmount),
                 TotalNetPay = payrollData.Sum(p => p.NetPay),
                 AverageHours = payrollData.Average(p => p.TotalHours)
             };
@@ -706,7 +716,7 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         // Updated method to notify director about payroll creation
-        private void NotifyDirectorAboutPayroll(int payrollId, string guardName, double totalHours, decimal grossPay)
+        private void NotifyDirectorAboutPayroll(int payrollId, string guardName, double totalHours, decimal grossPay, decimal taxAmount, decimal netPay)
         {
             try
             {
@@ -719,7 +729,7 @@ namespace PiranaSecuritySystem.Controllers
                         UserId = director.DirectorId.ToString(),
                         UserType = "Director",
                         Title = "Payroll Created",
-                        Message = $"Payroll has been created for guard {guardName}. Total Hours: {totalHours:F2}, Gross Pay: R{grossPay:F2}",
+                        Message = $"Payroll has been created for guard {guardName}. Total Hours: {totalHours:F2}, Gross Pay: R{grossPay:F2}, Tax: R{taxAmount:F2}, Net Pay: R{netPay:F2}",
                         NotificationType = "Report",
                         CreatedAt = DateTime.Now,
                         IsImportant = true,
@@ -779,5 +789,32 @@ namespace PiranaSecuritySystem.Controllers
             }
             base.Dispose(disposing);
         }
+    }
+
+    // Helper classes for payroll breakdown
+    public class PayrollBreakdown
+    {
+        public double TotalHours { get; set; }
+        public double RegularHours { get; set; }
+        public double OvertimeHours { get; set; }
+        public int DaysWorked { get; set; }
+        public List<ShiftDetail> ShiftDetails { get; set; }
+    }
+
+    public class ShiftDetail
+    {
+        public DateTime Date { get; set; }
+        public double Hours { get; set; }
+        public bool IsOvertime { get; set; }
+    }
+
+    public class PayrollAttendance
+    {
+        public DateTime Date { get; set; }
+        public DateTime CheckInTime { get; set; }
+        public DateTime CheckOutTime { get; set; }
+        public double HoursWorked { get; set; }
+        public string ShiftType { get; set; }
+        public int RosterId { get; set; }
     }
 }

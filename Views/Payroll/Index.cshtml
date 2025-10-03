@@ -305,12 +305,16 @@
                         <div class="amount">@Model.Count()</div>
                     </div>
                     <div class="highlight-card">
-                        <h5><i class="fas fa-money-bill-wave me-2"></i>Total Paid</h5>
-                        <div class="amount">@String.Format("{0:C}", Model.Where(p => p.Status == "Paid").Sum(p => p.NetPay))</div>
+                        <h5><i class="fas fa-money-bill-wave me-2"></i>Total Gross Pay</h5>
+                        <div class="amount">R @Model.Sum(p => p.GrossPay).ToString("F2")</div>
                     </div>
                     <div class="highlight-card">
-                        <h5><i class="fas fa-clock me-2"></i>Pending</h5>
-                        <div class="amount">@Model.Count(p => p.Status == "Pending")</div>
+                        <h5><i class="fas fa-percentage me-2"></i>Total Tax</h5>
+                        <div class="amount">R @Model.Sum(p => p.TaxAmount).ToString("F2")</div>
+                    </div>
+                    <div class="highlight-card">
+                        <h5><i class="fas fa-wallet me-2"></i>Total Net Pay</h5>
+                        <div class="amount">R @Model.Sum(p => p.NetPay).ToString("F2")</div>
                     </div>
                 </div>
 
@@ -336,11 +340,11 @@
                                 <tr>
                                     <td>@Html.DisplayFor(modelItem => item.Guard.FullName)</td>
                                     <td>@item.PayPeriodStart.ToString("yyyy-MM-dd") to @item.PayPeriodEnd.ToString("yyyy-MM-dd")</td>
-                                    <td>@Html.DisplayFor(modelItem => item.TotalHours)</td>
-                                    <td>@String.Format("{0:C}", item.HourlyRate)</td>
-                                    <td>@String.Format("{0:C}", item.GrossPay)</td>
-                                    <td>@String.Format("{0:C}", item.TaxAmount)</td>
-                                    <td>@String.Format("{0:C}", item.NetPay)</td>
+                                    <td>@item.TotalHours.ToString("F2")</td>
+                                    <td>R @item.HourlyRate.ToString("F2")</td>
+                                    <td>R @item.GrossPay.ToString("F2")</td>
+                                    <td>R @item.TaxAmount.ToString("F2")</td>
+                                    <td>R @item.NetPay.ToString("F2")</td>
                                     <td>
                                         @{
                                             string statusClass = "";
@@ -353,6 +357,7 @@
                                                     statusClass = "status-pending";
                                                     break;
                                                 case "Processing":
+                                                case "Processed":
                                                     statusClass = "status-processing";
                                                     break;
                                                 default:
