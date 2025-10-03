@@ -334,15 +334,15 @@
                     <div class="row">
                         <div class="col-md-4 text-center">
                             <div class="detail-label">Gross Pay</div>
-                            <div class="detail-value fw-bold text-primary">@String.Format("{0:C}", Model.GrossPay)</div>
+                            <div class="detail-value fw-bold text-primary">R @Model.GrossPay.ToString("F2")</div>
                         </div>
                         <div class="col-md-4 text-center">
                             <div class="detail-label">Tax Amount</div>
-                            <div class="detail-value fw-bold text-danger">@String.Format("{0:C}", Model.TaxAmount)</div>
+                            <div class="detail-value fw-bold text-danger">R @Model.TaxAmount.ToString("F2")</div>
                         </div>
                         <div class="col-md-4 text-center">
                             <div class="detail-label">Net Pay</div>
-                            <div class="detail-value fw-bold text-success">@String.Format("{0:C}", Model.NetPay)</div>
+                            <div class="detail-value fw-bold text-success">R @Model.NetPay.ToString("F2")</div>
                         </div>
                     </div>
                 </div>
@@ -366,7 +366,7 @@
 
                     <div class="detail-item">
                         <div class="detail-label"><i class="fas fa-money-bill-wave me-2"></i>Hourly Rate</div>
-                        <div class="detail-value">@String.Format("{0:C}", Model.HourlyRate)</div>
+                        <div class="detail-value">R @Model.HourlyRate.ToString("F2")</div>
                     </div>
 
                     <div class="detail-item">
@@ -471,7 +471,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="summary-card" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
-                                <div class="number">@String.Format("{0:C}", Model.GrossPay)</div>
+                                <div class="number">R @Model.GrossPay.ToString("F2")</div>
                                 <div class="label">Gross Earnings</div>
                             </div>
                         </div>

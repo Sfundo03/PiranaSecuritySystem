@@ -370,7 +370,7 @@
                         <div class="value">
                             @if (Model.Any())
                             {
-                                @String.Format("{0:C}", Model.Average(r => r.Rate))
+                                @:R @Model.Average(r => r.Rate).ToString("F2")
                             }
                             else
                             {
@@ -397,7 +397,7 @@
                             {
                                 <tr id="rate-row-@item.GuardRateId">
                                     <td>@Html.DisplayFor(modelItem => item.Guard.FullName)</td>
-                                    <td class="rate-value">@String.Format("{0:C}", item.Rate)</td>
+                                    <td class="rate-value">R @item.Rate.ToString("F2")</td>
                                     <td>@item.EffectiveDate.ToString("yyyy-MM-dd")</td>
                                     <td id="status-@item.GuardRateId">
                                         @if (item.IsActive)
