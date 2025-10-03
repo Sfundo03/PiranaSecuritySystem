@@ -498,15 +498,15 @@
         <div class="dashboard-card">
             <div class="details-container">
                 <div class="action-links text-center">
-                    <button type="button" class="btn btn-danger-custom me-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                        <i class="fas fa-trash me-1"></i>Delete Payroll
-                    </button>
-                    <a href="@Url.Action("Edit", new { id = Model.PayrollId })" class="btn btn-custom me-2">
-                        <i class="fas fa-edit me-1"></i>Edit Payroll
-                    </a>
-                    <a href="@Url.Action("Index")" class="btn btn-outline-custom">
+                    <a href="@Url.Action("Index")" class="btn btn-outline-custom me-2">
                         <i class="fas fa-arrow-left me-1"></i>Back to List
                     </a>
+                    <button type="button" class="btn btn-custom me-2" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                    <button type="button" class="btn btn-danger-custom" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="fas fa-trash me-1"></i>Delete Payroll
+                    </button>
                 </div>
             </div>
         </div>
@@ -573,15 +573,6 @@
                     deleteModal.hide();
                 }
             }
-
-            // Add print functionality
-            const printBtn = document.createElement('button');
-            printBtn.className = 'btn btn-outline-custom ms-2';
-            printBtn.innerHTML = '<i class="fas fa-print me-1"></i>Print';
-            printBtn.onclick = function () {
-                window.print();
-            };
-            document.querySelector('.action-links').appendChild(printBtn);
         });
     </script>
 </body>

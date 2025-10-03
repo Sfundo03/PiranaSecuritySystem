@@ -165,7 +165,6 @@ namespace PiranaSecuritySystem.Controllers
                 }
                 else
                 {
-
                     return Json(new { success = true, shift = (object)null }, JsonRequestBehavior.AllowGet);
                 }
             }
@@ -194,38 +193,41 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Guard not found or inactive" });
                 }
 
-                // Validate if guard is off duty
-                if (checkInData.RosterId.HasValue)
+                DateTime currentTime = DateTime.Now;
+                DateTime currentDate = currentTime.Date;
+
+                // Get today's shift for validation
+                var todayShift = db.ShiftRosters
+                    .FirstOrDefault(s => s.GuardId == checkInData.GuardId &&
+                                       DbFunctions.TruncateTime(s.RosterDate) == currentDate);
+
+                // Validate shift timing based on real-time logic
+                var validationResult = ValidateShiftTimingLogic(todayShift, checkInData.Status, currentTime);
+                if (!validationResult.IsValid)
                 {
-                    var shift = db.ShiftRosters.Find(checkInData.RosterId.Value);
-                    if (shift != null && shift.ShiftType == "Off")
-                    {
-                        return Json(new { success = false, message = "You are off duty today. Cannot check in/out." });
-                    }
+                    return Json(new { success = false, message = validationResult.ErrorMessage });
                 }
 
-                DateTime today = DateTime.Today;
+                // Check if guard is off duty
+                if (todayShift != null && todayShift.ShiftType == "Off")
+                {
+                    return Json(new { success = false, message = "You are off duty today. Cannot check in/out." });
+                }
 
-                // Look for an existing record for this guard + date
-                var existing = db.GuardCheckIns
-                    .Where(c => c.GuardId == guard.GuardId && DbFunctions.TruncateTime(c.CheckInTime) == today)
+                // Check for duplicate check-ins/check-outs
+                var existingCheckIn = db.GuardCheckIns
+                    .Where(c => c.GuardId == checkInData.GuardId &&
+                               DbFunctions.TruncateTime(c.CheckInTime) == currentDate &&
+                               c.Status == checkInData.Status)
                     .OrderByDescending(c => c.CheckInTime)
                     .FirstOrDefault();
 
-                if (checkInData.Status == "Present" || checkInData.Status == "Late Arrival")
+                if (existingCheckIn != null)
                 {
-                    // Prevent multiple check-ins
-                    if (existing != null && (existing.Status == "Present" || existing.Status == "Late Arrival"))
+                    TimeSpan timeSinceLast = currentTime - existingCheckIn.CheckInTime;
+                    if (timeSinceLast.TotalMinutes < 5) // Prevent duplicate within 5 minutes
                     {
-                        return Json(new { success = false, message = "You have already checked in today." });
-                    }
-                }
-                else if (checkInData.Status == "Checked Out" || checkInData.Status == "Late Departure")
-                {
-                    // Must have a check-in before check-out
-                    if (existing == null || (existing.Status == "Checked Out" || existing.Status == "Late Departure"))
-                    {
-                        return Json(new { success = false, message = "You cannot check out before checking in, or you have already checked out." });
+                        return Json(new { success = false, message = $"You have already {checkInData.Status.ToLower()} recently. Please wait a few minutes." });
                     }
                 }
 
@@ -233,108 +235,189 @@ namespace PiranaSecuritySystem.Controllers
                 var checkIn = new GuardCheckIn
                 {
                     GuardId = checkInData.GuardId,
-                    CheckInTime = DateTime.Now,
+                    CheckInTime = currentTime,
                     Status = checkInData.Status,
                     CreatedDate = DateTime.Now,
                     IsLate = checkInData.IsLate,
                     ExpectedTime = checkInData.ExpectedTime,
                     ActualTime = checkInData.ActualTime,
                     SiteUsername = checkInData.SiteUsername,
-                    RosterId = checkInData.RosterId
+                    RosterId = todayShift?.RosterId
                 };
 
                 db.GuardCheckIns.Add(checkIn);
-                db.SaveChanges(); // Save to get the CheckInId
+                db.SaveChanges(); // Save to get CheckInId
 
-                // Create or update attendance record
-                UpdateAttendanceRecord(checkIn);
+                // Create or update attendance record for payroll
+                var attendanceRecord = UpdateAttendanceRecordForPayroll(checkIn);
 
-                // Update shift status if RosterId is provided
-                if (checkInData.RosterId.HasValue)
-                {
-                    var shift = db.ShiftRosters.Find(checkInData.RosterId.Value);
-                    if (shift != null)
-                    {
-                        if (checkInData.Status == "Present" || checkInData.Status == "Late Arrival")
-                        {
-                            shift.Status = "In Progress";
-                        }
-                        else if (checkInData.Status == "Checked Out" || checkInData.Status == "Late Departure")
-                        {
-                            shift.Status = "Completed";
-                        }
-                    }
-                }
+                // Update shift status for calendar
+                UpdateShiftStatusForCalendar(todayShift, checkInData.Status, attendanceRecord?.HoursWorked);
 
-                db.SaveChanges();
-
-                // Create notification for check-in/check-out
+                // Create notification
                 CreateGuardNotification(
                     guard.GuardId,
                     checkInData.Status == "Present" || checkInData.Status == "Late Arrival" ? "Check-In Successful" : "Check-Out Successful",
-                    $"You have {checkInData.Status.ToLower()} at {DateTime.Now:MMM dd, yyyy 'at' hh:mm tt}",
+                    $"You have successfully {checkInData.Status.ToLower()} at {currentTime:MMM dd, yyyy 'at' hh:mm tt}",
                     checkInData.Status.Contains("Check") ? "CheckOut" : "CheckIn",
                     false
                 );
 
-                return Json(new { success = true, message = $"{checkInData.Status} recorded successfully" });
+                return Json(new
+                {
+                    success = true,
+                    message = $"{checkInData.Status} recorded successfully",
+                    hoursWorked = attendanceRecord?.HoursWorked,
+                    rosterId = todayShift?.RosterId
+                });
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in SaveCheckIn: {ex.Message}");
-                return Json(new { success = false, message = $"An error occurred while saving check-in: {ex.Message}" });
+                return Json(new { success = false, message = $"An error occurred: {ex.Message}" });
             }
         }
 
-        // Helper method to update attendance records
-        private void UpdateAttendanceRecord(GuardCheckIn checkIn)
+        // Enhanced timing validation with correct hours - RENAMED to avoid conflict
+        private (bool IsValid, string ErrorMessage) ValidateShiftTimingLogic(ShiftRoster shift, string status, DateTime currentTime)
         {
-            if (checkIn.Status == "Present" || checkIn.Status == "Late Arrival")
+            if (shift == null)
+                return (true, ""); // No shift scheduled, allow with warning
+
+            var currentHour = currentTime.Hour;
+            var currentMinutes = currentTime.Minute;
+            var totalMinutes = currentHour * 60 + currentMinutes;
+
+            if (status == "Present" || status == "Late Arrival")
             {
-                // Create new attendance record for check-in
-                var attendance = new Attendance
+                // Check-in validation
+                if (shift.ShiftType == "Day")
                 {
-                    GuardId = checkIn.GuardId,
-                    CheckInTime = checkIn.CheckInTime,
-                    AttendanceDate = checkIn.CheckInTime.Date,
-                    CheckInId = checkIn.CheckInId,
-                    HoursWorked = 0 // Will be updated on check-out
-                };
-                db.Attendances.Add(attendance);
-            }
-            else if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
-            {
-                // Find the corresponding check-in for today
-                var checkInRecord = db.GuardCheckIns
-                    .Where(c => c.GuardId == checkIn.GuardId &&
-                               c.CheckInTime.Date == checkIn.CheckInTime.Date &&
-                               (c.Status == "Present" || c.Status == "Late Arrival") &&
-                               c.CheckInTime < checkIn.CheckInTime)
-                    .OrderByDescending(c => c.CheckInTime)
-                    .FirstOrDefault();
-
-                if (checkInRecord != null)
-                {
-                    // Find or create attendance record
-                    var attendance = db.Attendances
-                        .FirstOrDefault(a => a.CheckInId == checkInRecord.CheckInId) ??
-                        new Attendance
-                        {
-                            GuardId = checkIn.GuardId,
-                            CheckInTime = checkInRecord.CheckInTime,
-                            AttendanceDate = checkInRecord.CheckInTime.Date,
-                            CheckInId = checkInRecord.CheckInId
-                        };
-
-                    // Update check-out time and calculate hours
-                    attendance.CheckOutTime = checkIn.CheckInTime;
-                    attendance.HoursWorked = CalculateHoursWorked(attendance.CheckInTime, checkIn.CheckInTime);
-
-                    if (attendance.AttendanceId == 0)
+                    // Day shift: Should check in between 6 AM (360 minutes) and 5 PM (1020 minutes)
+                    if (totalMinutes < 360 || totalMinutes > 1020) // 6:00 AM to 5:00 PM
                     {
-                        db.Attendances.Add(attendance);
+                        return (false, "Day shift check-in is only allowed between 6:00 AM and 5:00 PM");
                     }
                 }
+                else if (shift.ShiftType == "Night")
+                {
+                    // Night shift: Should check in between 6 PM (1080 minutes) and 5 AM next day (300 minutes)
+                    if (totalMinutes >= 300 && totalMinutes < 1080) // 5:00 AM to 6:00 PM - NOT allowed
+                    {
+                        return (false, "Night shift check-in is only allowed between 6:00 PM and 5:00 AM");
+                    }
+                }
+            }
+            else if (status == "Checked Out" || status == "Late Departure")
+            {
+                // Check-out validation - same timing as check-in
+                if (shift.ShiftType == "Day")
+                {
+                    // Day shift: Should check out between 6 AM and 5 PM
+                    if (totalMinutes < 360 || totalMinutes > 1020)
+                    {
+                        return (false, "Day shift check-out is only allowed between 6:00 AM and 5:00 PM");
+                    }
+                }
+                else if (shift.ShiftType == "Night")
+                {
+                    // Night shift: Should check out between 6 PM and 5 AM next day
+                    if (totalMinutes >= 300 && totalMinutes < 1080)
+                    {
+                        return (false, "Night shift check-out is only allowed between 6:00 PM and 5:00 AM");
+                    }
+                }
+            }
+
+            return (true, "");
+        }
+
+        // Enhanced UpdateAttendanceRecord for payroll integration - RENAMED to avoid conflict
+        private Attendance UpdateAttendanceRecordForPayroll(GuardCheckIn checkIn)
+        {
+            try
+            {
+                if (checkIn.Status == "Present" || checkIn.Status == "Late Arrival")
+                {
+                    // Create new attendance record for check-in
+                    var attendance = new Attendance
+                    {
+                        GuardId = checkIn.GuardId,
+                        CheckInTime = checkIn.CheckInTime,
+                        AttendanceDate = checkIn.CheckInTime.Date,
+                        CheckInId = checkIn.CheckInId,
+                        RosterId = checkIn.RosterId,
+                        HoursWorked = 0 // Will be updated on check-out
+                    };
+                    db.Attendances.Add(attendance);
+                    db.SaveChanges();
+                    return attendance;
+                }
+                else if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
+                {
+                    // Find the corresponding check-in for today
+                    var checkInRecord = db.GuardCheckIns
+                        .Where(c => c.GuardId == checkIn.GuardId &&
+                                   DbFunctions.TruncateTime(c.CheckInTime) == DbFunctions.TruncateTime(checkIn.CheckInTime) &&
+                                   (c.Status == "Present" || c.Status == "Late Arrival") &&
+                                   c.CheckInTime < checkIn.CheckInTime)
+                        .OrderByDescending(c => c.CheckInTime)
+                        .FirstOrDefault();
+
+                    if (checkInRecord != null)
+                    {
+                        // Find or create attendance record
+                        var attendance = db.Attendances
+                            .FirstOrDefault(a => a.CheckInId == checkInRecord.CheckInId) ??
+                            new Attendance
+                            {
+                                GuardId = checkIn.GuardId,
+                                CheckInTime = checkInRecord.CheckInTime,
+                                AttendanceDate = checkInRecord.CheckInTime.Date,
+                                CheckInId = checkInRecord.CheckInId,
+                                RosterId = checkInRecord.RosterId
+                            };
+
+                        // Update check-out time and calculate hours for payroll
+                        attendance.CheckOutTime = checkIn.CheckInTime;
+                        attendance.HoursWorked = CalculateHoursWorked(attendance.CheckInTime, checkIn.CheckInTime);
+
+                        if (attendance.AttendanceId == 0)
+                        {
+                            db.Attendances.Add(attendance);
+                        }
+
+                        db.SaveChanges();
+                        return attendance;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in UpdateAttendanceRecordForPayroll: {ex.Message}");
+            }
+            return null;
+        }
+
+        // Enhanced UpdateShiftStatus for calendar display - RENAMED to avoid conflict
+        private void UpdateShiftStatusForCalendar(ShiftRoster shift, string status, double? hoursWorked = null)
+        {
+            if (shift != null)
+            {
+                if (status == "Present" || status == "Late Arrival")
+                {
+                    shift.Status = "In Progress";
+                }
+                else if (status == "Checked Out" || status == "Late Departure")
+                {
+                    shift.Status = "Completed";
+                    if (hoursWorked.HasValue)
+                    {
+                        // Store hours worked in the shift for quick reference
+                        shift.Status += $" - {hoursWorked.Value:F1} hours";
+                    }
+                }
+                db.SaveChanges();
             }
         }
 
@@ -347,7 +430,6 @@ namespace PiranaSecuritySystem.Controllers
             TimeSpan timeWorked = checkOutTime - checkInTime;
             return Math.Round(timeWorked.TotalHours, 2);
         }
-
 
         // GET: Guard/Calendar
         public ActionResult Calendar()
@@ -441,7 +523,7 @@ namespace PiranaSecuritySystem.Controllers
                         guardId = c.GuardId,
                         time = c.CheckInTime,
                         status = c.Status,
-                        date = c.CheckInTime.Date,
+                        date = c.CheckInTime,
                         isLate = c.IsLate,
                         expectedTime = c.ExpectedTime,
                         actualTime = c.ActualTime,
@@ -902,8 +984,50 @@ namespace PiranaSecuritySystem.Controllers
             return Redirect("~/Content/Guard/Index.html");
         }
 
-       
-        
+        // NEW: Get current logged-in guard information
+        [HttpGet]
+        public JsonResult GetCurrentGuardInfo()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return Json(new { success = false, message = "User not authenticated. Please log in again." }, JsonRequestBehavior.AllowGet);
+                }
+
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId && g.IsActive);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard profile not found or inactive." }, JsonRequestBehavior.AllowGet);
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    guardData = new
+                    {
+                        guardId = guard.GuardId,
+                        fullName = guard.Guard_FName + " " + guard.Guard_LName,
+                        siteUsername = guard.SiteUsername,
+                        email = guard.Email,
+                        phoneNumber = guard.PhoneNumber
+                    },
+                    message = "Guard auto-validated successfully"
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetCurrentGuardInfo: {ex.Message}");
+                return Json(new
+                {
+                    success = false,
+                    message = "An error occurred while auto-validating guard"
+                }, JsonRequestBehavior.AllowGet);
+            }
+        }
 
         // GET: Guard/Notifications
         public ActionResult Notifications()
@@ -957,6 +1081,93 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        [HttpGet]
+        public JsonResult GetGuardTrainingSessions()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var trainingSessions = db.TrainingEnrollments
+                    .Where(e => e.GuardId == guard.GuardId)
+                    .Include(e => e.TrainingSession)
+                    .Where(e => e.TrainingSession.StartDate >= DateTime.Now)
+                    .OrderBy(e => e.TrainingSession.StartDate)
+                    .Take(5)
+                    .Select(e => new
+                    {
+                        id = e.TrainingSession.Id,
+                        title = e.TrainingSession.Title,
+                        startDate = e.TrainingSession.StartDate,
+                        endDate = e.TrainingSession.EndDate,
+                        site = e.TrainingSession.Site
+                    })
+                    .ToList()
+                    .Select(t => new
+                    {
+                        id = t.id,
+                        title = t.title,
+                        startDate = t.startDate.ToString("yyyy-MM-ddTHH:mm:ss"), // ISO format for JavaScript
+                        endDate = t.endDate.ToString("yyyy-MM-ddTHH:mm:ss"), // ISO format for JavaScript
+                        site = t.site
+                    })
+                    .ToList();
+
+                return Json(new { success = true, sessions = trainingSessions }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetGuardTrainingSessions: {ex.Message}");
+                return Json(new { success = false, message = "Error loading training sessions" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        public JsonResult GetRecentNotifications()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var notifications = db.Notifications
+                    .Where(n => n.GuardId == guard.GuardId)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(5)
+                    .ToList()
+                    .Select(n => new
+                    {
+                        notificationId = n.NotificationId,
+                        title = n.Title,
+                        message = FormatNotificationMessage(n.Message),
+                        notificationType = n.NotificationType,
+                        isRead = n.IsRead,
+                        createdAt = n.CreatedAt,
+                        timeAgo = GetTimeAgo(n.CreatedAt),
+                        isImportant = n.IsImportant
+                    })
+                    .ToList();
+
+                return Json(new { success = true, notifications = notifications }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetRecentNotifications: {ex.Message}");
+                return Json(new { success = false, message = "Error loading notifications" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         // API: Get notifications for guard
         [HttpGet]
         public JsonResult GetGuardNotifications()
@@ -980,11 +1191,11 @@ namespace PiranaSecuritySystem.Controllers
                     {
                         notificationId = n.NotificationId,
                         title = n.Title,
-                        message = FormatNotificationMessage(n.Message), // Format the message
+                        message = FormatNotificationMessage(n.Message),
                         notificationType = n.NotificationType,
                         isRead = n.IsRead,
                         createdAt = n.CreatedAt,
-                        timeAgo = GetTimeAgo(n.CreatedAt), // Use proper time formatting
+                        timeAgo = GetTimeAgo(n.CreatedAt),
                         isImportant = n.IsImportant
                     })
                     .ToList();

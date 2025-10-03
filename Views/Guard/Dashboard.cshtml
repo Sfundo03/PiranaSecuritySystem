@@ -83,7 +83,7 @@
             position: absolute;
             top: 100%;
             right: 0;
-            width: 400px;
+            width: 450px;
             max-height: 500px;
             overflow-y: auto;
             background: white;
@@ -96,7 +96,7 @@
 
         .notification-item {
             padding: 1rem;
-            border-bottom: none;
+            border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -108,6 +108,16 @@
 
             .notification-item:hover {
                 background-color: #e3f2fd;
+            }
+
+            .notification-item.training-notification {
+                border-left: 4px solid #6f42c1;
+                background-color: #f8f7ff;
+            }
+
+            .notification-item.roster-notification {
+                border-left: 4px solid #20c9a6;
+                background-color: #f0fffd;
             }
 
         .border-left-primary {
@@ -270,6 +280,63 @@
             a:hover {
                 text-decoration: none;
             }
+
+        /* Training and Roster notification specific styles */
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .notification-icon-training {
+            background-color: #6f42c1;
+            color: white;
+        }
+
+        .notification-icon-roster {
+            background-color: #20c9a6;
+            color: white;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        /* Quick stats enhancements */
+        .stat-card {
+            transition: transform 0.2s ease;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-2px);
+            }
+
+        /* Upcoming training sessions */
+        .training-item {
+            padding: 10px;
+            border-left: 3px solid #6f42c1;
+            background-color: #f8f7ff;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .roster-item {
+            padding: 10px;
+            border-left: 3px solid #20c9a6;
+            background-color: #f0fffd;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -352,7 +419,7 @@
                 <!-- Quick Stats Row -->
                 <div class="row mb-4">
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-primary h-100">
+                        <div class="card border-left-primary h-100 stat-card">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -372,7 +439,7 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-warning h-100">
+                        <div class="card border-left-warning h-100 stat-card">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -392,7 +459,7 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-success h-100">
+                        <div class="card border-left-success h-100 stat-card">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -412,7 +479,7 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-info h-100">
+                        <div class="card border-left-info h-100 stat-card">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -490,6 +557,19 @@
                                 </table>
                             </div>
                         </div>
+
+                        <!-- Upcoming Training Sessions Card -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h5 class="m-0 font-weight-bold">Upcoming Training Sessions</h5>
+                            </div>
+                            <div class="card-body" id="upcomingTrainingContainer">
+                                <div class="alert alert-info text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Loading upcoming training sessions...
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Quick Actions Card -->
@@ -510,7 +590,7 @@
                                         <i class="fas fa-exclamation-circle me-2"></i>Report Incident
                                     </a>
 
-                                    <!-- View My Incidents Button - ADDED THIS BUTTON -->
+                                    <!-- View My Incidents Button -->
                                     <a href="@Url.Action("MyIncidentReports", "Guard")" class="btn btn-info btn-lg mb-3">
                                         <i class="fas fa-clipboard-list me-2"></i>View My Incidents
                                     </a>
@@ -519,6 +599,20 @@
                                     <a href="@Url.Action("Calendar", "Guard")" class="btn btn-warning btn-lg">
                                         <i class="fas fa-calendar-alt me-2"></i>View Calendar
                                     </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Notifications Card -->
+                        <div class="card mt-4">
+                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold">Recent Notifications</h6>
+                                <a href="@Url.Action("Notifications", "Guard")" class="btn btn-sm btn-primary">View All</a>
+                            </div>
+                            <div class="card-body" id="recentNotificationsContainer">
+                                <div class="alert alert-info text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Loading recent notifications...
                                 </div>
                             </div>
                         </div>
@@ -581,6 +675,12 @@
 
             // Load notifications
             loadNotifications();
+
+            // Load upcoming training sessions
+            loadUpcomingTrainingSessions();
+
+            // Load recent notifications preview
+            loadRecentNotificationsPreview();
 
             // Notification bell functionality
             const notificationBell = document.getElementById('guardNotificationBell');
@@ -657,7 +757,7 @@
             setTimeout(function () {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(function(alert) {
-                    if (alert.id !== 'recentIncidentsContainer') {
+                    if (alert.id !== 'recentIncidentsContainer' && alert.id !== 'upcomingTrainingContainer' && alert.id !== 'recentNotificationsContainer') {
                         alert.style.display = 'none';
                     }
                 });
@@ -665,6 +765,7 @@
 
             // Auto-refresh notifications every 30 seconds
             setInterval(loadNotifications, 30000);
+            setInterval(loadRecentNotificationsPreview, 60000); // Refresh preview every minute
         });
 
         // Function to load dashboard statistics
@@ -684,12 +785,13 @@
             const recentIncidents = @Html.Raw(Json.Encode(ViewBag.RecentIncidents));
 
             if (recentIncidents && recentIncidents.length > 0) {
-                let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Type</th><th>Location</th><th>Status</th></tr></thead><tbody>';
+                let html = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Type</th><th>Location</th><th>Date</th><th>Status</th></tr></thead><tbody>';
 
                 recentIncidents.forEach(incident => {
                     html += `<tr>
                         <td>${incident.IncidentType || 'N/A'}</td>
                         <td>${incident.Location || 'N/A'}</td>
+                        <td>${formatDate(incident.ReportDate)}</td>
                         <td><span class="badge ${getStatusBadgeClass(incident.Status)}">${incident.Status}</span></td>
                     </tr>`;
                 });
@@ -699,6 +801,155 @@
             } else {
                 container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No recent incidents found.</div>';
             }
+        }
+
+        // Function to load upcoming training sessions
+function loadUpcomingTrainingSessions() {
+    const container = document.getElementById('upcomingTrainingContainer');
+
+    fetch('@Url.Action("GetGuardTrainingSessions", "Guard")')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Training sessions data:', data); // Debug log
+        if (data && data.success && data.sessions && data.sessions.length > 0) {
+            let html = '';
+
+            data.sessions.forEach(session => {
+                html += `<div class="training-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${session.title}</h6>
+                            <p class="mb-1 small text-muted">
+                                <i class="fas fa-calendar me-1"></i>${formatTrainingDate(session.startDate)} - ${formatTrainingDate(session.endDate)}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>${session.site || 'Not specified'}
+                            </p>
+                        </div>
+                        <span class="badge bg-purple">Training</span>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-info-circle me-2"></i>No upcoming training sessions.</div>';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading training sessions:', error);
+        container.innerHTML = '<div class="alert alert-warning text-center py-4"><i class="fas fa-exclamation-triangle me-2"></i>Error loading training sessions.</div>';
+    });
+}
+
+// NEW: Special date formatter for training sessions
+function formatTrainingDate(dateString) {
+    try {
+        // Handle different date formats from server
+        let date;
+        if (dateString.includes('Date')) {
+            // Handle /Date(1234567890123)/ format
+            const match = dateString.match(/\/Date\((\d+)\)\//);
+            if (match) {
+                date = new Date(parseInt(match[1]));
+            } else {
+                date = new Date(dateString);
+            }
+        } else {
+            date = new Date(dateString);
+        }
+
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        console.error('Error formatting training date:', error, dateString);
+        return 'Date error';
+    }
+}
+
+// Update the existing formatDate function
+function formatDate(dateString) {
+    try {
+        let date;
+        if (dateString.includes('Date')) {
+            // Handle /Date(1234567890123)/ format
+            const match = dateString.match(/\/Date\((\d+)\)\//);
+            if (match) {
+                date = new Date(parseInt(match[1]));
+            } else {
+                date = new Date(dateString);
+            }
+        } else {
+            date = new Date(dateString);
+        }
+
+        if (isNaN(date.getTime())) {
+            return dateString; // Return original if can't parse
+        }
+
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString;
+    }
+}
+
+        // Function to load recent notifications preview
+        function loadRecentNotificationsPreview() {
+            const container = document.getElementById('recentNotificationsContainer');
+
+            fetch('@Url.Action("GetRecentNotifications", "Guard")')
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.success && data.notifications && data.notifications.length > 0) {
+                    let html = '';
+
+                    data.notifications.forEach(notification => {
+                        const iconClass = getNotificationIconClass(notification.notificationType);
+                        const itemClass = getNotificationItemClass(notification.notificationType);
+
+                        html += `<div class="notification-item ${itemClass} ${notification.isRead ? '' : 'unread'} mb-2">
+                            <div class="notification-icon ${iconClass}">
+                                <i class="fas ${getNotificationIcon(notification.notificationType)}"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <strong class="mb-1">${notification.title}</strong>
+                                    <small class="text-muted">${notification.timeAgo}</small>
+                                </div>
+                                <p class="mb-1 small">${notification.message}</p>
+                                <span class="badge ${getNotificationTypeBadgeClass(notification.notificationType)}">${notification.notificationType}</span>
+                            </div>
+                        </div>`;
+                    });
+
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div class="alert alert-info text-center py-4"><i class="fas fa-bell-slash me-2"></i>No recent notifications.</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading recent notifications:', error);
+                container.innerHTML = '<div class="alert alert-warning text-center py-4"><i class="fas fa-exclamation-triangle me-2"></i>Error loading notifications.</div>';
+            });
         }
 
         // Function to submit attendance
@@ -719,6 +970,7 @@
                     document.getElementById('checkinModal').style.display = 'none';
                     // Reload notifications to show the new check-in notification
                     loadNotifications();
+                    loadRecentNotificationsPreview();
                 } else {
                     showError(data.message);
                 }
@@ -745,7 +997,13 @@
                     data.notifications.forEach(notification => {
                         if (!notification.isRead) unreadCount++;
 
-                        html += `<div class="notification-item ${notification.isRead ? '' : 'unread'}" data-id="${notification.notificationId}">
+                        const iconClass = getNotificationIconClass(notification.notificationType);
+                        const itemClass = getNotificationItemClass(notification.notificationType);
+
+                        html += `<div class="notification-item ${itemClass} ${notification.isRead ? '' : 'unread'}" data-id="${notification.notificationId}">
+                            <div class="notification-icon ${iconClass}">
+                                <i class="fas ${getNotificationIcon(notification.notificationType)}"></i>
+                            </div>
                             <div class="notification-content">
                                 <div class="notification-title d-flex justify-content-between">
                                     <strong>${notification.title}</strong>
@@ -811,6 +1069,7 @@
                     }
                     // Reload notifications to update count
                     loadNotifications();
+                    loadRecentNotificationsPreview();
                 }
             })
             .catch(error => {
@@ -838,6 +1097,9 @@
                     document.getElementById('notificationCount').style.display = 'none';
                     document.getElementById('markAllAsRead').style.display = 'none';
 
+                    // Reload recent notifications preview
+                    loadRecentNotificationsPreview();
+
                     showSuccess('All notifications marked as read');
                 } else {
                     showError('Failed to mark notifications as read');
@@ -849,29 +1111,20 @@
             });
         }
 
-        // Function to create a notification
-        function createNotification(title, message, type) {
-            fetch('@Url.Action("CreateNotification", "Guard")', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    title: title,
-                    message: message,
-                    notificationType: type
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Reload notifications
-                    loadNotifications();
-                }
-            })
-            .catch(error => {
-                console.error('Error creating notification:', error);
-            });
+        // Helper function to format date
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                return dateString;
+            }
         }
 
         // Helper function to format time ago
@@ -921,7 +1174,42 @@
                 case 'CheckIn': return 'bg-success';
                 case 'CheckOut': return 'bg-success';
                 case 'Report': return 'bg-primary';
+                case 'Training': return 'bg-purple';
+                case 'Roster': return 'bg-teal';
                 default: return 'bg-secondary';
+            }
+        }
+
+        // Helper function to get notification icon
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'Training': return 'fa-graduation-cap';
+                case 'Roster': return 'fa-calendar-alt';
+                case 'Incident': return 'fa-exclamation-triangle';
+                case 'Shift': return 'fa-clock';
+                case 'CheckIn': return 'fa-sign-in-alt';
+                case 'CheckOut': return 'fa-sign-out-alt';
+                case 'Report': return 'fa-file-alt';
+                default: return 'fa-bell';
+            }
+        }
+
+        // Helper function to get notification icon class
+        function getNotificationIconClass(type) {
+            switch (type) {
+                case 'Training': return 'notification-icon-training';
+                case 'Roster': return 'notification-icon-roster';
+                case 'Incident': return 'notification-icon-incident';
+                default: return 'notification-icon-default';
+            }
+        }
+
+        // Helper function to get notification item class
+        function getNotificationItemClass(type) {
+            switch (type) {
+                case 'Training': return 'training-notification';
+                case 'Roster': return 'roster-notification';
+                default: return '';
             }
         }
 

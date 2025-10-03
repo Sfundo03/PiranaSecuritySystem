@@ -1,6 +1,7 @@
 ﻿using PiranaSecuritySystem.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PiranaSecuritySystem.ViewModels
 {
@@ -10,7 +11,40 @@ namespace PiranaSecuritySystem.ViewModels
         public string GuardName { get; set; }
         public List<CalendarShift> Shifts { get; set; }
         public List<GuardCheckIn> CheckIns { get; set; }
+
+        // Add this method to handle the shift hours calculation
+        public double GetHoursWorkedForShift(int rosterId)
+        {
+            var shiftCheckIns = CheckIns
+                .Where(c => c.RosterId.HasValue && c.RosterId.Value == rosterId)
+                .ToList();
+
+            var checkIn = shiftCheckIns.FirstOrDefault(c => c.Status == "Present" || c.Status == "Late Arrival");
+            var checkOut = shiftCheckIns.FirstOrDefault(c => c.Status == "Checked Out" || c.Status == "Late Departure");
+
+            if (checkIn != null && checkOut != null)
+            {
+                return Math.Round((checkOut.CheckInTime - checkIn.CheckInTime).TotalHours, 2);
+            }
+
+            return 0;
+        }
+
+        // Add this method to get check-in status for a shift
+        public (GuardCheckIn CheckIn, GuardCheckIn CheckOut) GetShiftCheckIns(int rosterId)
+        {
+            var shiftCheckIns = CheckIns
+                .Where(c => c.RosterId.HasValue && c.RosterId.Value == rosterId)
+                .ToList();
+
+            var checkIn = shiftCheckIns.FirstOrDefault(c => c.Status == "Present" || c.Status == "Late Arrival");
+            var checkOut = shiftCheckIns.FirstOrDefault(c => c.Status == "Checked Out" || c.Status == "Late Departure");
+
+            return (checkIn, checkOut);
+        }
     }
+    
+
 
     public class CalendarShift
     {

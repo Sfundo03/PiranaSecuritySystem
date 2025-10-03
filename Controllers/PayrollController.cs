@@ -149,21 +149,44 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         // Helper method to get attendance records with proper hours calculation
+        // In PayrollController - Ensure proper hours calculation
         private List<Attendance> GetAttendanceRecordsForPeriod(int guardId, DateTime startDate, DateTime endDate)
         {
-            // First, ensure we have proper attendance records from check-ins
-            SyncCheckInsWithAttendance(guardId, startDate, endDate);
-
-            // Get attendance records with calculated hours
+            // Get all attendance records with calculated hours
             var attendances = db.Attendances
                 .Where(a => a.GuardId == guardId &&
                            a.AttendanceDate >= startDate &&
                            a.AttendanceDate <= endDate &&
                            a.CheckOutTime != null &&
                            a.HoursWorked > 0)
+                .OrderBy(a => a.AttendanceDate)
                 .ToList();
 
             return attendances;
+        }
+
+        // New method to get payroll-ready data
+        public List<PayrollAttendance> GetPayrollAttendanceData(int guardId, DateTime startDate, DateTime endDate)
+        {
+            var payrollData = db.Attendances
+                .Where(a => a.GuardId == guardId &&
+                           a.AttendanceDate >= startDate &&
+                           a.AttendanceDate <= endDate &&
+                           a.CheckOutTime != null &&
+                           a.HoursWorked > 0)
+                .Select(a => new PayrollAttendance
+                {
+                    Date = a.AttendanceDate,
+                    CheckInTime = a.CheckInTime,
+                    CheckOutTime = a.CheckOutTime.Value,
+                    HoursWorked = a.HoursWorked,
+                    ShiftType = a.ShiftRoster.ShiftType,
+                    RosterId = a.RosterId
+                })
+                .OrderBy(a => a.Date)
+                .ToList();
+
+            return payrollData;
         }
 
         // Helper method to sync GuardCheckIn records with Attendance records
@@ -599,6 +622,63 @@ namespace PiranaSecuritySystem.Controllers
             {
                 return Json(new { error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
+        }
+
+        // In PayrollController - Enhanced payroll calculation
+        public ActionResult GeneratePayrollReport(int? month, int? year)
+        {
+            var targetMonth = month ?? DateTime.Now.Month;
+            var targetYear = year ?? DateTime.Now.Year;
+
+            var payrollData = db.Payrolls
+                .Include(p => p.Guard)
+                .Where(p => p.PayPeriodStart.Month == targetMonth &&
+                           p.PayPeriodStart.Year == targetYear)
+                .ToList();
+
+            // Calculate summary statistics
+            var summary = new
+            {
+                TotalGuards = payrollData.Count,
+                TotalHours = payrollData.Sum(p => p.TotalHours),
+                TotalGrossPay = payrollData.Sum(p => p.GrossPay),
+                TotalNetPay = payrollData.Sum(p => p.NetPay),
+                AverageHours = payrollData.Average(p => p.TotalHours)
+            };
+
+            ViewBag.Summary = summary;
+            ViewBag.SelectedMonth = targetMonth;
+            ViewBag.SelectedYear = targetYear;
+
+            return View(payrollData);
+        }
+
+        // Enhanced payroll generation with detailed breakdown
+        private PayrollBreakdown CalculatePayrollBreakdown(int guardId, DateTime startDate, DateTime endDate)
+        {
+            var attendances = db.Attendances
+                .Where(a => a.GuardId == guardId &&
+                           a.AttendanceDate >= startDate &&
+                           a.AttendanceDate <= endDate &&
+                           a.CheckOutTime != null)
+                .ToList();
+
+            var breakdown = new PayrollBreakdown
+            {
+                TotalHours = attendances.Sum(a => a.HoursWorked),
+                RegularHours = attendances.Sum(a => a.HoursWorked <= 12 ? a.HoursWorked : 12),
+                OvertimeHours = attendances.Sum(a => a.HoursWorked > 12 ? a.HoursWorked - 12 : 0),
+                DaysWorked = attendances.Select(a => a.AttendanceDate).Distinct().Count(),
+                ShiftDetails = attendances.GroupBy(a => a.AttendanceDate)
+                    .Select(g => new ShiftDetail
+                    {
+                        Date = g.Key,
+                        Hours = g.Sum(a => a.HoursWorked),
+                        IsOvertime = g.Sum(a => a.HoursWorked) > 12
+                    }).ToList()
+            };
+
+            return breakdown;
         }
 
         // GET: Payroll/GetAttendanceSummary

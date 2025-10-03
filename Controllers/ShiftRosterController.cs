@@ -172,6 +172,10 @@ namespace PiranaSecuritySystem.Controllers
                 {
                     // Generate roster for 30 days with 2-2-2 fixed rotation
                     Generate30DayRosterWithFixedRotation(selectedGuards, viewModel);
+
+                    // CREATE NOTIFICATIONS FOR 30-DAY ROSTER
+                    CreateRosterNotifications(selectedGuards, viewModel.Site, viewModel.RosterDate);
+
                     TempData["SuccessMessage"] = $"Rosters for 30 days starting from {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
                 }
                 else
@@ -179,6 +183,10 @@ namespace PiranaSecuritySystem.Controllers
                     // Single day generation
                     AutoGenerateShifts(selectedGuards, viewModel);
                     SaveRosterToDatabase(viewModel);
+
+                    // CREATE NOTIFICATIONS FOR SINGLE DAY ROSTER
+                    CreateRosterNotifications(selectedGuards, viewModel.Site, viewModel.RosterDate);
+
                     TempData["SuccessMessage"] = $"Roster for {viewModel.RosterDate:yyyy-MM-dd} at {viewModel.Site} created successfully!";
                 }
 
@@ -208,6 +216,42 @@ namespace PiranaSecuritySystem.Controllers
                 var innerException = GetInnerException(ex);
                 TempData["ErrorMessage"] = "Error creating roster: " + innerException.Message;
                 return RedirectToAction("Create");
+            }
+        }
+
+        // NEW: Method to create roster notifications for guards
+        private void CreateRosterNotifications(List<Guard> guards, string site, DateTime rosterDate)
+        {
+            try
+            {
+                foreach (var guard in guards)
+                {
+                    var notification = new Notification
+                    {
+                        GuardId = guard.GuardId,
+                        UserId = guard.GuardId.ToString(),
+                        UserType = "Guard",
+                        Title = "New Shift Roster Generated",
+                        Message = $"A new shift roster has been generated for {rosterDate:MMMM yyyy} at {site}. Please check your calendar for your assigned shifts.",
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = "/Guard/Calendar",
+                        NotificationType = "Roster",
+                        IsImportant = true,
+                        PriorityLevel = 2
+                    };
+
+                    db.Notifications.Add(notification);
+                }
+                db.SaveChanges();
+
+                System.Diagnostics.Debug.WriteLine($"Created {guards.Count} roster notifications for {rosterDate:MMMM yyyy} at {site}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating roster notifications: {ex.Message}");
+                // Don't throw the exception - we don't want to fail the main operation
+                // Just log the error and continue
             }
         }
 
@@ -491,6 +535,35 @@ namespace PiranaSecuritySystem.Controllers
             return View(viewModel);
         }
 
+        // In ShiftRosterController - Add method to validate shift assignments
+        private bool ValidateShiftAssignment(int guardId, DateTime date, string shiftType)
+        {
+            // Check if guard has consecutive shifts that violate rules
+            var previousDay = date.AddDays(-1);
+            var nextDay = date.AddDays(1);
+
+            var previousShift = db.ShiftRosters
+                .FirstOrDefault(s => s.GuardId == guardId && s.RosterDate == previousDay);
+
+            var nextShift = db.ShiftRosters
+                .FirstOrDefault(s => s.GuardId == guardId && s.RosterDate == nextDay);
+
+            // Prevent consecutive night shifts
+            if (shiftType == "Night" && previousShift?.ShiftType == "Night")
+            {
+                return false;
+            }
+
+            // Ensure proper rest between shifts
+            if (previousShift?.ShiftType == "Night" && shiftType == "Day")
+            {
+                // At least 12 hours rest required
+                return true; // This would need more sophisticated time checking
+            }
+
+            return true;
+        }
+
         // POST: ShiftRoster/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -558,17 +631,16 @@ namespace PiranaSecuritySystem.Controllers
             return RedirectToAction("Index");
         }
 
-
         public ActionResult DeleteAll()
         {
+            // Delete in correct order to respect foreign key constraints
+            db.Database.ExecuteSqlCommand("DELETE FROM Attendances");
             db.Database.ExecuteSqlCommand("DELETE FROM GuardCheckIns");
             db.Database.ExecuteSqlCommand("DELETE FROM ShiftRosters");
 
-            TempData["SuccessMessage"] = "All rosters and related guard check-ins have been deleted!";
+            TempData["SuccessMessage"] = "All rosters and related data have been deleted!";
             return RedirectToAction("Index");
         }
-
-
 
         // Helper method to populate site dropdown
         private void PopulateSiteDropdown()

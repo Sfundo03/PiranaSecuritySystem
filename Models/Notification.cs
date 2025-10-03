@@ -65,6 +65,16 @@ namespace PiranaSecuritySystem.Models
         [StringLength(50)]
         public string NewStatus { get; set; }
 
+        // Add to Notification model
+        public int? TrainingSessionId { get; set; }
+        public int? RosterId { get; set; }
+
+        [ForeignKey("TrainingSessionId")]
+        public virtual TrainingSession TrainingSession { get; set; }
+
+        [ForeignKey("RosterId")]
+        public virtual ShiftRoster ShiftRoster { get; set; }
+
         public virtual ApplicationUser User { get; set; }
 
         // Helper method to get formatted time ago

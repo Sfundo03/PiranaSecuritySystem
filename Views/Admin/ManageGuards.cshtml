@@ -23,6 +23,9 @@
             --dark-text: #333333;
             --light-text: #6c757d;
             --border-color: #dee2e6;
+            --success-green: #28a745;
+            --danger-red: #dc3545;
+            --warning-orange: #ffc107;
         }
 
         body {
@@ -35,73 +38,157 @@
         }
 
         .dashboard-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 0 15px;
         }
 
         .dashboard-card {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             border: 1px solid var(--border-color);
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
 
         .card-header-custom {
-            background: white;
-            color: var(--primary-blue);
-            padding: 20px;
-            border-bottom: 2px solid var(--primary-blue);
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            color: white;
+            padding: 25px;
+            border-bottom: none;
             text-align: center;
         }
 
+        /* Unified Button Styles */
         .btn-custom {
             background: var(--primary-blue);
             border: none;
             padding: 10px 20px;
-            border-radius: 4px;
+            border-radius: 6px;
             font-weight: 500;
-            transition: all 0.3s;
+            font-size: 14px;
+            transition: all 0.3s ease;
             color: white;
+            min-width: 100px;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-            .btn-custom:hover {
-                background: var(--secondary-blue);
-                color: white;
-            }
-
-        .btn-outline-warning {
-            border-color: #ffc107;
-            color: #856404;
+        .btn-custom:hover {
+            background: var(--secondary-blue);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 105, 170, 0.3);
         }
 
-            .btn-outline-warning:hover {
-                background-color: #ffc107;
-                color: #000;
-            }
+        .btn-custom-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+            min-width: 80px;
+        }
 
         .btn-outline-secondary {
-            border-color: #6c757d;
+            border: 2px solid #6c757d;
             color: #6c757d;
+            background: transparent;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-            .btn-outline-secondary:hover {
-                background-color: #6c757d;
-                color: white;
-            }
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            color: white;
+            transform: translateY(-2px);
+        }
 
+        /* Status Action Buttons */
+        .btn-status-active {
+            background-color: var(--success-green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-status-active:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-status-inactive {
+            background-color: var(--danger-red);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-status-inactive:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+        /* Table Styles */
         .table-custom {
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            margin: 0;
         }
 
-            .table-custom thead {
-                background: var(--primary-blue);
-                color: white;
-            }
+        .table-custom thead {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            color: white;
+        }
+
+        .table-custom th {
+            font-weight: 600;
+            padding: 15px 12px;
+            border-bottom: none;
+            font-size: 14px;
+        }
+
+        .table-custom td {
+            padding: 12px;
+            vertical-align: middle;
+            border-color: #f1f3f4;
+        }
+
+        .table-custom tbody tr:hover {
+            background-color: #f8fafc;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
 
         h2, h4 {
             color: var(--primary-blue);
@@ -111,168 +198,186 @@
         .security-icon {
             text-align: center;
             margin-bottom: 15px;
-            color: var(--primary-blue);
+            color: white;
         }
 
-            .security-icon i {
-                font-size: 24px;
-                background: #e8f4ff;
-                padding: 15px;
-                border-radius: 50%;
-            }
-
-        .status-active {
-            color: #28a745;
-            font-weight: 500;
+        .security-icon i {
+            font-size: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 50%;
         }
 
-        .status-inactive {
-            color: #dc3545;
-            font-weight: 500;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        /* Status badge styles */
+        /* Status Badge Styles */
         .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .status-active-badge {
             background-color: #d4edda;
             color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
         .status-inactive-badge {
             background-color: #f8d7da;
             color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
-        /* Site badge styles */
+        /* Site Section Styles */
+        .site-section {
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .site-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 18px 25px;
+            border-bottom: 3px solid var(--primary-blue);
+        }
+
+        .site-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0;
+            color: var(--primary-blue);
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .site-icon {
+            font-size: 1.6rem;
+        }
+
+        .no-guards {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--light-text);
+            font-style: italic;
+            background: #fafbfc;
+        }
+
+        /* Header Action Buttons */
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Action Buttons Container */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+            align-items: center;
+        }
+
+        /* Badge Styles */
+        .badge {
+            font-size: 0.75em;
+            font-weight: 700;
+            padding: 0.5em 0.8em;
+            border-radius: 0.5rem;
+        }
+
+        .bg-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+        }
+
+        .bg-success {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+        }
+
+        .bg-purple {
+            background: linear-gradient(135deg, #6f42c1 0%, #59359e 100%) !important;
+        }
+
+        .bg-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #545b62 100%) !important;
+        }
+
+        /* Site Badge Styles */
         .site-badge {
             display: inline-block;
-            padding: 0.35em 0.65em;
+            padding: 0.4em 0.8em;
             font-size: 0.75em;
             font-weight: 700;
             line-height: 1;
             text-align: center;
             white-space: nowrap;
             vertical-align: baseline;
-            border-radius: 0.375rem;
+            border-radius: 0.5rem;
+            color: white !important;
         }
 
-        .site-a {
-            background-color: #007bff;
-            color: white;
+        /* Responsive Design */
+        @@media (max-width: 768px) {
+            .header-actions {
+                justify-content: flex-start;
+                margin-top: 15px;
+            }
+
+            .action-buttons {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .btn-custom, .btn-outline-secondary, .btn-status-active, .btn-status-inactive {
+                min-width: 90px;
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .table-responsive {
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+            }
         }
 
-        .site-b {
-            background-color: #28a745;
-            color: white;
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
         }
 
-        .site-c {
-            background-color: #6f42c1;
-            color: white;
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        /* Site section styles */
-        .site-section {
-            margin-bottom: 30px;
-            border: 1px solid var(--border-color);
+        /* Alert Styles */
+        .alert {
             border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .site-header {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 15px 20px;
-            border-bottom: 2px solid var(--primary-blue);
-        }
-
-        .site-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 0;
-            color: var(--primary-blue);
-        }
-
-        .site-icon {
-            font-size: 1.5rem;
-        }
-
-        .no-guards {
-            padding: 20px;
-            text-align: center;
-            color: var(--light-text);
-            font-style: italic;
-        }
-
-        /* Header action buttons */
-        .header-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        /* Fix for badge text colors */
-        .bg-primary {
-            background-color: #007bff !important;
-            color: white !important;
-        }
-
-        .bg-success {
-            background-color: #28a745 !important;
-            color: white !important;
-        }
-
-        .bg-purple {
-            background-color: #6f42c1 !important;
-            color: white !important;
-        }
-
-        .bg-secondary {
-            background-color: #6c757d !important;
-            color: white !important;
-        }
-
-        /* Ensure all badges have proper contrast */
-        .badge {
-            color: white !important;
-            font-weight: 600;
-        }
-
-        /* Button styles for activate/deactivate */
-        .btn-status-active {
-            background-color: #28a745;
-            color: white;
             border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-status-inactive {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 14px;
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border-left: 4px solid #dc3545;
         }
     </style>
 </head>
@@ -285,8 +390,8 @@
                         <div class="security-icon">
                             <i class="fas fa-shield-alt"></i>
                         </div>
-                        <h2 class="mb-0">Manage Guards</h2>
-                        <p class="mb-0" style="color: var(--light-text);">Secure Access Management System</p>
+                        <h2 class="mb-2">Manage Guards</h2>
+                        <p class="mb-0 opacity-75">Secure Access Management System</p>
                     </div>
                     <div class="card-body" style="padding: 30px;">
                         <!-- Success/Error Messages -->
@@ -308,8 +413,8 @@
                             </div>
                         }
 
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4>Guard List</h4>
+                        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+                            <h4 class="mb-3 mb-md-0">Guard List</h4>
                             <div class="header-actions">
                                 @Html.ActionLink("Add New Guard", "RegisterGuard", null, new { @class = "btn btn-custom" })
                                 @Html.ActionLink("Back to Dashboard", "Dashboard", "Admin", null, new { @class = "btn btn-outline-secondary" })
@@ -356,7 +461,7 @@
                                             @foreach (var guard in siteAGuards)
                                             {
                                                 <tr>
-                                                    <td>@guard.GuardId</td>
+                                                    <td><strong>@guard.GuardId</strong></td>
                                                     <td>@guard.Guard_FName @guard.Guard_LName</td>
                                                     <td>@guard.Email</td>
                                                     <td>@guard.PhoneNumber</td>
@@ -368,11 +473,11 @@
                                                     </td>
                                                     <td>
                                                         <div class="action-buttons">
-                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-custom btn-custom-sm" })
 
                                                             @if (guard.IsActive)
                                                             {
-                                                                <button type="button" class="btn btn-sm btn-status-inactive deactivate-btn"
+                                                                <button type="button" class="btn btn-status-inactive deactivate-btn"
                                                                         data-guard-id="@guard.GuardId"
                                                                         data-guard-name="@guard.Guard_FName @guard.Guard_LName">
                                                                     <i class="fas fa-times me-1"></i>Deactivate
@@ -380,7 +485,7 @@
                                                             }
                                                             else
                                                             {
-                                                                <button type="button" class="btn btn-sm btn-status-active activate-btn"
+                                                                <button type="button" class="btn btn-status-active activate-btn"
                                                                         data-guard-id="@guard.GuardId"
                                                                         data-guard-name="@guard.Guard_FName @guard.Guard_LName">
                                                                     <i class="fas fa-check me-1"></i>Activate
@@ -396,8 +501,8 @@
                                 else
                                 {
                                     <div class="no-guards">
-                                        <i class="fas fa-users fa-2x mb-3"></i>
-                                        <p>No guards assigned to Site A</p>
+                                        <i class="fas fa-users fa-2x mb-3 text-muted"></i>
+                                        <p class="mb-0">No guards assigned to Site A</p>
                                     </div>
                                 }
                             </div>
@@ -431,7 +536,7 @@
                                             @foreach (var guard in siteBGuards)
                                             {
                                                 <tr>
-                                                    <td>@guard.GuardId</td>
+                                                    <td><strong>@guard.GuardId</strong></td>
                                                     <td>@guard.Guard_FName @guard.Guard_LName</td>
                                                     <td>@guard.Email</td>
                                                     <td>@guard.PhoneNumber</td>
@@ -443,11 +548,11 @@
                                                     </td>
                                                     <td>
                                                         <div class="action-buttons">
-                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-custom btn-custom-sm" })
 
                                                             @if (guard.IsActive)
                                                             {
-                                                                <button type="button" class="btn btn-sm btn-status-inactive deactivate-btn"
+                                                                <button type="button" class="btn btn-status-inactive deactivate-btn"
                                                                         data-guard-id="@guard.GuardId"
                                                                         data-guard-name="@guard.Guard_FName @guard.Guard_LName">
                                                                     <i class="fas fa-times me-1"></i>Deactivate
@@ -455,7 +560,7 @@
                                                             }
                                                             else
                                                             {
-                                                                <button type="button" class="btn btn-sm btn-status-active activate-btn"
+                                                                <button type="button" class="btn btn-status-active activate-btn"
                                                                         data-guard-id="@guard.GuardId"
                                                                         data-guard-name="@guard.Guard_FName @guard.Guard_LName">
                                                                     <i class="fas fa-check me-1"></i>Activate
@@ -471,8 +576,8 @@
                                 else
                                 {
                                     <div class="no-guards">
-                                        <i class="fas fa-users fa-2x mb-3"></i>
-                                        <p>No guards assigned to Site B</p>
+                                        <i class="fas fa-users fa-2x mb-3 text-muted"></i>
+                                        <p class="mb-0">No guards assigned to Site B</p>
                                     </div>
                                 }
                             </div>
@@ -506,7 +611,7 @@
                                             @foreach (var guard in siteCGuards)
                                             {
                                                 <tr>
-                                                    <td>@guard.GuardId</td>
+                                                    <td><strong>@guard.GuardId</strong></td>
                                                     <td>@guard.Guard_FName @guard.Guard_LName</td>
                                                     <td>@guard.Email</td>
                                                     <td>@guard.PhoneNumber</td>
@@ -518,11 +623,11 @@
                                                     </td>
                                                     <td>
                                                         <div class="action-buttons">
-                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-custom btn-custom-sm" })
 
                                                             @if (guard.IsActive)
                                                             {
-                                                                <button type="button" class="btn btn-sm btn-status-inactive deactivate-btn"
+                                                                <button type="button" class="btn btn-status-inactive deactivate-btn"
                                                                         data-guard-id="@guard.GuardId"
                                                                         data-guard-name="@guard.Guard_FName @guard.Guard_LName">
                                                                     <i class="fas fa-times me-1"></i>Deactivate
@@ -530,7 +635,7 @@
                                                             }
                                                             else
                                                             {
-                                                                <button type="button" class="btn btn-sm btn-status-active activate-btn"
+                                                                <button type="button" class="btn btn-status-active activate-btn"
                                                                         data-guard-id="@guard.GuardId"
                                                                         data-guard-name="@guard.Guard_FName @guard.Guard_LName">
                                                                     <i class="fas fa-check me-1"></i>Activate
@@ -546,8 +651,8 @@
                                 else
                                 {
                                     <div class="no-guards">
-                                        <i class="fas fa-users fa-2x mb-3"></i>
-                                        <p>No guards assigned to Site C</p>
+                                        <i class="fas fa-users fa-2x mb-3 text-muted"></i>
+                                        <p class="mb-0">No guards assigned to Site C</p>
                                     </div>
                                 }
                             </div>
@@ -582,7 +687,7 @@
                                             @foreach (var guard in otherGuards)
                                             {
                                                 <tr>
-                                                    <td>@guard.GuardId</td>
+                                                    <td><strong>@guard.GuardId</strong></td>
                                                     <td>@guard.Guard_FName @guard.Guard_LName</td>
                                                     <td>@guard.Email</td>
                                                     <td>@guard.PhoneNumber</td>
@@ -599,11 +704,11 @@
                                                     </td>
                                                     <td>
                                                         <div class="action-buttons">
-                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-sm btn-custom" })
+                                                            @Html.ActionLink("Edit", "EditGuard", new { id = guard.GuardId }, new { @class = "btn btn-custom btn-custom-sm" })
 
                                                             @if (guard.IsActive)
                                                             {
-                                                                <button type="button" class="btn btn-sm btn-status-inactive deactivate-btn"
+                                                                <button type="button" class="btn btn-status-inactive deactivate-btn"
                                                                         data-guard-id="@guard.GuardId"
                                                                         data-guard-name="@guard.Guard_FName @guard.Guard_LName">
                                                                     <i class="fas fa-times me-1"></i>Deactivate
@@ -611,7 +716,7 @@
                                                             }
                                                             else
                                                             {
-                                                                <button type="button" class="btn btn-sm btn-status-active activate-btn"
+                                                                <button type="button" class="btn btn-status-active activate-btn"
                                                                         data-guard-id="@guard.GuardId"
                                                                         data-guard-name="@guard.Guard_FName @guard.Guard_LName">
                                                                     <i class="fas fa-check me-1"></i>Activate
@@ -628,8 +733,8 @@
                         }
 
                         <!-- Bottom Back Button -->
-                        <div class="text-center mt-4">
-                            @Html.ActionLink("Back to Dashboard", "Dashboard", "Admin", null, new { @class = "btn btn-outline-secondary btn-lg" })
+                        <div class="text-center mt-5 pt-3 border-top">
+                            @Html.ActionLink("Back to Dashboard", "Dashboard", "Admin", null, new { @class = "btn btn-outline-secondary px-5" })
                         </div>
                     </div>
                 </div>
@@ -675,7 +780,7 @@
             // Show loading state
             var button = $('[data-guard-id="' + guardId + '"]');
             var originalText = button.html();
-            button.html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...');
+            button.html('<span class="loading-spinner me-1"></span>Processing...');
             button.prop('disabled', true);
 
             // Get anti-forgery token

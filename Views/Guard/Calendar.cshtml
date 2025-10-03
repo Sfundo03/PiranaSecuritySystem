@@ -377,23 +377,23 @@
             <h2 class="page-title text-center">My Shift Calendar</h2>
             <p class="text-center text-muted">Welcome, @Model.GuardName! View your shifts and attendance status.</p>
 
-            <!-- Stats Cards -->
+            <!-- Stats Cards - Professional Order -->
             <div class="stats-cards">
                 <div class="stat-card">
-                    <h3>@Model.Shifts.Count</h3>
-                    <p>Total Shifts</p>
-                </div>
-                <div class="stat-card">
-                    <h3>@Model.Shifts.Count(s => s.Status == "Completed")</h3>
-                    <p>Completed</p>
+                    <h3>@Model.Shifts.Count(s => s.IsToday)</h3>
+                    <p>Today's Shifts</p>
                 </div>
                 <div class="stat-card">
                     <h3>@Model.Shifts.Count(s => s.Status == "In Progress")</h3>
                     <p>In Progress</p>
                 </div>
                 <div class="stat-card">
-                    <h3>@Model.Shifts.Count(s => s.IsToday)</h3>
-                    <p>Today's Shifts</p>
+                    <h3>@Model.Shifts.Count(s => s.Status == "Pending" || s.Status == "Scheduled")</h3>
+                    <p>Upcoming</p>
+                </div>
+                <div class="stat-card">
+                    <h3>@Model.Shifts.Count</h3>
+                    <p>Total Shifts</p>
                 </div>
             </div>
 
@@ -551,8 +551,8 @@
                                         </td>
                                         <td>
                                             @{
-                                                var shiftForCheckIn = Model.Shifts.FirstOrDefault(s =>
-                                                    s.ShiftDate.Date == checkIn.CheckInTime.Date);
+                                                // Find the shift for this check-in using simple loop
+                                                var shiftForCheckIn = Model.Shifts.FirstOrDefault(s => s.RosterId == checkIn.RosterId);
                                             }
                                             @if (shiftForCheckIn != null)
                                             {
@@ -580,9 +580,6 @@
             setInterval(function () {
                 location.reload();
             }, 60000); // Refresh every 60 seconds
-
-            // You can also implement a more sophisticated AJAX refresh if needed
-            // but for simplicity, page reload ensures data consistency
         });
     </script>
 </body>
