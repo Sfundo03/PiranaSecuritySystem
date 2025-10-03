@@ -26,6 +26,7 @@
             --border-color: #dee2e6;
             --success-green: #28a745;
             --danger-red: #dc3545;
+            --warning-orange: #ffc107;
         }
 
         body {
@@ -38,89 +39,158 @@
         }
 
         .dashboard-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 0 15px;
         }
 
         .dashboard-card {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             border: 1px solid var(--border-color);
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
 
         .card-header-custom {
-            background: white;
-            color: var(--primary-blue);
-            padding: 20px;
-            border-bottom: 2px solid var(--primary-blue);
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            color: white;
+            padding: 25px;
+            border-bottom: none;
             text-align: center;
         }
 
+        /* Unified Button Styles */
         .btn-custom {
             background: var(--primary-blue);
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+            padding: 10px 20px;
+            border-radius: 6px;
             font-weight: 500;
-            transition: all 0.3s;
-            color: white;
             font-size: 14px;
+            transition: all 0.3s ease;
+            color: white;
+            min-width: 100px;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-            .btn-custom:hover {
-                background: var(--secondary-blue);
-                color: white;
-            }
+        .btn-custom:hover {
+            background: var(--secondary-blue);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 105, 170, 0.3);
+        }
 
+        .btn-custom-sm {
+            padding: 8px 16px;
+            font-size: 13px;
+            min-width: 80px;
+        }
+
+        .btn-outline-secondary {
+            border: 2px solid #6c757d;
+            color: #6c757d;
+            background: transparent;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Status Action Buttons */
         .btn-status-active {
             background-color: var(--success-green);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-status-active:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
         }
 
         .btn-status-inactive {
             background-color: var(--danger-red);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
             font-weight: 500;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
 
-        .status-active {
-            background-color: #d4edda;
-            color: #155724;
+        .btn-status-inactive:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
         }
 
-        .status-inactive {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
+        /* Table Styles */
         .table-custom {
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            margin: 0;
         }
 
-            .table-custom thead {
-                background: var(--primary-blue);
-                color: white;
-            }
+        .table-custom thead {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            color: white;
+        }
+
+        .table-custom th {
+            font-weight: 600;
+            padding: 15px 12px;
+            border-bottom: none;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .table-custom td {
+            padding: 12px;
+            vertical-align: middle;
+            border-color: #f1f3f4;
+        }
+
+        .table-custom tbody tr:hover {
+            background-color: #f8fafc;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
 
         h2, h4 {
             color: var(--primary-blue);
@@ -130,22 +200,165 @@
         .security-icon {
             text-align: center;
             margin-bottom: 15px;
-            color: var(--primary-blue);
+            color: white;
         }
 
-            .security-icon i {
-                font-size: 24px;
-                background: #e8f4ff;
-                padding: 15px;
-                border-radius: 50%;
+        .security-icon i {
+            font-size: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 50%;
+        }
+
+        /* Status Badge Styles */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active-badge {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-inactive-badge {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Action Buttons Container */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+            align-items: center;
+        }
+
+        /* Site Badge Styles */
+        .site-badge {
+            display: inline-block;
+            padding: 0.4em 0.8em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.5rem;
+            color: white !important;
+        }
+
+        .bg-site-a {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+        }
+
+        .bg-site-b {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+        }
+
+        .bg-site-c {
+            background: linear-gradient(135deg, #6f42c1 0%, #59359e 100%) !important;
+        }
+
+        .bg-site-other {
+            background: linear-gradient(135deg, #6c757d 0%, #545b62 100%) !important;
+        }
+
+        /* Specialization Badge */
+        .specialization-badge {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            padding: 0.35em 0.65em;
+            font-size: 0.75em;
+            font-weight: 600;
+            border-radius: 0.5rem;
+        }
+
+        /* Group Badge */
+        .group-badge {
+            background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+            color: white;
+            padding: 0.35em 0.65em;
+            font-size: 0.75em;
+            font-weight: 600;
+            border-radius: 0.5rem;
+        }
+
+        /* Header Actions */
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Responsive Design */
+        @@media (max-width: 768px) {
+            .header-actions {
+                justify-content: flex-start;
+                margin-top: 15px;
             }
 
-        .actions-column {
-            min-width: 200px;
+            .action-buttons {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .btn-custom, .btn-outline-secondary, .btn-status-active, .btn-status-inactive {
+                min-width: 90px;
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .table-responsive {
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+            }
         }
 
-        .btn-sm {
-            margin: 2px;
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Alert Styles */
+        .alert {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        /* Actions Column */
+        .actions-column {
+            min-width: 220px;
         }
     </style>
 </head>
@@ -158,16 +371,16 @@
                         <div class="security-icon">
                             <i class="fas fa-chalkboard-teacher"></i>
                         </div>
-                        <h2 class="mb-0">Manage Instructors</h2>
-                        <p class="mb-0" style="color: var(--light-text);">Secure Access Management System</p>
+                        <h2 class="mb-2">Manage Instructors</h2>
+                        <p class="mb-0 opacity-75">Training Management System</p>
                     </div>
                     <div class="card-body" style="padding: 30px;">
                         <!-- Success Message Display -->
                         @if (TempData["SuccessMessage"] != null)
                         {
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
                                 <i class="fas fa-check-circle me-2"></i>
-                                @TempData["SuccessMessage"]
+                                <strong>@TempData["SuccessMessage"]</strong>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         }
@@ -175,16 +388,19 @@
                         <!-- Error Message Display -->
                         @if (TempData["ErrorMessage"] != null)
                         {
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                                 <i class="fas fa-exclamation-circle me-2"></i>
-                                @TempData["ErrorMessage"]
+                                <strong>@TempData["ErrorMessage"]</strong>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         }
 
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4>Instructor List</h4>
-                            @Html.ActionLink("Add New Instructor", "RegisterInstructor", null, new { @class = "btn btn-custom" })
+                        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+                            <h4 class="mb-3 mb-md-0">Instructor List</h4>
+                            <div class="header-actions">
+                                @Html.ActionLink("Add New Instructor", "RegisterInstructor", null, new { @class = "btn btn-custom" })
+                                @Html.ActionLink("Back to Dashboard", "Dashboard", "Admin", null, new { @class = "btn btn-outline-secondary" })
+                            </div>
                         </div>
 
                         <div class="table-responsive">
@@ -200,55 +416,79 @@
                                         <th><i class="fas fa-star me-1"></i> Specialization</th>
                                         <th><i class="fas fa-users me-1"></i> Group</th>
                                         <th><i class="fas fa-circle me-1"></i> Status</th>
-                                        <th><i class="fas fa-tasks me-1"></i> Actions</th>
+                                        <th class="actions-column"><i class="fas fa-tasks me-1"></i> Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach (var instructor in Model)
                                     {
                                         <tr>
-                                            <td>@instructor.EmployeeId</td>
+                                            <td><strong>@instructor.EmployeeId</strong></td>
                                             <td>@instructor.FullName</td>
                                             <td>@instructor.SiteUsername</td>
-                                            <td>@instructor.Site</td>
-                                            <td>@instructor.Email</td>
-                                            <td>@instructor.PhoneNumber</td>
-                                            <td>@instructor.Specialization</td>
-                                            <td>@instructor.Group</td>
                                             <td>
-                                                <span class="status-badge @(instructor.IsActive ? "status-active" : "status-inactive")">
-                                                    @(instructor.IsActive ? "Active" : "Inactive")
+                                                <span class="site-badge @GetSiteBadgeClass(instructor.Site)">
+                                                    @(string.IsNullOrEmpty(instructor.Site) ? "Unassigned" : instructor.Site)
                                                 </span>
                                             </td>
-                                            <td class="actions-column">
-                                                @Html.ActionLink("Edit", "EditInstructor", new { id = instructor.Id }, new { @class = "btn btn-sm btn-custom" })
-                                                @if (instructor.IsActive)
+                                            <td>@instructor.Email</td>
+                                            <td>@instructor.PhoneNumber</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(instructor.Specialization))
                                                 {
-                                                    using (Html.BeginForm("UpdateInstructorStatus", "Admin", new { id = instructor.Id, isActive = false }, FormMethod.Post, new { @class = "d-inline" }))
-                                                    {
-                                                        @Html.AntiForgeryToken()
-                                                        <button type="submit" class="btn btn-sm btn-status-inactive"
-                                                                onclick="return confirm('Are you sure you want to deactivate this instructor? They will not be able to login.');">
-                                                            <i class="fas fa-times me-1"></i>Deactivate
-                                                        </button>
-                                                    }
+                                                    <span class="specialization-badge">@instructor.Specialization</span>
                                                 }
                                                 else
                                                 {
-                                                    using (Html.BeginForm("UpdateInstructorStatus", "Admin", new { id = instructor.Id, isActive = true }, FormMethod.Post, new { @class = "d-inline" }))
+                                                    <span class="text-muted">N/A</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(instructor.Group))
+                                                {
+                                                    <span class="group-badge">@instructor.Group</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">N/A</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="status-badge @(instructor.IsActive ? "status-active-badge" : "status-inactive-badge")" id="status-@instructor.Id">
+                                                    @(instructor.IsActive ? "Active" : "Inactive")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    @Html.ActionLink("Edit", "EditInstructor", new { id = instructor.Id }, new { @class = "btn btn-custom btn-custom-sm" })
+
+                                                    @if (instructor.IsActive)
                                                     {
-                                                        @Html.AntiForgeryToken()
-                                                        <button type="submit" class="btn btn-sm btn-status-active"
-                                                                onclick="return confirm('Are you sure you want to activate this instructor? They will be able to login again.');">
+                                                        <button type="button" class="btn btn-status-inactive deactivate-btn"
+                                                                data-instructor-id="@instructor.Id"
+                                                                data-instructor-name="@instructor.FullName">
+                                                            <i class="fas fa-times me-1"></i>Deactivate
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button type="button" class="btn btn-status-active activate-btn"
+                                                                data-instructor-id="@instructor.Id"
+                                                                data-instructor-name="@instructor.FullName">
                                                             <i class="fas fa-check me-1"></i>Activate
                                                         </button>
                                                     }
-                                                }
+                                                </div>
                                             </td>
                                         </tr>
                                     }
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Bottom Back Button -->
+                        <div class="text-center mt-5 pt-3 border-top">
+                            @Html.ActionLink("Back to Dashboard", "Dashboard", "Admin", null, new { @class = "btn btn-outline-secondary px-5" })
                         </div>
                     </div>
                 </div>
@@ -258,6 +498,7 @@
 
     <!-- Bootstrap JS and dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
         // Auto-dismiss alerts after 5 seconds
@@ -268,6 +509,109 @@
                 bsAlert.close();
             });
         }, 5000);
+
+        // Deactivate button click handler
+        $(document).on('click', '.deactivate-btn', function () {
+            var instructorId = $(this).data('instructor-id');
+            var instructorName = $(this).data('instructor-name');
+
+            if (confirm('Are you sure you want to deactivate ' + instructorName + '? They will not be able to login.')) {
+                updateInstructorStatus(instructorId, false);
+            }
+        });
+
+        // Activate button click handler
+        $(document).on('click', '.activate-btn', function () {
+            var instructorId = $(this).data('instructor-id');
+            var instructorName = $(this).data('instructor-name');
+
+            if (confirm('Are you sure you want to activate ' + instructorName + '? They will be able to login again.')) {
+                updateInstructorStatus(instructorId, true);
+            }
+        });
+
+        function updateInstructorStatus(instructorId, isActive) {
+            // Show loading state
+            var button = $('[data-instructor-id="' + instructorId + '"]');
+            var originalText = button.html();
+            button.html('<span class="loading-spinner me-1"></span>Processing...');
+            button.prop('disabled', true);
+
+            // Get anti-forgery token
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            $.ajax({
+                url: '@Url.Action("UpdateInstructorStatusAjax", "Admin")',
+                type: 'POST',
+                data: {
+                    id: instructorId,
+                    isActive: isActive,
+                    __RequestVerificationToken: token
+                },
+                success: function (response) {
+                    if (response.success) {
+                        // Update status badge
+                        var statusBadge = $('#status-' + instructorId);
+                        if (isActive) {
+                            statusBadge.removeClass('status-inactive-badge').addClass('status-active-badge').text('Active');
+                        } else {
+                            statusBadge.removeClass('status-active-badge').addClass('status-inactive-badge').text('Inactive');
+                        }
+
+                        // Show success message
+                        showAlert('success', response.message);
+
+                        // Reload the page after 2 seconds to reflect all changes
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showAlert('danger', 'Error: ' + response.message);
+                        button.html(originalText).prop('disabled', false);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    showAlert('danger', 'Error updating instructor status. Please try again.');
+                    console.error('Error:', error);
+                    button.html(originalText).prop('disabled', false);
+                }
+            });
+        }
+
+        function showAlert(type, message) {
+            var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            var iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+            var alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                '<i class="fas ' + iconClass + ' me-2"></i>' +
+                message +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                '</div>';
+
+            $('.card-body').prepend(alertHtml);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
     </script>
 </body>
 </html>
+
+@functions {
+    public string GetSiteBadgeClass(string site)
+    {
+        switch (site?.ToLower())
+        {
+            case "site a":
+                return "bg-site-a";
+            case "site b":
+                return "bg-site-b";
+            case "site c":
+                return "bg-site-c";
+            default:
+                return "bg-site-other";
+        }
+    }
+}

@@ -535,6 +535,35 @@ namespace PiranaSecuritySystem.Controllers
             return View(viewModel);
         }
 
+        // In ShiftRosterController - Add method to validate shift assignments
+        private bool ValidateShiftAssignment(int guardId, DateTime date, string shiftType)
+        {
+            // Check if guard has consecutive shifts that violate rules
+            var previousDay = date.AddDays(-1);
+            var nextDay = date.AddDays(1);
+
+            var previousShift = db.ShiftRosters
+                .FirstOrDefault(s => s.GuardId == guardId && s.RosterDate == previousDay);
+
+            var nextShift = db.ShiftRosters
+                .FirstOrDefault(s => s.GuardId == guardId && s.RosterDate == nextDay);
+
+            // Prevent consecutive night shifts
+            if (shiftType == "Night" && previousShift?.ShiftType == "Night")
+            {
+                return false;
+            }
+
+            // Ensure proper rest between shifts
+            if (previousShift?.ShiftType == "Night" && shiftType == "Day")
+            {
+                // At least 12 hours rest required
+                return true; // This would need more sophisticated time checking
+            }
+
+            return true;
+        }
+
         // POST: ShiftRoster/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]

@@ -95,7 +95,6 @@
         }
 
         #qrSection {
-            display: none;
             text-align: center;
             margin: 20px 0;
             border: 2px solid #ddd;
@@ -120,7 +119,6 @@
             border-radius: 5px;
             margin-bottom: 20px;
             font-weight: bold;
-            display: none;
         }
 
         .button-group {
@@ -219,63 +217,14 @@
                 flex: 1;
                 min-width: 120px;
             }
-
-        /* Auto-validation styles */
-        .auto-validation-section {
-            background-color: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .auto-validation-loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #007bff;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Guard Check-In System</h1>
 
-        <!-- Auto Validation Section -->
-        <div id="autoValidationSection" class="auto-validation-section">
-            <div class="auto-validation-loading">
-                <div class="spinner"></div>
-                <span>Authenticating guard... Please wait.</span>
-            </div>
-        </div>
-
-        <div class="guard-info" id="currentGuardInfo"></div>
-
-        <!-- Hidden username field for manual validation if needed -->
-        <div class="form-group" id="manualValidationSection" style="display: none;">
-            <label for="siteUsername">Site Username:</label>
-            <input type="text" id="siteUsername" placeholder="Enter your site username" autocomplete="off">
-            <button type="button" id="validateBtn" onclick="validateGuard()">Validate Identity</button>
+        <div class="guard-info" id="currentGuardInfo">
+            Loading guard information...
         </div>
 
         <div id="validationMessage" class="message"></div>
@@ -283,7 +232,7 @@
         <div id="qrSection">
             <h3>QR Code Authentication</h3>
 
-            <!-- Dual Check-in/Check-out Buttons - Always Visible -->
+            <!-- Dual Check-in/Check-out Buttons -->
             <div class="dual-buttons-container">
                 <button id="checkInBtn" class="checkin-button">Check In</button>
                 <button id="checkOutBtn" class="checkout-button">Check Out</button>
@@ -300,6 +249,7 @@
 
             <div class="button-group">
                 <button id="generateQRBtn">Generate QR Code</button>
+                <button id="clearQRBtn" style="display: none;">Clear QR Code</button>
             </div>
         </div>
 
@@ -307,11 +257,11 @@
 
         <!-- Navigation Buttons -->
         <div class="navigation-buttons">
-            <button id="backToDashboardBtn" class="btn-dashboard" onclick="goToDashboard()">
+            <button id="backToDashboardBtn" class="btn-dashboard">
                 ← Back to Dashboard
             </button>
-            <button id="resetBtn" class="btn-reset" onclick="resetForm()">
-                Reset Form
+            <button id="resetBtn" class="btn-reset">
+                Refresh
             </button>
         </div>
     </div>

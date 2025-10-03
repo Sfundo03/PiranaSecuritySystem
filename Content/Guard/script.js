@@ -1,14 +1,12 @@
-﻿// script.js - Simplified Guard Check-In System with Auto-Authentication
+﻿// script.js - Simplified version without auto-validation
 
-// Store today's data in session
-let checkinData = JSON.parse(sessionStorage.getItem("checkinData")) || [];
-const today = new Date().toISOString().split("T")[0];
+// Global variables
 let isValidGuard = false;
 let currentGuardData = null;
 let currentShiftType = null;
 let currentShiftData = null;
 
-// Configuration
+// Configuration with correct timing
 const DAY_SHIFT_CHECKIN = "06:00";
 const DAY_SHIFT_CHECKOUT = "18:00";
 const NIGHT_SHIFT_CHECKIN = "18:00";
@@ -43,6 +41,13 @@ function showMessage(text, type) {
     element.textContent = text;
     element.className = `message ${type}`;
     element.style.display = "block";
+
+    // Auto-hide success messages after 5 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            element.style.display = "none";
+        }, 5000);
+    }
 }
 
 function showValidationMessage(text, type) {
@@ -52,48 +57,45 @@ function showValidationMessage(text, type) {
     element.style.display = "block";
 }
 
+function updateGuardInfo(message) {
+    document.getElementById("currentGuardInfo").textContent = message;
+}
+
 // Navigation function
 function goToDashboard() {
     window.location.href = '/Guard/Dashboard';
 }
 
 // API CALLS
-async function validateGuardByUsername(siteUsername) {
+async function getCurrentGuardInfo() {
     try {
-        const response = await fetch('/Guard/ValidateGuardByUsername', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `siteUsername=${encodeURIComponent(siteUsername)}`
-        });
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error("Error validating guard:", error);
-        return { isValid: false, message: "Network error validating guard" };
-    }
-}
-
-// NEW: Auto-validate current logged-in guard
-async function autoValidateCurrentGuard() {
-    try {
-        console.log('Auto-validating current guard...');
         const response = await fetch('/Guard/GetCurrentGuardInfo', {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
     } catch (error) {
-        console.error("Error auto-validating guard:", error);
-        return { success: false, message: "Network error auto-validating guard" };
+        console.error("Error getting guard info:", error);
+        return { success: false, message: "Network error getting guard information" };
     }
 }
 
 async function getTodaysShift(guardId) {
     try {
-        const response = await fetch(`/Guard/GetTodaysShift?guardId=${guardId}&date=${today}`);
+        const today = new Date().toISOString().split('T')[0];
+        const response = await fetch(`/Guard/GetTodaysShift?guardId=${guardId}&date=${today}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
     } catch (error) {
@@ -106,7 +108,10 @@ async function saveCheckInToDatabase(checkinRecord) {
     try {
         const response = await fetch('/Guard/SaveCheckIn', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             body: JSON.stringify(checkinRecord)
         });
 
@@ -125,15 +130,16 @@ async function saveCheckInToDatabase(checkinRecord) {
 // Get today's check-ins from database
 async function getTodayGuardCheckIns(guardId) {
     try {
-        console.log(`Fetching check-ins for guard ${guardId} on ${today}`);
-        const response = await fetch(`/Guard/GetTodayCheckIns?guardId=${guardId}&date=${today}`);
+        const today = new Date().toISOString().split('T')[0];
+        const response = await fetch(`/Guard/GetTodayCheckIns?guardId=${guardId}&date=${today}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
-        console.log('Check-ins API response:', result);
         return result;
     } catch (error) {
         console.error("Error getting check-ins:", error);
@@ -144,16 +150,14 @@ async function getTodayGuardCheckIns(guardId) {
 // Get guard's current status from database
 async function getGuardCurrentStatus(guardId) {
     try {
-        console.log(`Getting current status for guard: ${guardId}`);
         const result = await getTodayGuardCheckIns(guardId);
 
         if (!result.success) {
             console.log('Failed to get check-ins:', result.message);
-            return { hasCheckedIn: false, hasCheckedOut: false, latestCheckIn: null, latestCheckOut: null };
+            return { hasCheckedIn: false, hasCheckedOut: false };
         }
 
         const checkIns = result.checkins || [];
-        console.log('Raw check-ins data:', checkIns);
 
         // Find the latest check-in (Present/Late Arrival)
         const checkInRecords = checkIns.filter(ci =>
@@ -173,60 +177,36 @@ async function getGuardCurrentStatus(guardId) {
             hasCheckedIn: !!latestCheckIn,
             hasCheckedOut: !!latestCheckOut,
             latestCheckIn: latestCheckIn,
-            latestCheckOut: latestCheckOut,
-            allCheckIns: checkIns
+            latestCheckOut: latestCheckOut
         };
 
-        console.log('Calculated status:', status);
         return status;
     } catch (error) {
         console.error("Error getting guard current status:", error);
-        return { hasCheckedIn: false, hasCheckedOut: false, latestCheckIn: null, latestCheckOut: null };
+        return { hasCheckedIn: false, hasCheckedOut: false };
     }
 }
 
-// NEW: AUTO VALIDATION FUNCTION - Runs on page load
-async function autoValidateGuard() {
-    console.log('=== AUTO VALIDATE GUARD STARTED ===');
-
-    const validationMessage = document.getElementById("validationMessage");
-    const qrSection = document.getElementById("qrSection");
-    const checkInBtn = document.getElementById("checkInBtn");
-    const checkOutBtn = document.getElementById("checkOutBtn");
-    const autoValidationSection = document.getElementById("autoValidationSection");
-
-    // Reset UI
-    validationMessage.textContent = "";
-    validationMessage.className = "";
-    validationMessage.style.display = "none";
-    showMessage("", "");
-    qrSection.style.display = "none";
-
-    // Reset button states - BOTH ENABLED BY DEFAULT
-    checkInBtn.disabled = false;
-    checkOutBtn.disabled = false;
-
-    document.getElementById("qrcode").innerHTML = "<p style='color: #666;'>QR code will appear here after generation</p>";
-    document.getElementById("scannedCode").value = "";
+// SIMPLIFIED: Load guard information and setup
+async function initializeGuardSystem() {
+    console.log('=== INITIALIZING GUARD SYSTEM ===');
 
     try {
-        console.log('Step 1: Auto-validating current guard');
-        const result = await autoValidateCurrentGuard();
-        console.log('Auto-validation result:', result);
+        updateGuardInfo("Loading your information...");
+
+        // Get current guard information
+        const result = await getCurrentGuardInfo();
 
         if (!result.success) {
-            // Auto-validation failed, show manual validation
-            autoValidationSection.style.display = 'none';
-            document.getElementById('manualValidationSection').style.display = 'block';
-            showValidationMessage(result.message || "Auto-validation failed. Please enter your username manually.", "warning");
+            updateGuardInfo("Error: Could not load guard information. Please refresh the page.");
+            showValidationMessage(result.message || "Failed to load guard information", "error");
             return;
         }
 
         currentGuardData = result.guardData;
-        console.log('Guard data:', currentGuardData);
+        console.log('Guard data loaded:', currentGuardData);
 
-        // Step 2: Get today's shift information
-        console.log('Step 2: Getting shift information');
+        // Get today's shift information
         const shiftResult = await getTodaysShift(currentGuardData.guardId);
         currentShiftData = shiftResult.success ? shiftResult.shift : null;
 
@@ -236,18 +216,13 @@ async function autoValidateGuard() {
 
             // Check if guard is off duty
             if (currentShiftType === "Off") {
-                showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are OFF DUTY today.`, "warning");
-                document.getElementById("currentGuardInfo").textContent = `${currentGuardData.fullName} - OFF DUTY`;
-                document.getElementById("currentGuardInfo").style.display = "block";
-                qrSection.style.display = "block";
+                updateGuardInfo(`${currentGuardData.fullName} - OFF DUTY TODAY`);
+                showValidationMessage("You are off duty today. Cannot check in/out.", "warning");
 
                 // Disable both buttons for off-duty guards
-                checkInBtn.disabled = true;
-                checkOutBtn.disabled = true;
+                document.getElementById("checkInBtn").disabled = true;
+                document.getElementById("checkOutBtn").disabled = true;
                 isValidGuard = true;
-
-                // Hide auto-validation section
-                autoValidationSection.style.display = 'none';
                 return;
             }
         } else {
@@ -255,210 +230,160 @@ async function autoValidateGuard() {
             console.log('No shift data, using default:', currentShiftType);
         }
 
-        // Step 3: Get current status from DATABASE
-        console.log('Step 3: Getting current status from database');
+        // Get current status
         const currentStatus = await getGuardCurrentStatus(currentGuardData.guardId);
-        console.log('Current status from database:', currentStatus);
+        console.log('Current status:', currentStatus);
 
         // Update guard info display
         const shiftInfo = currentShiftData ?
             `${currentShiftType} Shift at ${currentShiftData.location || "Main Gate"}` :
             `${currentShiftType} Shift`;
 
-        document.getElementById("currentGuardInfo").textContent = `${currentGuardData.fullName} - ${shiftInfo}`;
-        document.getElementById("currentGuardInfo").style.display = "block";
-
-        // Step 4: SIMPLIFIED button states - BOTH BUTTONS ALWAYS ENABLED
-        qrSection.style.display = "block";
+        updateGuardInfo(`${currentGuardData.fullName} - ${shiftInfo}`);
         isValidGuard = true;
 
-        // ALWAYS enable both buttons - remove all restrictions
-        checkInBtn.disabled = false;
-        checkOutBtn.disabled = false;
+        // Enable both buttons
+        document.getElementById("checkInBtn").disabled = false;
+        document.getElementById("checkOutBtn").disabled = false;
 
-        // Just show status information, don't restrict actions
+        // Show status information
         if (currentStatus.hasCheckedOut) {
-            console.log('Status: Already checked out');
-            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You have already completed your shift today.`, "success");
+            showValidationMessage("You have already completed your shift today.", "success");
         } else if (currentStatus.hasCheckedIn) {
-            console.log('Status: Checked in, can check out');
-            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are checked in and can check out now.`, "success");
+            showValidationMessage("You are checked in and can check out now.", "success");
         } else {
-            console.log('Status: Not checked in, can check in');
-            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You can check in or check out now.`, "success");
+            showValidationMessage("Ready to check in or check out.", "success");
         }
 
-        // Hide auto-validation section and show QR section
-        autoValidationSection.style.display = 'none';
-
-        // Save to session storage
-        sessionStorage.setItem("guardData", JSON.stringify(currentGuardData));
-        if (currentShiftData) {
-            sessionStorage.setItem("shiftData", JSON.stringify(currentShiftData));
-        }
-
-        console.log('=== AUTO VALIDATION COMPLETED ===');
+        console.log('=== GUARD SYSTEM INITIALIZED ===');
 
     } catch (error) {
-        console.error("Auto-validation error:", error);
-        // Fall back to manual validation
-        autoValidationSection.style.display = 'none';
-        document.getElementById('manualValidationSection').style.display = 'block';
-        showValidationMessage("Auto-authentication failed. Please enter your username manually.", "error");
-        qrSection.style.display = "none";
-        document.getElementById("currentGuardInfo").style.display = "none";
-        checkInBtn.disabled = true;
-        checkOutBtn.disabled = true;
-        isValidGuard = false;
+        console.error("Initialization error:", error);
+        updateGuardInfo("Error: Failed to initialize system");
+        showValidationMessage("System error. Please refresh the page.", "error");
     }
 }
 
-// MANUAL VALIDATION FUNCTION (for fallback)
-async function validateGuard() {
-    console.log('=== MANUAL VALIDATE GUARD STARTED ===');
+// Enhanced timing validation
+function validateCheckInTiming(shiftType, action) {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTime = currentHour * 100 + currentMinutes; // Convert to HHMM format
 
-    const siteUsername = document.getElementById("siteUsername").value.trim();
-    const validationMessage = document.getElementById("validationMessage");
-    const qrSection = document.getElementById("qrSection");
-    const checkInBtn = document.getElementById("checkInBtn");
-    const checkOutBtn = document.getElementById("checkOutBtn");
+    console.log(`Validating ${action} for ${shiftType} shift at ${currentHour}:${currentMinutes}`);
 
-    // Reset UI
-    validationMessage.textContent = "";
-    validationMessage.className = "";
-    validationMessage.style.display = "none";
-    showMessage("", "");
-    qrSection.style.display = "none";
+    if (action === 'checkin') {
+        if (shiftType === 'Day') {
+            // Day shift check-in: 6 AM (600) to 5 PM (1700)
+            if (currentTime >= 600 && currentTime <= 1700) {
+                return { valid: true, message: '' };
+            } else {
+                return {
+                    valid: false,
+                    message: 'Day shift check-in is only allowed between 6:00 AM and 5:00 PM'
+                };
+            }
+        } else if (shiftType === 'Night') {
+            // Night shift check-in: 6 PM (1800) to 5 AM (500) next day
+            if (currentTime >= 1800 || currentTime <= 500) {
+                return { valid: true, message: '' };
+            } else {
+                return {
+                    valid: false,
+                    message: 'Night shift check-in is only allowed between 6:00 PM and 5:00 AM'
+                };
+            }
+        }
+    } else if (action === 'checkout') {
+        if (shiftType === 'Day') {
+            // Day shift check-out: 6 AM (600) to 5 PM (1700) - same as check-in
+            if (currentTime >= 600 && currentTime <= 1700) {
+                return { valid: true, message: '' };
+            } else {
+                return {
+                    valid: false,
+                    message: 'Day shift check-out is only allowed between 6:00 AM and 5:00 PM'
+                };
+            }
+        } else if (shiftType === 'Night') {
+            // Night shift check-out: 6 PM (1800) to 5 AM (500) next day - same as check-in
+            if (currentTime >= 1800 || currentTime <= 500) {
+                return { valid: true, message: '' };
+            } else {
+                return {
+                    valid: false,
+                    message: 'Night shift check-out is only allowed between 6:00 PM and 5:00 AM'
+                };
+            }
+        }
+    }
 
-    // Reset button states - BOTH ENABLED BY DEFAULT
-    checkInBtn.disabled = false;
-    checkOutBtn.disabled = false;
+    return { valid: true, message: '' };
+}
 
-    document.getElementById("qrcode").innerHTML = "<p style='color: #666;'>QR code will appear here after generation</p>";
-    document.getElementById("scannedCode").value = "";
-
-    if (!siteUsername) {
-        showValidationMessage("Please enter your site username.", "error");
+// Enhanced checkIn function with timing validation
+async function checkIn() {
+    if (!isValidGuard || !currentGuardData) {
+        showMessage("Please wait for system to initialize.", "error");
         return;
     }
 
-    // Show loading state
-    showValidationMessage("Validating... Please wait.", "info");
-
-    const validateBtn = document.getElementById("validateBtn");
-    const originalText = validateBtn.textContent;
-    validateBtn.textContent = "Validating...";
-    validateBtn.disabled = true;
-
-    try {
-        console.log('Step 1: Validating guard username');
-        const result = await validateGuardByUsername(siteUsername);
-        console.log('Username validation result:', result);
-
-        if (!result.isValid) {
-            showValidationMessage(result.message || "Site username not recognized.", "error");
-            validateBtn.textContent = originalText;
-            validateBtn.disabled = false;
-            return;
-        }
-
-        currentGuardData = result.guardData;
-        console.log('Guard data:', currentGuardData);
-
-        // Step 2: Get today's shift information
-        console.log('Step 2: Getting shift information');
-        const shiftResult = await getTodaysShift(currentGuardData.guardId);
-        currentShiftData = shiftResult.success ? shiftResult.shift : null;
-
-        if (currentShiftData) {
-            currentShiftType = currentShiftData.shiftType;
-            console.log('Shift data found:', currentShiftData);
-
-            // Check if guard is off duty
-            if (currentShiftType === "Off") {
-                showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are OFF DUTY today.`, "warning");
-                document.getElementById("currentGuardInfo").textContent = `${currentGuardData.fullName} - OFF DUTY`;
-                document.getElementById("currentGuardInfo").style.display = "block";
-                qrSection.style.display = "block";
-
-                // Disable both buttons for off-duty guards
-                checkInBtn.disabled = true;
-                checkOutBtn.disabled = true;
-                isValidGuard = true;
-
-                validateBtn.textContent = originalText;
-                validateBtn.disabled = false;
-                return;
-            }
-        } else {
-            currentShiftType = determineShiftType();
-            console.log('No shift data, using default:', currentShiftType);
-        }
-
-        // Step 3: Get current status from DATABASE
-        console.log('Step 3: Getting current status from database');
-        const currentStatus = await getGuardCurrentStatus(currentGuardData.guardId);
-        console.log('Current status from database:', currentStatus);
-
-        // Update guard info display
-        const shiftInfo = currentShiftData ?
-            `${currentShiftType} Shift at ${currentShiftData.location || "Main Gate"}` :
-            `${currentShiftType} Shift`;
-
-        document.getElementById("currentGuardInfo").textContent = `${currentGuardData.fullName} - ${shiftInfo}`;
-        document.getElementById("currentGuardInfo").style.display = "block";
-
-        // Step 4: SIMPLIFIED button states - BOTH BUTTONS ALWAYS ENABLED
-        qrSection.style.display = "block";
-        isValidGuard = true;
-
-        // ALWAYS enable both buttons - remove all restrictions
-        checkInBtn.disabled = false;
-        checkOutBtn.disabled = false;
-
-        // Just show status information, don't restrict actions
-        if (currentStatus.hasCheckedOut) {
-            console.log('Status: Already checked out');
-            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You have already completed your shift today.`, "success");
-        } else if (currentStatus.hasCheckedIn) {
-            console.log('Status: Checked in, can check out');
-            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You are checked in and can check out now.`, "success");
-        } else {
-            console.log('Status: Not checked in, can check in');
-            showValidationMessage(`Welcome, ${currentGuardData.fullName}! You can check in or check out now.`, "success");
-        }
-
-        // Save to session storage
-        sessionStorage.setItem("guardData", JSON.stringify(currentGuardData));
-        if (currentShiftData) {
-            sessionStorage.setItem("shiftData", JSON.stringify(currentShiftData));
-        }
-
-        console.log('=== MANUAL VALIDATION COMPLETED ===');
-
-    } catch (error) {
-        console.error("Validation error:", error);
-        showValidationMessage("Network error. Please try again.", "error");
-        qrSection.style.display = "none";
-        document.getElementById("currentGuardInfo").style.display = "none";
-        checkInBtn.disabled = true;
-        checkOutBtn.disabled = true;
-        isValidGuard = false;
-    } finally {
-        validateBtn.textContent = originalText;
-        validateBtn.disabled = false;
+    // Check if off duty
+    if (currentShiftData && currentShiftData.shiftType === "Off") {
+        showMessage("You are off duty today. Cannot check in.", "error");
+        return;
     }
+
+    // Validate check-in timing
+    const shiftType = currentShiftData ? currentShiftData.shiftType : determineShiftType();
+    const timingValidation = validateCheckInTiming(shiftType, 'checkin');
+
+    if (!timingValidation.valid) {
+        showMessage(timingValidation.message, "error");
+        return;
+    }
+
+    const expectedTime = getExpectedTime(shiftType, 'checkin');
+    await verifyScan("Present", expectedTime);
+}
+
+// Enhanced checkOut function with timing validation
+async function checkOut() {
+    if (!isValidGuard || !currentGuardData) {
+        showMessage("Please wait for system to initialize.", "error");
+        return;
+    }
+
+    // Check if off duty
+    if (currentShiftData && currentShiftData.shiftType === "Off") {
+        showMessage("You are off duty today. Cannot check out.", "error");
+        return;
+    }
+
+    // Validate check-out timing
+    const shiftType = currentShiftData ? currentShiftData.shiftType : determineShiftType();
+    const timingValidation = validateCheckInTiming(shiftType, 'checkout');
+
+    if (!timingValidation.valid) {
+        showMessage(timingValidation.message, "error");
+        return;
+    }
+
+    const expectedTime = getExpectedTime(shiftType, 'checkout');
+    await verifyScan("Checked Out", expectedTime);
 }
 
 // QR CODE GENERATION
 function generateQRCode() {
     if (!isValidGuard || !currentGuardData) {
-        showMessage("Please validate your identity first.", "error");
+        showMessage("Please wait for system to initialize.", "error");
         return;
     }
 
     const qrcodeDiv = document.getElementById("qrcode");
     const scannedCodeInput = document.getElementById("scannedCode");
+    const clearQRBtn = document.getElementById("clearQRBtn");
 
     qrcodeDiv.innerHTML = "";
     scannedCodeInput.value = "";
@@ -478,6 +403,7 @@ function generateQRCodeInternal() {
     console.log("Generated token:", token);
 
     const qrcodeDiv = document.getElementById("qrcode");
+    const clearQRBtn = document.getElementById("clearQRBtn");
 
     try {
         qrcodeDiv.innerHTML = "";
@@ -534,18 +460,8 @@ function generateQRCodeInternal() {
         container.appendChild(canvas);
         qrcodeDiv.appendChild(container);
 
-        // Add clear button
-        const clearBtn = document.createElement('button');
-        clearBtn.textContent = 'Clear QR Code';
-        clearBtn.onclick = clearQRCode;
-        clearBtn.style.marginTop = '15px';
-        clearBtn.style.padding = '8px 16px';
-        clearBtn.style.backgroundColor = '#6c757d';
-        clearBtn.style.color = 'white';
-        clearBtn.style.border = 'none';
-        clearBtn.style.borderRadius = '4px';
-        clearBtn.style.cursor = 'pointer';
-        qrcodeDiv.appendChild(clearBtn);
+        // Show clear button
+        clearQRBtn.style.display = 'inline-block';
 
         showMessage("QR Code generated successfully! Scan the code below.", "success");
 
@@ -604,50 +520,17 @@ function generateManualCodeOnly(token, qrcodeDiv) {
 
 function clearQRCode() {
     const qrcodeDiv = document.getElementById("qrcode");
+    const clearQRBtn = document.getElementById("clearQRBtn");
+
     qrcodeDiv.innerHTML = "<p style='color: #666;'>QR code will appear here after generation</p>";
     document.getElementById("statusMessage").textContent = "";
     document.getElementById("statusMessage").className = "";
+    clearQRBtn.style.display = 'none';
     sessionStorage.removeItem("lastToken");
     sessionStorage.removeItem("tokenTime");
 }
 
-// SIMPLIFIED CHECK IN FUNCTION - REMOVED VALIDATION RESTRICTIONS
-async function checkIn() {
-    if (!isValidGuard || !currentGuardData) {
-        showMessage("Please validate your identity first.", "error");
-        return;
-    }
-
-    // Check if off duty
-    if (currentShiftData && currentShiftData.shiftType === "Off") {
-        showMessage("You are off duty today. Cannot check in.", "error");
-        return;
-    }
-
-    // REMOVED: Check if already checked in - allow multiple check-ins if needed
-    const expectedTime = getExpectedTime(currentShiftType, 'checkin');
-    await verifyScan("Present", expectedTime);
-}
-
-// SIMPLIFIED CHECK OUT FUNCTION - REMOVED VALIDATION RESTRICTIONS
-async function checkOut() {
-    if (!isValidGuard || !currentGuardData) {
-        showMessage("Please validate your identity first.", "error");
-        return;
-    }
-
-    // Check if off duty
-    if (currentShiftData && currentShiftData.shiftType === "Off") {
-        showMessage("You are off duty today. Cannot check out.", "error");
-        return;
-    }
-
-    // REMOVED: All validation checks - allow direct check-out without checking in first
-    const expectedTime = getExpectedTime(currentShiftType, 'checkout');
-    await verifyScan("Checked Out", expectedTime);
-}
-
-// VERIFY SCAN FUNCTION
+// Enhanced verifyScan function
 async function verifyScan(statusType, expectedTime) {
     const scanned = document.getElementById("scannedCode").value.trim().toUpperCase();
 
@@ -712,14 +595,10 @@ async function verifyScan(statusType, expectedTime) {
             // Clear the QR code
             clearQRCode();
 
-            // Keep both buttons enabled after action
-            document.getElementById("checkInBtn").disabled = false;
-            document.getElementById("checkOutBtn").disabled = false;
-
             if (statusType === "Present") {
-                showMessage("Check-in successful! You can check out at any time.", "success");
+                showMessage("Check-in successful! You can check out at any time during your shift.", "success");
             } else {
-                showMessage("Check-out successful! Thank you.", "success");
+                showMessage("Check-out successful! Your hours have been recorded for payroll.", "success");
             }
         } else {
             showMessage(result.message || "Error saving to database.", "error");
@@ -733,41 +612,36 @@ async function verifyScan(statusType, expectedTime) {
     sessionStorage.removeItem("tokenTime");
 }
 
-// RESET FORM FUNCTION
-function resetForm() {
+// REFRESH FUNCTION
+function refreshSystem() {
+    // Clear session storage
     sessionStorage.removeItem("guardData");
     sessionStorage.removeItem("shiftData");
     sessionStorage.removeItem("lastToken");
     sessionStorage.removeItem("tokenTime");
-    sessionStorage.removeItem("checkinData");
+
+    // Reset variables
     currentGuardData = null;
     currentShiftData = null;
     isValidGuard = false;
-    checkinData = [];
 
-    document.getElementById("siteUsername").value = "";
-    document.getElementById("validationMessage").textContent = "";
-    document.getElementById("validationMessage").className = "";
-    document.getElementById("validationMessage").style.display = "none";
-    document.getElementById("qrSection").style.display = "none";
+    // Clear UI
     document.getElementById("qrcode").innerHTML = "<p style='color: #666;'>QR code will appear here after generation</p>";
     document.getElementById("scannedCode").value = "";
     document.getElementById("statusMessage").textContent = "";
     document.getElementById("statusMessage").className = "";
     document.getElementById("statusMessage").style.display = "none";
-    document.getElementById("currentGuardInfo").textContent = "";
-    document.getElementById("currentGuardInfo").style.display = "none";
+    document.getElementById("validationMessage").textContent = "";
+    document.getElementById("validationMessage").className = "";
+    document.getElementById("validationMessage").style.display = "none";
+    document.getElementById("clearQRBtn").style.display = 'none';
 
-    // Hide manual validation and show auto-validation
-    document.getElementById('manualValidationSection').style.display = 'none';
-    document.getElementById('autoValidationSection').style.display = 'block';
+    // Disable buttons temporarily
+    document.getElementById("checkInBtn").disabled = true;
+    document.getElementById("checkOutBtn").disabled = true;
 
-    // Reset buttons to default state - BOTH ENABLED
-    document.getElementById("checkInBtn").disabled = false;
-    document.getElementById("checkOutBtn").disabled = false;
-
-    // Restart auto-validation
-    autoValidateGuard();
+    // Re-initialize the system
+    initializeGuardSystem();
 }
 
 // EVENT LISTENERS
@@ -775,21 +649,14 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('DOM loaded - attaching event listeners');
 
     // Set up event listeners
-    document.getElementById('validateBtn').addEventListener('click', validateGuard);
     document.getElementById('checkInBtn').addEventListener('click', checkIn);
     document.getElementById('checkOutBtn').addEventListener('click', checkOut);
     document.getElementById('generateQRBtn').addEventListener('click', generateQRCode);
-    document.getElementById('resetBtn').addEventListener('click', resetForm);
+    document.getElementById('clearQRBtn').addEventListener('click', clearQRCode);
+    document.getElementById('resetBtn').addEventListener('click', refreshSystem);
     document.getElementById('backToDashboardBtn').addEventListener('click', goToDashboard);
 
-    // Enter key handlers
-    document.getElementById("siteUsername").addEventListener("keypress", function (event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            validateGuard();
-        }
-    });
-
+    // Enter key handler for scanned code
     document.getElementById("scannedCode").addEventListener("keypress", function (event) {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -802,13 +669,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Hide sections initially
-    document.getElementById('qrSection').style.display = 'none';
-    document.getElementById('currentGuardInfo').style.display = 'none';
-    document.getElementById('manualValidationSection').style.display = 'none';
-
-    // Start auto-validation immediately
-    autoValidateGuard();
+    // Initialize the system immediately
+    initializeGuardSystem();
 
     console.log('Event listeners attached successfully');
 });

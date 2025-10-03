@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -13,6 +14,22 @@ namespace PiranaSecuritySystem.Models
         public DateTime? CheckOutTime { get; private set; }
     }
 
+    public class PayrollBreakdown
+    {
+        public double TotalHours { get; set; }
+        public double RegularHours { get; set; }
+        public double OvertimeHours { get; set; }
+        public int DaysWorked { get; set; }
+        public List<ShiftDetail> ShiftDetails { get; set; }
+    }
+
+    public class ShiftDetail
+    {
+        public DateTime Date { get; set; }
+        public double Hours { get; set; }
+        public bool IsOvertime { get; set; }
+    }
+
 
     public class Attendance
     {
@@ -24,6 +41,10 @@ namespace PiranaSecuritySystem.Models
 
         [ForeignKey("GuardId")]
         public virtual Guard Guard { get; set; }
+
+        [ForeignKey("ShiftRoster")]
+        public int? RosterId { get; set; }
+        public virtual ShiftRoster ShiftRoster { get; set; }
 
         [Required]
         [Display(Name = "Check-In Time")]
