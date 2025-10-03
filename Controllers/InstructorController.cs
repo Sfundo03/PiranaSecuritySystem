@@ -29,7 +29,7 @@ namespace PiranaSecuritySystem.Controllers
 
                 return View(instructor);
             }
-            catch (Exception ex)
+            catch (Exception )
             {
                 TempData["ErrorMessage"] = "An error occurred while loading the dashboard.";
                 return RedirectToAction("Error", "Home");
@@ -156,6 +156,9 @@ namespace PiranaSecuritySystem.Controllers
                     .Where(g => model.GuardIdList.Contains(g.GuardId))
                     .ToList();
 
+                // CREATE NOTIFICATIONS FOR GUARDS
+                CreateRosterNotifications(selectedGuards, model.Site, model.RosterDate, instructor.FullName);
+
                 // Create shift assignments
                 CreateShiftAssignments(selectedGuards, model.Site, model.RosterDate, instructor.FullName);
 
@@ -273,6 +276,70 @@ namespace PiranaSecuritySystem.Controllers
             {
                 TempData["ErrorMessage"] = "Error loading roster: " + ex.Message;
                 return RedirectToAction("Dashboard");
+            }
+        }
+
+        // Add these methods to InstructorController
+        private void CreateTrainingSessionNotifications(TrainingSession trainingSession, List<Guard> enrolledGuards)
+        {
+            try
+            {
+                foreach (var guard in enrolledGuards)
+                {
+                    var notification = new Notification
+                    {
+                        GuardId = guard.GuardId,
+                        UserId = guard.GuardId.ToString(),
+                        UserType = "Guard",
+                        Title = "New Training Session Scheduled",
+                        Message = $"Instructor has scheduled a training session '{trainingSession.Title}' at {trainingSession.Site} from {trainingSession.StartDate:MMM dd, yyyy 'at' hh:mm tt} to {trainingSession.EndDate:MMM dd, yyyy 'at' hh:mm tt}",
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = "/Guard/Calendar",
+                        NotificationType = "Training",
+                        IsImportant = true,
+                        PriorityLevel = 2,
+                        TrainingSessionId = trainingSession.Id
+                    };
+
+                    db.Notifications.Add(notification);
+                }
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating training notifications: {ex.Message}");
+            }
+        }
+
+        private void CreateRosterNotifications(List<Guard> guards, string site, DateTime rosterDate, string instructorName)
+        {
+            try
+            {
+                foreach (var guard in guards)
+                {
+                    var notification = new Notification
+                    {
+                        GuardId = guard.GuardId,
+                        UserId = guard.GuardId.ToString(),
+                        UserType = "Guard",
+                        Title = "New Shift Roster Generated",
+                        Message = $"Instructor {instructorName} has generated a new shift roster for {rosterDate:MMMM yyyy} at {site}. Please check your calendar for your assigned shifts.",
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = "/Guard/Calendar",
+                        NotificationType = "Roster",
+                        IsImportant = true,
+                        PriorityLevel = 2
+                    };
+
+                    db.Notifications.Add(notification);
+                }
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating roster notifications: {ex.Message}");
             }
         }
 

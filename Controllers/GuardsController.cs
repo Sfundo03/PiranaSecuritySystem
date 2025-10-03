@@ -1004,7 +1004,96 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+
+        [HttpGet]
+        public JsonResult GetGuardTrainingSessions()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var trainingSessions = db.TrainingEnrollments
+                    .Where(e => e.GuardId == guard.GuardId)
+                    .Include(e => e.TrainingSession)
+                    .Where(e => e.TrainingSession.StartDate >= DateTime.Now)
+                    .OrderBy(e => e.TrainingSession.StartDate)
+                    .Take(5)
+                    .Select(e => new
+                    {
+                        id = e.TrainingSession.Id,
+                        title = e.TrainingSession.Title,
+                        startDate = e.TrainingSession.StartDate,
+                        endDate = e.TrainingSession.EndDate,
+                        site = e.TrainingSession.Site
+                    })
+                    .ToList()
+                    .Select(t => new
+                    {
+                        id = t.id,
+                        title = t.title,
+                        startDate = t.startDate.ToString("yyyy-MM-ddTHH:mm:ss"), // ISO format for JavaScript
+                        endDate = t.endDate.ToString("yyyy-MM-ddTHH:mm:ss"), // ISO format for JavaScript
+                        site = t.site
+                    })
+                    .ToList();
+
+                return Json(new { success = true, sessions = trainingSessions }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetGuardTrainingSessions: {ex.Message}");
+                return Json(new { success = false, message = "Error loading training sessions" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        public JsonResult GetRecentNotifications()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var notifications = db.Notifications
+                    .Where(n => n.GuardId == guard.GuardId)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(5)
+                    .ToList()
+                    .Select(n => new
+                    {
+                        notificationId = n.NotificationId,
+                        title = n.Title,
+                        message = FormatNotificationMessage(n.Message),
+                        notificationType = n.NotificationType,
+                        isRead = n.IsRead,
+                        createdAt = n.CreatedAt,
+                        timeAgo = GetTimeAgo(n.CreatedAt),
+                        isImportant = n.IsImportant
+                    })
+                    .ToList();
+
+                return Json(new { success = true, notifications = notifications }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetRecentNotifications: {ex.Message}");
+                return Json(new { success = false, message = "Error loading notifications" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         // API: Get notifications for guard
+        // Make sure your existing GetGuardNotifications method looks like this:
         [HttpGet]
         public JsonResult GetGuardNotifications()
         {
@@ -1027,11 +1116,11 @@ namespace PiranaSecuritySystem.Controllers
                     {
                         notificationId = n.NotificationId,
                         title = n.Title,
-                        message = FormatNotificationMessage(n.Message), // Format the message
+                        message = FormatNotificationMessage(n.Message),
                         notificationType = n.NotificationType,
                         isRead = n.IsRead,
                         createdAt = n.CreatedAt,
-                        timeAgo = GetTimeAgo(n.CreatedAt), // Use proper time formatting
+                        timeAgo = GetTimeAgo(n.CreatedAt),
                         isImportant = n.IsImportant
                     })
                     .ToList();

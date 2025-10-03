@@ -35,10 +35,7 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         // GET: TrainingSessions/Details/5
-        // In your TrainingSessionsController, update the Details method:
-
-        // GET: TrainingSessions/Details/5
-        public ActionResult Details(int? id)  // Changed to nullable int
+        public ActionResult Details(int? id)
         {
             try
             {
@@ -128,11 +125,11 @@ namespace PiranaSecuritySystem.Controllers
                 var guards = db.Guards
                     .Where(g => g.Site == site && g.IsActive)
                     .Select(g => new {
-                        id = g.GuardId, // Changed from g.id to g.GuardId
+                        id = g.GuardId,
                         name = g.Guard_FName + " " + g.Guard_LName,
                         badge = g.PSIRAnumber ?? g.GuardId.ToString()
                     })
-                    .Take(50) // Increased limit
+                    .Take(50)
                     .ToList();
 
                 System.Diagnostics.Debug.WriteLine($"Found {guards.Count} guards for site: {site}");
@@ -197,6 +194,11 @@ namespace PiranaSecuritySystem.Controllers
                     return View(model);
                 }
 
+                // Get current instructor
+                var currentUserId = User.Identity.GetUserId();
+                var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
+                string instructorName = instructor?.FullName ?? "Instructor";
+
                 // Create training session
                 var trainingSession = new TrainingSession
                 {
@@ -210,19 +212,30 @@ namespace PiranaSecuritySystem.Controllers
                 db.TrainingSessions.Add(trainingSession);
                 db.SaveChanges();
 
+                // Get enrolled guards for notifications
+                var enrolledGuards = new List<Guard>();
+
                 // Create enrollments
                 foreach (var guardId in model.SelectedGuardIds)
                 {
-                    var enrollment = new TrainingEnrollment
+                    var guard = db.Guards.Find(guardId);
+                    if (guard != null)
                     {
-                        TrainingSessionId = trainingSession.Id,
-                        GuardId = guardId,
-                        EnrollmentDate = DateTime.Now
-                    };
-                    db.TrainingEnrollments.Add(enrollment);
+                        var enrollment = new TrainingEnrollment
+                        {
+                            TrainingSessionId = trainingSession.Id,
+                            GuardId = guardId,
+                            EnrollmentDate = DateTime.Now
+                        };
+                        db.TrainingEnrollments.Add(enrollment);
+                        enrolledGuards.Add(guard);
+                    }
                 }
 
                 db.SaveChanges();
+
+                // CREATE NOTIFICATIONS FOR ENROLLED GUARDS
+                CreateTrainingSessionNotifications(trainingSession, enrolledGuards, instructorName);
 
                 TempData["SuccessMessage"] = $"Training session '{model.Title}' created successfully with {model.SelectedGuardIds.Count} guards!";
                 return RedirectToAction("Index");
@@ -404,6 +417,145 @@ namespace PiranaSecuritySystem.Controllers
                 System.Diagnostics.Debug.WriteLine($"Error in DeleteConfirmed: {ex.Message}");
                 TempData["ErrorMessage"] = "Error deleting training session: " + ex.Message;
                 return RedirectToAction("Delete", new { id = id });
+            }
+        }
+
+        // FIXED: Method to create training session notifications for guards
+        private void CreateTrainingSessionNotifications(TrainingSession trainingSession, List<Guard> enrolledGuards, string instructorName)
+        {
+            try
+            {
+                // Get current user ID for notification source
+                var currentUserId = User.Identity.GetUserId();
+
+                foreach (var guard in enrolledGuards)
+                {
+                    var notification = new Notification
+                    {
+                        GuardId = guard.GuardId,
+                        UserId = guard.GuardId.ToString(),
+                        UserType = "Guard",
+                        Title = "New Training Session Scheduled",
+                        Message = $"Instructor {instructorName} has scheduled a training session '{trainingSession.Title}' at {trainingSession.Site} from {trainingSession.StartDate:MMM dd, yyyy 'at' hh:mm tt} to {trainingSession.EndDate:MMM dd, yyyy 'at' hh:mm tt}",
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = "/Guard/Calendar",
+                        NotificationType = "Training",
+                        IsImportant = true,
+                        PriorityLevel = 2,
+                        TrainingSessionId = trainingSession.Id
+                    };
+
+                    db.Notifications.Add(notification);
+                }
+                db.SaveChanges();
+
+                System.Diagnostics.Debug.WriteLine($"Created {enrolledGuards.Count} training session notifications for session: {trainingSession.Title}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating training notifications: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                // Don't throw the exception - we don't want to fail the main operation
+            }
+        }
+
+        // NEW: Method to update training session and notify guards about changes
+        private void UpdateTrainingSessionAndNotify(TrainingSession trainingSession, List<Guard> enrolledGuards, string instructorName, string action)
+        {
+            try
+            {
+                string message = "";
+                string title = "";
+
+                switch (action.ToLower())
+                {
+                    case "updated":
+                        title = "Training Session Updated";
+                        message = $"Instructor {instructorName} has updated the training session '{trainingSession.Title}'. New schedule: {trainingSession.StartDate:MMM dd, yyyy 'at' hh:mm tt} to {trainingSession.EndDate:MMM dd, yyyy 'at' hh:mm tt} at {trainingSession.Site}";
+                        break;
+                    case "cancelled":
+                        title = "Training Session Cancelled";
+                        message = $"Instructor {instructorName} has cancelled the training session '{trainingSession.Title}' that was scheduled for {trainingSession.StartDate:MMM dd, yyyy}";
+                        break;
+                    case "rescheduled":
+                        title = "Training Session Rescheduled";
+                        message = $"Instructor {instructorName} has rescheduled the training session '{trainingSession.Title}' to {trainingSession.StartDate:MMM dd, yyyy 'at' hh:mm tt} at {trainingSession.Site}";
+                        break;
+                }
+
+                foreach (var guard in enrolledGuards)
+                {
+                    var notification = new Notification
+                    {
+                        GuardId = guard.GuardId,
+                        UserId = guard.GuardId.ToString(),
+                        UserType = "Guard",
+                        Title = title,
+                        Message = message,
+                        IsRead = false,
+                        CreatedAt = DateTime.Now,
+                        RelatedUrl = "/Guard/Calendar",
+                        NotificationType = "Training",
+                        IsImportant = true,
+                        PriorityLevel = 2,
+                        TrainingSessionId = trainingSession.Id
+                    };
+
+                    db.Notifications.Add(notification);
+                }
+                db.SaveChanges();
+
+                System.Diagnostics.Debug.WriteLine($"Created {enrolledGuards.Count} notifications for training session {action}: {trainingSession.Title}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating {action} training notifications: {ex.Message}");
+            }
+        }
+
+        // NEW: API method to get training session details for guards
+        [HttpGet]
+        public JsonResult GetTrainingSessionDetails(int id)
+        {
+            try
+            {
+                var session = db.TrainingSessions
+                    .Include(t => t.Enrollments.Select(e => e.Guard))
+                    .FirstOrDefault(t => t.Id == id);
+
+                if (session == null)
+                {
+                    return Json(new { success = false, message = "Training session not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var enrolledGuards = session.Enrollments.Select(e => new
+                {
+                    id = e.Guard.GuardId,
+                    name = e.Guard.Guard_FName + " " + e.Guard.Guard_LName,
+                    badge = e.Guard.PSIRAnumber
+                }).ToList();
+
+                return Json(new
+                {
+                    success = true,
+                    session = new
+                    {
+                        id = session.Id,
+                        title = session.Title,
+                        startDate = session.StartDate,
+                        endDate = session.EndDate,
+                        site = session.Site,
+                        capacity = session.Capacity,
+                        enrolledCount = enrolledGuards.Count
+                    },
+                    enrolledGuards = enrolledGuards
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetTrainingSessionDetails: {ex.Message}");
+                return Json(new { success = false, message = "Error loading training session details" }, JsonRequestBehavior.AllowGet);
             }
         }
 
