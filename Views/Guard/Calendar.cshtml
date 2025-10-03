@@ -273,6 +273,11 @@
             color: #856404;
         }
 
+        .status-late {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
         .stats-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -533,30 +538,66 @@
                             <tbody>
                                 @foreach (var checkIn in Model.CheckIns.Take(5))
                                 {
+                                    // Apply the same logic as the controller to determine display status
+                                    var displayStatus = checkIn.Status;
+                                    if (checkIn.Status == "Late Arrival")
+                                    {
+                                        // Check if this should actually be displayed as "Present"
+                                        var shiftForCheckIn = Model.Shifts.FirstOrDefault(s => s.RosterId == checkIn.RosterId);
+                                        if (shiftForCheckIn != null)
+                                        {
+                                            var checkInTime = checkIn.CheckInTime;
+                                            var currentHour = checkInTime.Hour;
+                                            var currentMinutes = checkInTime.Minute;
+                                            var totalMinutes = currentHour * 60 + currentMinutes;
+
+                                            if (shiftForCheckIn.ShiftType == "Night")
+                                            {
+                                                // Night shift: On-time between 6 PM (1080) and 9 PM (1260)
+                                                if (totalMinutes <= 1260) // Before or at 9:00 PM
+                                                {
+                                                    displayStatus = "Present";
+                                                }
+                                            }
+                                            else if (shiftForCheckIn.ShiftType == "Day")
+                                            {
+                                                // Day shift: On-time between 6 AM (360) and 9 AM (540)
+                                                if (totalMinutes <= 540) // Before or at 9:00 AM
+                                                {
+                                                    displayStatus = "Present";
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     <tr>
                                         <td>@checkIn.CheckInTime.ToString("MMM dd, yyyy HH:mm")</td>
                                         <td>
-                                            @if (checkIn.Status == "Present" || checkIn.Status == "Late Arrival")
+                                            @if (displayStatus == "Present")
                                             {
-                                                <span class="checkin-status status-present">@checkIn.Status</span>
+                                                <span class="checkin-status status-present">@displayStatus</span>
                                             }
-                                            else if (checkIn.Status == "Checked Out" || checkIn.Status == "Late Departure")
+                                            else if (displayStatus == "Late Arrival")
+                                            {
+                                                <span class="checkin-status status-late">@displayStatus</span>
+                                            }
+                                            else if (displayStatus == "Checked Out" || displayStatus == "Late Departure")
                                             {
                                                 <span class="checkin-status status-checkedout">Checked Out</span>
                                             }
                                             else
                                             {
-                                                <span class="checkin-status status-absent">@checkIn.Status</span>
+                                                <span class="checkin-status status-absent">@displayStatus</span>
                                             }
                                         </td>
                                         <td>
                                             @{
                                                 // Find the shift for this check-in using simple loop
-                                                var shiftForCheckIn = Model.Shifts.FirstOrDefault(s => s.RosterId == checkIn.RosterId);
+                                                var shiftForDisplay = Model.Shifts.FirstOrDefault(s => s.RosterId == checkIn.RosterId);
                                             }
-                                            @if (shiftForCheckIn != null)
+                                            @if (shiftForDisplay != null)
                                             {
-                                                @shiftForCheckIn.ShiftType
+                                                @shiftForDisplay.ShiftType
                                             }
                                             else
                                             {

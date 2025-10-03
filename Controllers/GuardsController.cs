@@ -176,6 +176,7 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         // POST: Guard/SaveCheckIn
+        // POST: Guard/SaveCheckIn
         [HttpPost]
         public JsonResult SaveCheckIn(GuardCheckInViewModel checkInData)
         {
@@ -201,11 +202,42 @@ namespace PiranaSecuritySystem.Controllers
                     .FirstOrDefault(s => s.GuardId == checkInData.GuardId &&
                                        DbFunctions.TruncateTime(s.RosterDate) == currentDate);
 
+                // Use temporary status for validation, then determine actual status
+                string validationStatus = checkInData.Status;
+                if (checkInData.Status == "Present" || checkInData.Status == "Late Arrival")
+                {
+                    validationStatus = "Present"; // Use base status for validation
+                }
+
                 // Validate shift timing based on real-time logic
-                var validationResult = ValidateShiftTimingLogic(todayShift, checkInData.Status, currentTime);
+                var validationResult = ValidateShiftTimingLogic(todayShift, validationStatus, currentTime);
                 if (!validationResult.IsValid)
                 {
                     return Json(new { success = false, message = validationResult.ErrorMessage });
+                }
+
+                // Determine actual status based on exact timing
+                string actualStatus = checkInData.Status;
+                if (todayShift != null && (checkInData.Status == "Present" || checkInData.Status == "Late Arrival"))
+                {
+                    var currentHour = currentTime.Hour;
+                    var currentMinutes = currentTime.Minute;
+                    var totalMinutes = currentHour * 60 + currentMinutes;
+
+                    if (todayShift.ShiftType == "Day")
+                    {
+                        // Day shift: On-time between 6 AM (360) and 9 AM (540)
+                        actualStatus = totalMinutes > 540 ? "Late Arrival" : "Present";
+                    }
+                    else if (todayShift.ShiftType == "Night")
+                    {
+                        // Night shift: On-time between 6 PM (1080) and 9 PM (1260)
+                        actualStatus = totalMinutes > 1260 ? "Late Arrival" : "Present";
+                    }
+                }
+                else
+                {
+                    actualStatus = checkInData.Status;
                 }
 
                 // Check if guard is off duty
@@ -218,7 +250,7 @@ namespace PiranaSecuritySystem.Controllers
                 var existingCheckIn = db.GuardCheckIns
                     .Where(c => c.GuardId == checkInData.GuardId &&
                                DbFunctions.TruncateTime(c.CheckInTime) == currentDate &&
-                               c.Status == checkInData.Status)
+                               c.Status == actualStatus)
                     .OrderByDescending(c => c.CheckInTime)
                     .FirstOrDefault();
 
@@ -227,7 +259,7 @@ namespace PiranaSecuritySystem.Controllers
                     TimeSpan timeSinceLast = currentTime - existingCheckIn.CheckInTime;
                     if (timeSinceLast.TotalMinutes < 5) // Prevent duplicate within 5 minutes
                     {
-                        return Json(new { success = false, message = $"You have already {checkInData.Status.ToLower()} recently. Please wait a few minutes." });
+                        return Json(new { success = false, message = $"You have already {actualStatus.ToLower()} recently. Please wait a few minutes." });
                     }
                 }
 
@@ -236,9 +268,9 @@ namespace PiranaSecuritySystem.Controllers
                 {
                     GuardId = checkInData.GuardId,
                     CheckInTime = currentTime,
-                    Status = checkInData.Status,
+                    Status = actualStatus,
                     CreatedDate = DateTime.Now,
-                    IsLate = checkInData.IsLate,
+                    IsLate = actualStatus == "Late Arrival" || actualStatus == "Late Departure",
                     ExpectedTime = checkInData.ExpectedTime,
                     ActualTime = checkInData.ActualTime,
                     SiteUsername = checkInData.SiteUsername,
@@ -252,21 +284,21 @@ namespace PiranaSecuritySystem.Controllers
                 var attendanceRecord = UpdateAttendanceRecordForPayroll(checkIn);
 
                 // Update shift status for calendar
-                UpdateShiftStatusForCalendar(todayShift, checkInData.Status, attendanceRecord?.HoursWorked);
+                UpdateShiftStatusForCalendar(todayShift, actualStatus, attendanceRecord?.HoursWorked);
 
                 // Create notification
                 CreateGuardNotification(
                     guard.GuardId,
-                    checkInData.Status == "Present" || checkInData.Status == "Late Arrival" ? "Check-In Successful" : "Check-Out Successful",
-                    $"You have successfully {checkInData.Status.ToLower()} at {currentTime:MMM dd, yyyy 'at' hh:mm tt}",
-                    checkInData.Status.Contains("Check") ? "CheckOut" : "CheckIn",
+                    actualStatus == "Present" || actualStatus == "Late Arrival" ? "Check-In Successful" : "Check-Out Successful",
+                    $"You have successfully {actualStatus.ToLower()} at {currentTime:MMM dd, yyyy 'at' hh:mm tt}",
+                    actualStatus.Contains("Check") ? "CheckOut" : "CheckIn",
                     false
                 );
 
                 return Json(new
                 {
                     success = true,
-                    message = $"{checkInData.Status} recorded successfully",
+                    message = $"{actualStatus} recorded successfully",
                     hoursWorked = attendanceRecord?.HoursWorked,
                     rosterId = todayShift?.RosterId
                 });
@@ -277,7 +309,6 @@ namespace PiranaSecuritySystem.Controllers
                 return Json(new { success = false, message = $"An error occurred: {ex.Message}" });
             }
         }
-
         // Enhanced timing validation with correct hours - RENAMED to avoid conflict
         private (bool IsValid, string ErrorMessage) ValidateShiftTimingLogic(ShiftRoster shift, string status, DateTime currentTime)
         {

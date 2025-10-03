@@ -1325,11 +1325,11 @@ namespace PiranaSecuritySystem.Controllers
             try
             {
                 // Get configuration from Web.config
-                string fromEmail = ConfigurationManager.AppSettings["EmailFrom"] ?? "sfundozuma@gmail.com";
+                string fromEmail = ConfigurationManager.AppSettings["EmailFrom"] ?? "g54759296@gmail.com";
                 string smtpServer = ConfigurationManager.AppSettings["SmtpServer"] ?? "smtp.gmail.com";
                 int smtpPort = int.Parse(ConfigurationManager.AppSettings["SmtpPort"] ?? "587");
-                string smtpUsername = ConfigurationManager.AppSettings["SmtpUsername"] ?? "sfundozuma@gmail.com";
-                string smtpPassword = ConfigurationManager.AppSettings["SmtpPassword"] ?? "ndzpxdnonagyhabu";
+                string smtpUsername = ConfigurationManager.AppSettings["SmtpUsername"] ?? "g54759296@gmail.com";
+                string smtpPassword = ConfigurationManager.AppSettings["SmtpPassword"] ?? "byzycmehhdaargqi";
                 bool enableSsl = bool.Parse(ConfigurationManager.AppSettings["EnableSsl"] ?? "true");
                 string displayName = ConfigurationManager.AppSettings["EmailDisplayName"] ?? "Pirana Security System";
                 int timeout = int.Parse(ConfigurationManager.AppSettings["SmtpTimeout"] ?? "30000");
