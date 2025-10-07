@@ -176,7 +176,6 @@ namespace PiranaSecuritySystem.Controllers
         }
 
         // POST: Guard/SaveCheckIn
-        // POST: Guard/SaveCheckIn
         [HttpPost]
         public JsonResult SaveCheckIn(GuardCheckInViewModel checkInData)
         {
@@ -194,7 +193,10 @@ namespace PiranaSecuritySystem.Controllers
                     return Json(new { success = false, message = "Guard not found or inactive" });
                 }
 
-                DateTime currentTime = DateTime.Now;
+                // Convert UTC to South Africa Time (SAST = UTC+2)
+                DateTime utcNow = DateTime.UtcNow;
+                TimeZoneInfo saTimeZone = TimeZoneInfo.FindSystemTimeZoneById("South Africa Standard Time");
+                DateTime currentTime = TimeZoneInfo.ConvertTimeFromUtc(utcNow, saTimeZone);
                 DateTime currentDate = currentTime.Date;
 
                 // Get today's shift for validation
@@ -226,12 +228,12 @@ namespace PiranaSecuritySystem.Controllers
 
                     if (todayShift.ShiftType == "Day")
                     {
-                        // Day shift: On-time between 6 AM (360) and 9 AM (540)
+                        // Day shift: On-time between 6 AM (360) and 9 AM (540) SAST
                         actualStatus = totalMinutes > 540 ? "Late Arrival" : "Present";
                     }
                     else if (todayShift.ShiftType == "Night")
                     {
-                        // Night shift: On-time between 6 PM (1080) and 9 PM (1260)
+                        // Night shift: On-time between 6 PM (1080) and 9 PM (1260) SAST
                         actualStatus = totalMinutes > 1260 ? "Late Arrival" : "Present";
                     }
                 }
@@ -244,6 +246,30 @@ namespace PiranaSecuritySystem.Controllers
                 if (todayShift != null && todayShift.ShiftType == "Off")
                 {
                     return Json(new { success = false, message = "You are off duty today. Cannot check in/out." });
+                }
+
+                // For checkout, check if guard has checked in at least 1 hour ago
+                if (actualStatus == "Checked Out" || actualStatus == "Late Departure")
+                {
+                    var lastCheckIn = db.GuardCheckIns
+                        .Where(c => c.GuardId == checkInData.GuardId &&
+                                   DbFunctions.TruncateTime(c.CheckInTime) == currentDate &&
+                                   (c.Status == "Present" || c.Status == "Late Arrival"))
+                        .OrderByDescending(c => c.CheckInTime)
+                        .FirstOrDefault();
+
+                    if (lastCheckIn != null)
+                    {
+                        TimeSpan timeSinceCheckIn = currentTime - lastCheckIn.CheckInTime;
+                        if (timeSinceCheckIn.TotalHours < 1)
+                        {
+                            return Json(new { success = false, message = "You can only check out after working for at least 1 hour." });
+                        }
+                    }
+                    else
+                    {
+                        return Json(new { success = false, message = "You need to check in first before checking out." });
+                    }
                 }
 
                 // Check for duplicate check-ins/check-outs
@@ -290,7 +316,7 @@ namespace PiranaSecuritySystem.Controllers
                 CreateGuardNotification(
                     guard.GuardId,
                     actualStatus == "Present" || actualStatus == "Late Arrival" ? "Check-In Successful" : "Check-Out Successful",
-                    $"You have successfully {actualStatus.ToLower()} at {currentTime:MMM dd, yyyy 'at' hh:mm tt}",
+                    $"You have successfully {actualStatus.ToLower()} at {currentTime:MMM dd, yyyy 'at' hh:mm tt} SAST",
                     actualStatus.Contains("Check") ? "CheckOut" : "CheckIn",
                     false
                 );
@@ -298,7 +324,7 @@ namespace PiranaSecuritySystem.Controllers
                 return Json(new
                 {
                     success = true,
-                    message = $"{actualStatus} recorded successfully",
+                    message = $"{actualStatus} recorded successfully at {currentTime:hh:mm tt} SAST",
                     hoursWorked = attendanceRecord?.HoursWorked,
                     rosterId = todayShift?.RosterId
                 });
@@ -309,7 +335,8 @@ namespace PiranaSecuritySystem.Controllers
                 return Json(new { success = false, message = $"An error occurred: {ex.Message}" });
             }
         }
-        // Enhanced timing validation with correct hours - RENAMED to avoid conflict
+
+        // Enhanced timing validation with SAST time
         private (bool IsValid, string ErrorMessage) ValidateShiftTimingLogic(ShiftRoster shift, string status, DateTime currentTime)
         {
             if (shift == null)
@@ -321,41 +348,43 @@ namespace PiranaSecuritySystem.Controllers
 
             if (status == "Present" || status == "Late Arrival")
             {
-                // Check-in validation
+                // Check-in validation in SAST
                 if (shift.ShiftType == "Day")
                 {
-                    // Day shift: Should check in between 6 AM (360 minutes) and 5 PM (1020 minutes)
-                    if (totalMinutes < 360 || totalMinutes > 1020) // 6:00 AM to 5:00 PM
+                    // Day shift in SAST: Should check in between 6 AM (360 minutes) and 5 PM (1020 minutes)
+                    if (totalMinutes < 360 || totalMinutes > 1020) // 6:00 AM to 5:00 PM SAST
                     {
-                        return (false, "Day shift check-in is only allowed between 6:00 AM and 5:00 PM");
+                        return (false, "Day shift check-in is only allowed between 6:00 AM and 5:00 PM SAST");
                     }
                 }
                 else if (shift.ShiftType == "Night")
                 {
-                    // Night shift: Should check in between 6 PM (1080 minutes) and 5 AM next day (300 minutes)
-                    if (totalMinutes >= 300 && totalMinutes < 1080) // 5:00 AM to 6:00 PM - NOT allowed
+                    // Night shift in SAST: Should check in between 6 PM (1080 minutes) and 5 AM next day (300 minutes)
+                    if (totalMinutes >= 300 && totalMinutes < 1080) // 5:00 AM to 6:00 PM SAST - NOT allowed
                     {
-                        return (false, "Night shift check-in is only allowed between 6:00 PM and 5:00 AM");
+                        return (false, "Night shift check-in is only allowed between 6:00 PM and 5:00 AM SAST");
                     }
                 }
             }
             else if (status == "Checked Out" || status == "Late Departure")
             {
-                // Check-out validation - same timing as check-in
+                // Check-out validation - More flexible for demo
+                // Allow checkout anytime after 1 hour from check-in (handled in main method)
+                // Only basic shift type validation here
                 if (shift.ShiftType == "Day")
                 {
-                    // Day shift: Should check out between 6 AM and 5 PM
-                    if (totalMinutes < 360 || totalMinutes > 1020)
+                    // Day shift: Allow checkout between 7 AM and 11 PM SAST for demo flexibility
+                    if (totalMinutes < 420 || totalMinutes > 1380) // 7:00 AM to 11:00 PM SAST
                     {
-                        return (false, "Day shift check-out is only allowed between 6:00 AM and 5:00 PM");
+                        return (false, "Day shift check-out is allowed between 7:00 AM and 11:00 PM SAST");
                     }
                 }
                 else if (shift.ShiftType == "Night")
                 {
-                    // Night shift: Should check out between 6 PM and 5 AM next day
-                    if (totalMinutes >= 300 && totalMinutes < 1080)
+                    // Night shift: Allow checkout between 7 PM and 11 AM next day SAST for demo flexibility
+                    if (!((totalMinutes >= 1140 && totalMinutes <= 1440) || (totalMinutes >= 0 && totalMinutes <= 660)))
                     {
-                        return (false, "Night shift check-out is only allowed between 6:00 PM and 5:00 AM");
+                        return (false, "Night shift check-out is allowed between 7:00 PM and 11:00 AM SAST");
                     }
                 }
             }
@@ -363,7 +392,7 @@ namespace PiranaSecuritySystem.Controllers
             return (true, "");
         }
 
-        // Enhanced UpdateAttendanceRecord for payroll integration - RENAMED to avoid conflict
+        // Enhanced UpdateAttendanceRecord for payroll integration
         private Attendance UpdateAttendanceRecordForPayroll(GuardCheckIn checkIn)
         {
             try
@@ -430,7 +459,7 @@ namespace PiranaSecuritySystem.Controllers
             return null;
         }
 
-        // Enhanced UpdateShiftStatus for calendar display - RENAMED to avoid conflict
+        // Enhanced UpdateShiftStatus for calendar display
         private void UpdateShiftStatusForCalendar(ShiftRoster shift, string status, double? hoursWorked = null)
         {
             if (shift != null)
@@ -1415,9 +1444,9 @@ namespace PiranaSecuritySystem.Controllers
         {
             switch (shiftType)
             {
-                case "Night": return "18:00";
-                case "Day": return "06:00";
-                default: return "00:00";
+                case "Night": return "18:00 SAST";
+                case "Day": return "06:00 SAST";
+                default: return "00:00 SAST";
             }
         }
 
@@ -1425,9 +1454,9 @@ namespace PiranaSecuritySystem.Controllers
         {
             switch (shiftType)
             {
-                case "Night": return "06:00";
-                case "Day": return "18:00";
-                default: return "00:00";
+                case "Night": return "06:00 SAST";
+                case "Day": return "18:00 SAST";
+                default: return "00:00 SAST";
             }
         }
 

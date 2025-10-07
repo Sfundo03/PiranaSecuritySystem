@@ -1,4 +1,4 @@
-﻿// script.js - Simplified version without auto-validation
+﻿// script.js - Updated for SAST time zone and flexible check-out
 
 // Global variables
 let isValidGuard = false;
@@ -6,33 +6,56 @@ let currentGuardData = null;
 let currentShiftType = null;
 let currentShiftData = null;
 
-// Configuration with correct timing
-const DAY_SHIFT_CHECKIN = "06:00";
-const DAY_SHIFT_CHECKOUT = "18:00";
-const NIGHT_SHIFT_CHECKIN = "18:00";
-const NIGHT_SHIFT_CHECKOUT = "06:00";
+// Configuration with SAST timing
+const DAY_SHIFT_CHECKIN_START = "06:00"; // 6:00 AM SAST
+const DAY_SHIFT_CHECKIN_END = "17:00";   // 5:00 PM SAST
+const DAY_SHIFT_CHECKOUT_START = "07:00"; // 7:00 AM SAST (1 hour after check-in start)
+const DAY_SHIFT_CHECKOUT_END = "23:00";   // 11:00 PM SAST (flexible for demo)
+
+const NIGHT_SHIFT_CHECKIN_START = "18:00"; // 6:00 PM SAST
+const NIGHT_SHIFT_CHECKIN_END = "05:00";   // 5:00 AM SAST next day
+const NIGHT_SHIFT_CHECKOUT_START = "19:00"; // 7:00 PM SAST (1 hour after check-in start)
+const NIGHT_SHIFT_CHECKOUT_END = "11:00";   // 11:00 AM SAST next day
 
 // Utility functions
 function generateShortCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function getCurrentTimeString() {
+function getCurrentSASTTime() {
+    // Create date in UTC and convert to SAST (UTC+2)
     const now = new Date();
-    return now.toTimeString().split(' ')[0].substring(0, 5);
+    const sastOffset = 2 * 60; // SAST is UTC+2 in minutes
+    const localOffset = now.getTimezoneOffset(); // in minutes
+    const sastTime = new Date(now.getTime() + (sastOffset + localOffset) * 60000);
+
+    return sastTime;
+}
+
+function getCurrentTimeString() {
+    const sastTime = getCurrentSASTTime();
+    return sastTime.toTimeString().split(' ')[0].substring(0, 5);
+}
+
+function getCurrentHoursMinutes() {
+    const sastTime = getCurrentSASTTime();
+    return {
+        hours: sastTime.getHours(),
+        minutes: sastTime.getMinutes(),
+        totalMinutes: sastTime.getHours() * 60 + sastTime.getMinutes()
+    };
 }
 
 function determineShiftType() {
-    const now = new Date();
-    const hours = now.getHours();
+    const { hours } = getCurrentHoursMinutes();
     return (hours >= 6 && hours < 18) ? 'Day' : 'Night';
 }
 
 function getExpectedTime(shiftType, action) {
     if (shiftType === 'Day') {
-        return action === 'checkin' ? DAY_SHIFT_CHECKIN : DAY_SHIFT_CHECKOUT;
+        return action === 'checkin' ? DAY_SHIFT_CHECKIN_START : DAY_SHIFT_CHECKOUT_START;
     } else {
-        return action === 'checkin' ? NIGHT_SHIFT_CHECKIN : NIGHT_SHIFT_CHECKOUT;
+        return action === 'checkin' ? NIGHT_SHIFT_CHECKIN_START : NIGHT_SHIFT_CHECKOUT_START;
     }
 }
 
@@ -66,7 +89,7 @@ function goToDashboard() {
     window.location.href = '/Guard/Dashboard';
 }
 
-// API CALLS
+// API CALLS (same as before)
 async function getCurrentGuardInfo() {
     try {
         const response = await fetch('/Guard/GetCurrentGuardInfo', {
@@ -187,9 +210,136 @@ async function getGuardCurrentStatus(guardId) {
     }
 }
 
-// SIMPLIFIED: Load guard information and setup
+// UPDATED: Enhanced timing validation for SAST
+function validateCheckInTiming(shiftType, action) {
+    const { hours, minutes, totalMinutes } = getCurrentHoursMinutes();
+    const currentTime = hours * 100 + minutes; // Convert to HHMM format
+
+    console.log(`Validating ${action} for ${shiftType} shift at ${hours}:${minutes} SAST`);
+
+    if (action === 'checkin') {
+        if (shiftType === 'Day') {
+            // Day shift check-in in SAST: 6 AM (360) to 5 PM (1020)
+            if (totalMinutes >= 360 && totalMinutes <= 1020) {
+                return { valid: true, message: '' };
+            } else {
+                return {
+                    valid: false,
+                    message: 'Day shift check-in is only allowed between 6:00 AM and 5:00 PM SAST'
+                };
+            }
+        } else if (shiftType === 'Night') {
+            // Night shift check-in in SAST: 6 PM (1080) to 5 AM (300) next day
+            if (totalMinutes >= 1080 || totalMinutes <= 300) {
+                return { valid: true, message: '' };
+            } else {
+                return {
+                    valid: false,
+                    message: 'Night shift check-in is only allowed between 6:00 PM and 5:00 AM SAST'
+                };
+            }
+        }
+    } else if (action === 'checkout') {
+        // For checkout, we'll rely on server-side validation for the 1-hour minimum
+        // Just do basic time window validation here
+        if (shiftType === 'Day') {
+            // Day shift check-out in SAST: 7 AM (420) to 11 PM (1380)
+            if (totalMinutes >= 420 && totalMinutes <= 1380) {
+                return { valid: true, message: '' };
+            } else {
+                return {
+                    valid: false,
+                    message: 'Day shift check-out is allowed between 7:00 AM and 11:00 PM SAST'
+                };
+            }
+        } else if (shiftType === 'Night') {
+            // Night shift check-out in SAST: 7 PM (1140) to 11 AM (660) next day
+            if ((totalMinutes >= 1140 && totalMinutes <= 1440) || (totalMinutes >= 0 && totalMinutes <= 660)) {
+                return { valid: true, message: '' };
+            } else {
+                return {
+                    valid: false,
+                    message: 'Night shift check-out is allowed between 7:00 PM and 11:00 AM SAST'
+                };
+            }
+        }
+    }
+
+    return { valid: true, message: '' };
+}
+
+// UPDATED: Enhanced checkIn function with SAST timing validation
+async function checkIn() {
+    if (!isValidGuard || !currentGuardData) {
+        showMessage("Please wait for system to initialize.", "error");
+        return;
+    }
+
+    // Check if off duty
+    if (currentShiftData && currentShiftData.shiftType === "Off") {
+        showMessage("You are off duty today. Cannot check in.", "error");
+        return;
+    }
+
+    // Validate check-in timing in SAST
+    const shiftType = currentShiftData ? currentShiftData.shiftType : determineShiftType();
+    const timingValidation = validateCheckInTiming(shiftType, 'checkin');
+
+    if (!timingValidation.valid) {
+        showMessage(timingValidation.message, "error");
+        return;
+    }
+
+    const expectedTime = getExpectedTime(shiftType, 'checkin');
+
+    // Show current SAST time for confirmation
+    const currentSAST = getCurrentTimeString();
+    showMessage(`Current time: ${currentSAST} SAST - Proceeding with check-in...`, "info");
+
+    await verifyScan("Present", expectedTime);
+}
+
+// UPDATED: Enhanced checkOut function with SAST timing validation
+async function checkOut() {
+    if (!isValidGuard || !currentGuardData) {
+        showMessage("Please wait for system to initialize.", "error");
+        return;
+    }
+
+    // Check if off duty
+    if (currentShiftData && currentShiftData.shiftType === "Off") {
+        showMessage("You are off duty today. Cannot check out.", "error");
+        return;
+    }
+
+    // First check if guard has checked in today
+    const currentStatus = await getGuardCurrentStatus(currentGuardData.guardId);
+    if (!currentStatus.hasCheckedIn) {
+        showMessage("You need to check in first before checking out.", "error");
+        return;
+    }
+
+    // Validate check-out timing in SAST
+    const shiftType = currentShiftData ? currentShiftData.shiftType : determineShiftType();
+    const timingValidation = validateCheckInTiming(shiftType, 'checkout');
+
+    if (!timingValidation.valid) {
+        showMessage(timingValidation.message, "error");
+        return;
+    }
+
+    const expectedTime = getExpectedTime(shiftType, 'checkout');
+
+    // Show current SAST time for confirmation
+    const currentSAST = getCurrentTimeString();
+    showMessage(`Current time: ${currentSAST} SAST - Proceeding with check-out...`, "info");
+
+    await verifyScan("Checked Out", expectedTime);
+}
+
+// UPDATED: Initialize function with SAST time display
 async function initializeGuardSystem() {
-    console.log('=== INITIALIZING GUARD SYSTEM ===');
+    console.log('=== INITIALIZING GUARD SYSTEM (SAST) ===');
 
     try {
         updateGuardInfo("Loading your information...");
@@ -234,17 +384,19 @@ async function initializeGuardSystem() {
         const currentStatus = await getGuardCurrentStatus(currentGuardData.guardId);
         console.log('Current status:', currentStatus);
 
-        // Update guard info display
+        // Update guard info display with SAST time
         const shiftInfo = currentShiftData ?
             `${currentShiftType} Shift at ${currentShiftData.location || "Main Gate"}` :
             `${currentShiftType} Shift`;
 
-        updateGuardInfo(`${currentGuardData.fullName} - ${shiftInfo}`);
+        const currentSAST = getCurrentTimeString();
+        const { hours, minutes } = getCurrentHoursMinutes();
+        updateGuardInfo(`${currentGuardData.fullName} - ${shiftInfo} - Current Time: ${currentSAST} SAST`);
         isValidGuard = true;
 
-        // Enable both buttons
-        document.getElementById("checkInBtn").disabled = false;
-        document.getElementById("checkOutBtn").disabled = false;
+        // Enable/disable buttons based on current status
+        document.getElementById("checkInBtn").disabled = currentStatus.hasCheckedIn;
+        document.getElementById("checkOutBtn").disabled = !currentStatus.hasCheckedIn || currentStatus.hasCheckedOut;
 
         // Show status information
         if (currentStatus.hasCheckedOut) {
@@ -252,10 +404,10 @@ async function initializeGuardSystem() {
         } else if (currentStatus.hasCheckedIn) {
             showValidationMessage("You are checked in and can check out now.", "success");
         } else {
-            showValidationMessage("Ready to check in or check out.", "success");
+            showValidationMessage("Ready to check in. You can check in between 6:00 AM - 5:00 PM SAST for day shift.", "success");
         }
 
-        console.log('=== GUARD SYSTEM INITIALIZED ===');
+        console.log('=== GUARD SYSTEM INITIALIZED (SAST) ===');
 
     } catch (error) {
         console.error("Initialization error:", error);
@@ -264,117 +416,102 @@ async function initializeGuardSystem() {
     }
 }
 
-// Enhanced timing validation
-function validateCheckInTiming(shiftType, action) {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinutes = now.getMinutes();
-    const currentTime = currentHour * 100 + currentMinutes; // Convert to HHMM format
+// UPDATED: Enhanced verifyScan function with SAST time display
+async function verifyScan(statusType, expectedTime) {
+    const scanned = document.getElementById("scannedCode").value.trim().toUpperCase();
 
-    console.log(`Validating ${action} for ${shiftType} shift at ${currentHour}:${currentMinutes}`);
+    if (!scanned) {
+        showMessage("Please enter the scanned code.", "error");
+        return;
+    }
 
-    if (action === 'checkin') {
-        if (shiftType === 'Day') {
-            // Day shift check-in: 6 AM (600) to 5 PM (1700)
-            if (currentTime >= 600 && currentTime <= 1700) {
-                return { valid: true, message: '' };
-            } else {
-                return {
-                    valid: false,
-                    message: 'Day shift check-in is only allowed between 6:00 AM and 5:00 PM'
-                };
+    const exactToken = sessionStorage.getItem("lastToken");
+    const tokenTime = parseInt(sessionStorage.getItem("tokenTime") || "0");
+    const tokenAge = (new Date().getTime() - tokenTime) / 1000 / 60;
+
+    if (!exactToken) {
+        showMessage("Please generate a QR code first.", "error");
+        return;
+    }
+
+    if (tokenAge > 5) {
+        showMessage("QR code expired. Please generate a new one.", "error");
+        sessionStorage.removeItem("lastToken");
+        sessionStorage.removeItem("tokenTime");
+        return;
+    }
+
+    if (scanned !== exactToken) {
+        showMessage("Invalid QR code. Please scan the correct code.", "error");
+        return;
+    }
+
+    const currentTime = getCurrentTimeString();
+    const currentSAST = getCurrentSASTTime();
+
+    // Convert expected time to minutes for comparison
+    const [expectedHours, expectedMinutes] = expectedTime.split(':').map(Number);
+    const expectedTotalMinutes = expectedHours * 60 + expectedMinutes;
+
+    const { totalMinutes } = getCurrentHoursMinutes();
+
+    const isLate = totalMinutes > expectedTotalMinutes;
+
+    let statusWithTiming = statusType;
+    if (isLate) {
+        statusWithTiming = statusType === "Present" ? "Late Arrival" : "Late Departure";
+    }
+
+    const checkinRecord = {
+        guardId: currentGuardData.guardId,
+        siteUsername: currentGuardData.siteUsername,
+        status: statusWithTiming,
+        expectedTime: expectedTime,
+        actualTime: currentTime,
+        isLate: isLate,
+        rosterId: currentShiftData ? currentShiftData.rosterId : null
+    };
+
+    try {
+        showMessage("Processing... Please wait.", "info");
+
+        const result = await saveCheckInToDatabase(checkinRecord);
+
+        if (result.success) {
+            let statusMessage = `${statusType} recorded successfully at ${currentTime} SAST!`;
+            if (isLate) {
+                statusMessage += ` (${statusWithTiming})`;
             }
-        } else if (shiftType === 'Night') {
-            // Night shift check-in: 6 PM (1800) to 5 AM (500) next day
-            if (currentTime >= 1800 || currentTime <= 500) {
-                return { valid: true, message: '' };
+
+            showMessage(statusMessage, isLate ? "warning" : "success");
+            document.getElementById("scannedCode").value = "";
+
+            // Clear the QR code
+            clearQRCode();
+
+            // Refresh the system to update button states
+            setTimeout(() => {
+                refreshSystem();
+            }, 2000);
+
+            if (statusType === "Present") {
+                showMessage("Check-in successful! You can check out after working for at least 1 hour.", "success");
             } else {
-                return {
-                    valid: false,
-                    message: 'Night shift check-in is only allowed between 6:00 PM and 5:00 AM'
-                };
+                showMessage("Check-out successful! Your hours have been recorded for payroll.", "success");
             }
+        } else {
+            showMessage(result.message || "Error saving to database.", "error");
         }
-    } else if (action === 'checkout') {
-        if (shiftType === 'Day') {
-            // Day shift check-out: 6 AM (600) to 5 PM (1700) - same as check-in
-            if (currentTime >= 600 && currentTime <= 1700) {
-                return { valid: true, message: '' };
-            } else {
-                return {
-                    valid: false,
-                    message: 'Day shift check-out is only allowed between 6:00 AM and 5:00 PM'
-                };
-            }
-        } else if (shiftType === 'Night') {
-            // Night shift check-out: 6 PM (1800) to 5 AM (500) next day - same as check-in
-            if (currentTime >= 1800 || currentTime <= 500) {
-                return { valid: true, message: '' };
-            } else {
-                return {
-                    valid: false,
-                    message: 'Night shift check-out is only allowed between 6:00 PM and 5:00 AM'
-                };
-            }
-        }
+    } catch (error) {
+        showMessage("Error saving to database. Please try again.", "error");
     }
 
-    return { valid: true, message: '' };
+    // Clear token regardless of success/failure
+    sessionStorage.removeItem("lastToken");
+    sessionStorage.removeItem("tokenTime");
 }
 
-// Enhanced checkIn function with timing validation
-async function checkIn() {
-    if (!isValidGuard || !currentGuardData) {
-        showMessage("Please wait for system to initialize.", "error");
-        return;
-    }
-
-    // Check if off duty
-    if (currentShiftData && currentShiftData.shiftType === "Off") {
-        showMessage("You are off duty today. Cannot check in.", "error");
-        return;
-    }
-
-    // Validate check-in timing
-    const shiftType = currentShiftData ? currentShiftData.shiftType : determineShiftType();
-    const timingValidation = validateCheckInTiming(shiftType, 'checkin');
-
-    if (!timingValidation.valid) {
-        showMessage(timingValidation.message, "error");
-        return;
-    }
-
-    const expectedTime = getExpectedTime(shiftType, 'checkin');
-    await verifyScan("Present", expectedTime);
-}
-
-// Enhanced checkOut function with timing validation
-async function checkOut() {
-    if (!isValidGuard || !currentGuardData) {
-        showMessage("Please wait for system to initialize.", "error");
-        return;
-    }
-
-    // Check if off duty
-    if (currentShiftData && currentShiftData.shiftType === "Off") {
-        showMessage("You are off duty today. Cannot check out.", "error");
-        return;
-    }
-
-    // Validate check-out timing
-    const shiftType = currentShiftData ? currentShiftData.shiftType : determineShiftType();
-    const timingValidation = validateCheckInTiming(shiftType, 'checkout');
-
-    if (!timingValidation.valid) {
-        showMessage(timingValidation.message, "error");
-        return;
-    }
-
-    const expectedTime = getExpectedTime(shiftType, 'checkout');
-    await verifyScan("Checked Out", expectedTime);
-}
-
-// QR CODE GENERATION
+// QR CODE GENERATION (same as before)
 function generateQRCode() {
     if (!isValidGuard || !currentGuardData) {
         showMessage("Please wait for system to initialize.", "error");
@@ -526,88 +663,6 @@ function clearQRCode() {
     document.getElementById("statusMessage").textContent = "";
     document.getElementById("statusMessage").className = "";
     clearQRBtn.style.display = 'none';
-    sessionStorage.removeItem("lastToken");
-    sessionStorage.removeItem("tokenTime");
-}
-
-// Enhanced verifyScan function
-async function verifyScan(statusType, expectedTime) {
-    const scanned = document.getElementById("scannedCode").value.trim().toUpperCase();
-
-    if (!scanned) {
-        showMessage("Please enter the scanned code.", "error");
-        return;
-    }
-
-    const exactToken = sessionStorage.getItem("lastToken");
-    const tokenTime = parseInt(sessionStorage.getItem("tokenTime") || "0");
-    const tokenAge = (new Date().getTime() - tokenTime) / 1000 / 60;
-
-    if (!exactToken) {
-        showMessage("Please generate a QR code first.", "error");
-        return;
-    }
-
-    if (tokenAge > 5) {
-        showMessage("QR code expired. Please generate a new one.", "error");
-        sessionStorage.removeItem("lastToken");
-        sessionStorage.removeItem("tokenTime");
-        return;
-    }
-
-    if (scanned !== exactToken) {
-        showMessage("Invalid QR code. Please scan the correct code.", "error");
-        return;
-    }
-
-    const currentTime = getCurrentTimeString();
-    const isLate = currentTime > expectedTime;
-
-    let statusWithTiming = statusType;
-    if (isLate) {
-        statusWithTiming = statusType === "Present" ? "Late Arrival" : "Late Departure";
-    }
-
-    const checkinRecord = {
-        guardId: currentGuardData.guardId,
-        siteUsername: currentGuardData.siteUsername,
-        status: statusWithTiming,
-        expectedTime: expectedTime,
-        actualTime: currentTime,
-        isLate: isLate,
-        rosterId: currentShiftData ? currentShiftData.rosterId : null
-    };
-
-    try {
-        showMessage("Processing... Please wait.", "info");
-
-        const result = await saveCheckInToDatabase(checkinRecord);
-
-        if (result.success) {
-            let statusMessage = `${statusType} recorded successfully at ${currentTime}!`;
-            if (isLate) {
-                statusMessage += ` (${statusWithTiming})`;
-            }
-
-            showMessage(statusMessage, isLate ? "warning" : "success");
-            document.getElementById("scannedCode").value = "";
-
-            // Clear the QR code
-            clearQRCode();
-
-            if (statusType === "Present") {
-                showMessage("Check-in successful! You can check out at any time during your shift.", "success");
-            } else {
-                showMessage("Check-out successful! Your hours have been recorded for payroll.", "success");
-            }
-        } else {
-            showMessage(result.message || "Error saving to database.", "error");
-        }
-    } catch (error) {
-        showMessage("Error saving to database. Please try again.", "error");
-    }
-
-    // Clear token regardless of success/failure
     sessionStorage.removeItem("lastToken");
     sessionStorage.removeItem("tokenTime");
 }

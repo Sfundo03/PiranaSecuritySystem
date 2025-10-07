@@ -221,6 +221,10 @@
     <Compile Include="Migrations\202509251740530_UpdateDateTimeColumns.Designer.cs">
       <DependentUpon>202509251740530_UpdateDateTimeColumns.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202510041318052_InitialCreate.cs" />
+    <Compile Include="Migrations\202510041318052_InitialCreate.Designer.cs">
+      <DependentUpon>202510041318052_InitialCreate.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\DashboardStats.cs" />
@@ -285,6 +289,7 @@
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <None Include="Properties\PublishProfiles\Pirana - Web Deploy.pubxml" />
+    <None Include="Properties\PublishProfiles\PiranaGuarding - Web Deploy.pubxml" />
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />
     <Content Include="Scripts\jquery-3.7.0.js" />
     <Content Include="Scripts\jquery-3.7.0.min.js" />
@@ -405,6 +410,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Migrations\202509251740530_UpdateDateTimeColumns.resx">
       <DependentUpon>202509251740530_UpdateDateTimeColumns.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202510041318052_InitialCreate.resx">
+      <DependentUpon>202510041318052_InitialCreate.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
