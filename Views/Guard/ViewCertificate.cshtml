@@ -14,77 +14,86 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f5f5;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            margin: 0;
         }
 
         .certificate-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            padding: 40px;
-            max-width: 800px;
+            background: #fffdf5;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 60px 50px;
+            max-width: 850px;
             width: 100%;
-            border: 10px solid #f26522;
+            border: 20px solid #8B4513;
             position: relative;
             overflow: hidden;
+            background-image: radial-gradient(circle at 25% 25%, rgba(139, 69, 19, 0.03) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(139, 69, 19, 0.03) 0%, transparent 50%);
         }
 
         .certificate-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
             position: relative;
         }
 
         .certificate-title {
-            font-size: 2.5rem;
+            font-size: 3rem;
             font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 10px;
+            color: #8B4513;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
 
         .certificate-subtitle {
-            font-size: 1.2rem;
-            color: #7f8c8d;
+            font-size: 1.4rem;
+            color: #666;
             margin-bottom: 20px;
+            font-style: italic;
         }
 
         .certificate-body {
             text-align: center;
-            margin: 40px 0;
+            margin: 50px 0;
         }
 
         .certificate-text {
-            font-size: 1.1rem;
-            line-height: 1.6;
-            color: #34495e;
-            margin-bottom: 20px;
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 30px;
         }
 
         .guard-name {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: bold;
-            color: #2c3e50;
-            margin: 20px 0;
-            padding: 10px;
-            border-bottom: 2px solid #f26522;
+            color: #8B4513;
+            margin: 30px 0;
+            padding: 20px 40px;
+            border-bottom: 3px solid #D4AF37;
+            border-top: 3px solid #D4AF37;
             display: inline-block;
+            font-family: 'Times New Roman', serif;
         }
 
         .training-details {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 30px 0;
+            background: rgba(139, 69, 19, 0.05);
+            border-radius: 8px;
+            padding: 30px;
+            margin: 40px 0;
+            border: 1px solid rgba(139, 69, 19, 0.2);
         }
 
         .signature-section {
-            margin-top: 40px;
+            margin-top: 50px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -95,16 +104,18 @@
         }
 
         .signature-line {
-            width: 200px;
-            border-bottom: 1px solid #34495e;
-            margin: 10px 0;
+            width: 250px;
+            border-bottom: 2px solid #8B4513;
+            margin: 20px 0;
         }
 
         .certificate-footer {
             text-align: center;
-            margin-top: 30px;
-            color: #7f8c8d;
-            font-size: 0.9rem;
+            margin-top: 40px;
+            color: #666;
+            font-size: 1rem;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
         }
 
         .watermark {
@@ -112,11 +123,12 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 120px;
-            color: rgba(242, 101, 34, 0.1);
+            font-size: 140px;
+            color: rgba(139, 69, 19, 0.03);
             font-weight: bold;
             z-index: 0;
             white-space: nowrap;
+            font-family: 'Georgia', serif;
         }
 
         .print-btn {
@@ -124,6 +136,31 @@
             top: 20px;
             right: 20px;
             z-index: 1000;
+            background: #8B4513;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+            color: white;
+            font-weight: bold;
+        }
+
+            .print-btn:hover {
+                background: #654321;
+                transform: translateY(-2px);
+            }
+
+        .score-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .text-success {
+            color: #228B22 !important;
+        }
+
+        .text-info {
+            color: #8B4513 !important;
         }
 
         @@media print {
@@ -137,26 +174,99 @@
 
             .certificate-container {
                 box-shadow: none;
-                border: 15px solid #f26522;
+                border: 25px solid #8B4513;
+                margin: 0;
+                padding: 50px 40px;
             }
+        }
+
+        .certificate-number {
+            background: #8B4513;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            display: inline-block;
+            margin: 15px 0;
+            font-size: 1.1rem;
+        }
+
+        .training-title {
+            font-size: 1.6rem;
+            color: #8B4513;
+            font-weight: 600;
+            margin: 20px 0;
+            font-style: italic;
+        }
+
+        .gold-accent {
+            color: #D4AF37;
+        }
+
+        .border-accent {
+            border-color: #D4AF37;
+        }
+
+        /* Decorative elements */
+        .corner-decoration {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 2px solid #D4AF37;
+        }
+
+        .corner-tl {
+            top: 20px;
+            left: 20px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-tr {
+            top: 20px;
+            right: 20px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-bl {
+            bottom: 20px;
+            left: 20px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner-br {
+            bottom: 20px;
+            right: 20px;
+            border-left: none;
+            border-top: none;
         }
     </style>
 </head>
 <body>
-    <button class="btn btn-primary print-btn" onclick="window.print()">
+    <button class="btn print-btn" onclick="window.print()">
         <i class="fas fa-print me-2"></i>Print Certificate
     </button>
 
     <div class="certificate-container">
+        <!-- Corner Decorations -->
+        <div class="corner-decoration corner-tl"></div>
+        <div class="corner-decoration corner-tr"></div>
+        <div class="corner-decoration corner-bl"></div>
+        <div class="corner-decoration corner-br"></div>
+
         <div class="watermark">PIRANA SECURITY</div>
 
         <div class="certificate-header">
             <div class="certificate-title">
-                <i class="fas fa-certificate text-warning me-2"></i>
-                CERTIFICATE OF COMPLETION
+                <i class="fas fa-award gold-accent me-3"></i>
+                Certificate of Achievement
+                <i class="fas fa-award gold-accent ms-3"></i>
             </div>
             <div class="certificate-subtitle">
-                This certifies that
+                This is to certify that
             </div>
         </div>
 
@@ -166,70 +276,74 @@
             </div>
 
             <div class="certificate-text">
-                has successfully completed the training session
+                has successfully completed the training course and assessment for
             </div>
 
-            <div class="certificate-text fw-bold text-primary" style="font-size: 1.3rem;">
+            <div class="training-title">
                 "@Model.TrainingSession.Title"
             </div>
 
             <div class="training-details">
                 <div class="row">
                     <div class="col-md-6">
-                        <strong>Score Achieved:</strong><br>
-                        <span class="text-success fw-bold" style="font-size: 1.2rem;">
-                            @Model.Score.ToString("0.0")%
-                        </span>
+                        <div class="mb-4">
+                            <strong>Score Achieved:</strong><br>
+                            <span class="score-display text-success">
+                                @Model.Score.ToString("0.0")%
+                            </span>
+                        </div>
+                        <div class="mb-4">
+                            <strong>Training Date:</strong><br>
+                            <span style="font-size: 1.2rem;">
+                                @Model.TrainingSession.StartDate.ToString("MMMM dd, yyyy")
+                            </span>
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <strong>Passing Score:</strong><br>
-                        <span class="text-info" style="font-size: 1.2rem;">
-                            @Model.PassingPercentage.ToString("0.0")%
-                        </span>
+                        <div class="mb-4">
+                            <strong>Passing Score:</strong><br>
+                            <span class="score-display text-info">
+                                @Model.PassingPercentage.ToString("0.0")%
+                            </span>
+                        </div>
+                        <div class="mb-4">
+                            <strong>Assessment Date:</strong><br>
+                            <span style="font-size: 1.2rem;">
+                                @Model.AssessmentDate.ToString("MMMM dd, yyyy")
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <strong>Training Date:</strong><br>
-                        @Model.TrainingSession.StartDate.ToString("MMMM dd, yyyy")
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Assessment Date:</strong><br>
-                        @Model.AssessmentDate.ToString("MMMM dd, yyyy")
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <strong>Certificate Number:</strong><br>
-                        <code>@Model.CertificateNumber</code>
-                    </div>
+                <div class="text-center mt-4">
+                    <strong>Certificate Number:</strong><br>
+                    <span class="certificate-number">@Model.CertificateNumber</span>
                 </div>
             </div>
 
-            <div class="certificate-text">
-                demonstrating proficiency and commitment to professional development in security services.
+            <div class="certificate-text" style="font-style: italic;">
+                demonstrating exceptional proficiency and commitment to excellence in security services.
             </div>
         </div>
 
         <div class="signature-section">
             <div class="signature">
                 <div class="signature-line"></div>
-                <div>@Model.AssessedBy</div>
+                <div style="font-weight: bold; color: #8B4513;">@Model.AssessedBy</div>
                 <div class="text-muted">Training Instructor</div>
             </div>
             <div class="signature">
                 <div class="signature-line"></div>
-                <div>Pirana Security Systems</div>
-                <div class="text-muted">Authorized Signature</div>
+                <div style="font-weight: bold; color: #8B4513;">Pirana Security Systems</div>
+                <div class="text-muted">Authorized Representative</div>
             </div>
         </div>
 
         <div class="certificate-footer">
             <p>
-                <i class="fas fa-shield-alt me-2"></i>
-                Issued by Pirana Security Systems - Enhancing Security Excellence
+                <i class="fas fa-shield-alt me-2 gold-accent"></i>
+                <strong>Pirana Security Systems</strong> - Setting the Standard in Security Excellence
                 <br>
-                <small>This certificate is issued electronically and can be verified through our training portal.</small>
+                <small>This certificate is electronically issued and can be verified through our official training portal.</small>
             </p>
         </div>
     </div>
@@ -237,17 +351,18 @@
     <script>
         // Auto-print option
         setTimeout(() => {
-            if (confirm('Do you want to print the certificate?')) {
+            if (confirm('Would you like to print your certificate?')) {
                 window.print();
             }
-        }, 1000);
+        }, 1500);
 
-        // Add download as PDF functionality (you can implement this with a PDF library)
-        function downloadAsPDF() {
-            // This would require a PDF generation library like jsPDF
-            // For now, printing serves the same purpose
-            window.print();
-        }
+        // Add keyboard shortcut for printing
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
     </script>
 </body>
 </html>

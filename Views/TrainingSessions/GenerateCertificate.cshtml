@@ -14,77 +14,83 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f5f5;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            margin: 0;
         }
 
         .certificate-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            padding: 40px;
-            max-width: 800px;
+            background: #fffdf7;
+            border-radius: 8px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            padding: 50px 40px;
+            max-width: 850px;
             width: 100%;
-            border: 10px solid #f26522;
+            border: 15px solid #8B4513;
             position: relative;
             overflow: hidden;
         }
 
         .certificate-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
             position: relative;
         }
 
         .certificate-title {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 10px;
+            color: #8B4513;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
         }
 
         .certificate-subtitle {
-            font-size: 1.2rem;
-            color: #7f8c8d;
-            margin-bottom: 20px;
+            font-size: 1.3rem;
+            color: #666;
+            margin-bottom: 25px;
+            font-style: italic;
         }
 
         .certificate-body {
             text-align: center;
-            margin: 40px 0;
+            margin: 45px 0;
         }
 
         .certificate-text {
-            font-size: 1.1rem;
-            line-height: 1.6;
-            color: #34495e;
-            margin-bottom: 20px;
+            font-size: 1.2rem;
+            line-height: 1.7;
+            color: #333;
+            margin-bottom: 25px;
         }
 
         .guard-name {
-            font-size: 2rem;
+            font-size: 2.3rem;
             font-weight: bold;
-            color: #2c3e50;
-            margin: 20px 0;
-            padding: 10px;
-            border-bottom: 2px solid #f26522;
+            color: #8B4513;
+            margin: 25px 0;
+            padding: 15px 35px;
+            border-bottom: 3px solid #D4AF37;
+            border-top: 3px solid #D4AF37;
             display: inline-block;
         }
 
         .training-details {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 30px 0;
+            background: rgba(139, 69, 19, 0.05);
+            border-radius: 8px;
+            padding: 25px;
+            margin: 35px 0;
+            border: 1px solid rgba(139, 69, 19, 0.2);
         }
 
         .signature-section {
-            margin-top: 40px;
+            margin-top: 45px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -95,16 +101,18 @@
         }
 
         .signature-line {
-            width: 200px;
-            border-bottom: 1px solid #34495e;
-            margin: 10px 0;
+            width: 220px;
+            border-bottom: 2px solid #8B4513;
+            margin: 15px 0;
         }
 
         .certificate-footer {
             text-align: center;
-            margin-top: 30px;
-            color: #7f8c8d;
-            font-size: 0.9rem;
+            margin-top: 35px;
+            color: #666;
+            font-size: 0.95rem;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
         }
 
         .watermark {
@@ -112,8 +120,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 120px;
-            color: rgba(242, 101, 34, 0.1);
+            font-size: 130px;
+            color: rgba(139, 69, 19, 0.04);
             font-weight: bold;
             z-index: 0;
             white-space: nowrap;
@@ -124,6 +132,54 @@
             top: 20px;
             right: 20px;
             z-index: 1000;
+            background: #8B4513;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+        }
+
+            .print-btn:hover {
+                background: #654321;
+                transform: translateY(-2px);
+            }
+
+        .certificate-number {
+            background: #8B4513;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .training-title {
+            font-size: 1.5rem;
+            color: #8B4513;
+            font-weight: 600;
+            margin: 18px 0;
+            font-style: italic;
+        }
+
+        .score-display {
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .text-success {
+            color: #228B22 !important;
+        }
+
+        .text-info {
+            color: #8B4513 !important;
+        }
+
+        .gold-accent {
+            color: #D4AF37;
         }
 
         @@media print {
@@ -137,26 +193,71 @@
 
             .certificate-container {
                 box-shadow: none;
-                border: 15px solid #f26522;
+                border: 20px solid #8B4513;
+                margin: 0;
+                padding: 45px 35px;
             }
+        }
+
+        /* Decorative corner elements */
+        .corner {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #D4AF37;
+        }
+
+        .corner-tl {
+            top: 15px;
+            left: 15px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-tr {
+            top: 15px;
+            right: 15px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-bl {
+            bottom: 15px;
+            left: 15px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner-br {
+            bottom: 15px;
+            right: 15px;
+            border-left: none;
+            border-top: none;
         }
     </style>
 </head>
 <body>
-    <button class="btn btn-primary print-btn" onclick="window.print()">
+    <button class="btn print-btn" onclick="window.print()">
         <i class="fas fa-print me-2"></i>Print Certificate
     </button>
 
     <div class="certificate-container">
+        <!-- Corner decorations -->
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+
         <div class="watermark">PIRANA SECURITY</div>
 
         <div class="certificate-header">
             <div class="certificate-title">
-                <i class="fas fa-certificate text-warning me-2"></i>
-                CERTIFICATE OF COMPLETION
+                <i class="fas fa-award gold-accent me-3"></i>
+                Certificate of Completion
+                <i class="fas fa-award gold-accent ms-3"></i>
             </div>
             <div class="certificate-subtitle">
-                This certifies that
+                This is to certify that
             </div>
         </div>
 
@@ -166,43 +267,47 @@
             </div>
 
             <div class="certificate-text">
-                has successfully completed the training session
+                has successfully completed the training course and assessment for
             </div>
 
-            <div class="certificate-text fw-bold text-primary" style="font-size: 1.3rem;">
+            <div class="training-title">
                 "@Model.TrainingSession.Title"
             </div>
 
             <div class="training-details">
                 <div class="row">
                     <div class="col-md-6">
-                        <strong>Score Achieved:</strong><br>
-                        <span class="text-success fw-bold" style="font-size: 1.2rem;">
-                            @Model.Score.ToString("0.0")%
-                        </span>
+                        <div class="mb-3">
+                            <strong>Score Achieved:</strong><br>
+                            <span class="score-display text-success">
+                                @Model.Score.ToString("0.0")%
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Training Date:</strong><br>
+                            <span style="font-size: 1.1rem;">
+                                @Model.TrainingSession.StartDate.ToString("MMMM dd, yyyy")
+                            </span>
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <strong>Passing Score:</strong><br>
-                        <span class="text-info" style="font-size: 1.2rem;">
-                            @Model.PassingPercentage.ToString("0.0")%
-                        </span>
+                        <div class="mb-3">
+                            <strong>Passing Score:</strong><br>
+                            <span class="score-display text-info">
+                                @Model.PassingPercentage.ToString("0.0")%
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Assessment Date:</strong><br>
+                            <span style="font-size: 1.1rem;">
+                                @Model.AssessmentDate.ToString("MMMM dd, yyyy")
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <strong>Training Date:</strong><br>
-                        @Model.TrainingSession.StartDate.ToString("MMMM dd, yyyy")
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Assessment Date:</strong><br>
-                        @Model.AssessmentDate.ToString("MMMM dd, yyyy")
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <strong>Certificate Number:</strong><br>
-                        <code>@Model.CertificateNumber</code>
-                    </div>
+                <div class="text-center mt-3">
+                    <strong>Certificate Number:</strong><br>
+                    <span class="certificate-number">@Model.CertificateNumber</span>
                 </div>
             </div>
 
@@ -214,19 +319,19 @@
         <div class="signature-section">
             <div class="signature">
                 <div class="signature-line"></div>
-                <div>@Model.AssessedBy</div>
+                <div style="font-weight: bold; color: #8B4513;">@Model.AssessedBy</div>
                 <div class="text-muted">Training Instructor</div>
             </div>
             <div class="signature">
                 <div class="signature-line"></div>
-                <div>Pirana Security Systems</div>
+                <div style="font-weight: bold; color: #8B4513;">Pirana Security Systems</div>
                 <div class="text-muted">Authorized Signature</div>
             </div>
         </div>
 
         <div class="certificate-footer">
             <p>
-                <i class="fas fa-shield-alt me-2"></i>
+                <i class="fas fa-shield-alt me-2 gold-accent"></i>
                 Issued by Pirana Security Systems - Enhancing Security Excellence
                 <br>
                 <small>This certificate is issued electronically and can be verified through our training portal.</small>
@@ -235,12 +340,20 @@
     </div>
 
     <script>
-        // Auto-print option (optional)
+        // Auto-print option
         setTimeout(() => {
             if (confirm('Do you want to print the certificate?')) {
                 window.print();
             }
         }, 1000);
+
+        // Keyboard shortcut for printing
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
     </script>
 </body>
 </html>
