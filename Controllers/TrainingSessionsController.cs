@@ -559,6 +559,468 @@ namespace PiranaSecuritySystem.Controllers
             }
         }
 
+        // GET: TrainingSessions/AssessmentResults
+        public ActionResult AssessmentResults()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
+
+                if (instructor == null)
+                {
+                    TempData["ErrorMessage"] = "Instructor profile not found.";
+                    return RedirectToAction("Dashboard", "Instructor");
+                }
+
+                // Get training sessions created by this instructor
+                var trainingSessions = db.TrainingSessions
+                    .Where(ts => ts.Enrollments.Any())
+                    .OrderByDescending(ts => ts.StartDate)
+                    .ToList();
+
+                ViewBag.TrainingSessions = new SelectList(trainingSessions, "Id", "Title");
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in AssessmentResults: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading assessment results.";
+                return RedirectToAction("Dashboard", "Instructor");
+            }
+        }
+
+        // GET: TrainingSessions/CreateAssessment
+        public ActionResult CreateAssessment(int trainingSessionId)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
+
+                if (instructor == null)
+                {
+                    TempData["ErrorMessage"] = "Instructor profile not found.";
+                    return RedirectToAction("AssessmentResults");
+                }
+
+                var trainingSession = db.TrainingSessions
+                    .Include(ts => ts.Enrollments.Select(e => e.Guard))
+                    .FirstOrDefault(ts => ts.Id == trainingSessionId);
+
+                if (trainingSession == null)
+                {
+                    TempData["ErrorMessage"] = "Training session not found.";
+                    return RedirectToAction("AssessmentResults");
+                }
+
+                var enrolledGuards = trainingSession.Enrollments
+                    .Select(e => e.Guard)
+                    .ToList();
+
+                ViewBag.Guards = new SelectList(enrolledGuards, "GuardId", "FullName");
+                ViewBag.TrainingSessionTitle = trainingSession.Title;
+
+                var model = new AssessmentViewModel
+                {
+                    TrainingSessionId = trainingSessionId,
+                    TrainingSessionTitle = trainingSession.Title
+                };
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in CreateAssessment: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading the assessment form.";
+                return RedirectToAction("AssessmentResults");
+            }
+        }
+
+        // POST: TrainingSessions/CreateAssessment
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult CreateAssessment(AssessmentViewModel model)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
+
+                if (instructor == null)
+                {
+                    TempData["ErrorMessage"] = "Instructor profile not found.";
+                    return RedirectToAction("AssessmentResults");
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    // Repopulate guards dropdown
+                    var trainingSession = db.TrainingSessions
+                        .Include(ts => ts.Enrollments.Select(e => e.Guard))
+                        .FirstOrDefault(ts => ts.Id == model.TrainingSessionId);
+
+                    if (trainingSession != null)
+                    {
+                        var enrolledGuards = trainingSession.Enrollments
+                            .Select(e => e.Guard)
+                            .ToList();
+                        ViewBag.Guards = new SelectList(enrolledGuards, "GuardId", "FullName");
+                    }
+
+                    return View(model);
+                }
+
+                // Check if assessment already exists for this guard and session
+                var existingAssessment = db.AssessmentResults
+                    .FirstOrDefault(a => a.TrainingSessionId == model.TrainingSessionId && a.GuardId == model.GuardId);
+
+                if (existingAssessment != null)
+                {
+                    ModelState.AddModelError("", "Assessment already exists for this guard in the selected training session.");
+
+                    // Repopulate guards dropdown
+                    var trainingSession = db.TrainingSessions
+                        .Include(ts => ts.Enrollments.Select(e => e.Guard))
+                        .FirstOrDefault(ts => ts.Id == model.TrainingSessionId);
+
+                    if (trainingSession != null)
+                    {
+                        var enrolledGuards = trainingSession.Enrollments
+                            .Select(e => e.Guard)
+                            .ToList();
+                        ViewBag.Guards = new SelectList(enrolledGuards, "GuardId", "FullName");
+                    }
+
+                    return View(model);
+                }
+
+                // Calculate if passed
+                bool isPassed = model.Score >= model.PassingPercentage;
+                string certificateNumber = isPassed ? GenerateCertificateNumber() : null;
+
+                var assessment = new AssessmentResult
+                {
+                    TrainingSessionId = model.TrainingSessionId,
+                    GuardId = model.GuardId,
+                    Score = model.Score,
+                    MaxScore = model.MaxScore,
+                    PassingPercentage = model.PassingPercentage,
+                    IsPassed = isPassed,
+                    Comments = model.Comments,
+                    AssessmentDate = DateTime.Now,
+                    AssessedBy = instructor.FullName,
+                    CertificateGenerated = isPassed,
+                    CertificateGeneratedDate = isPassed ? DateTime.Now : (DateTime?)null,
+                    CertificateNumber = certificateNumber
+                };
+
+                db.AssessmentResults.Add(assessment);
+                db.SaveChanges();
+
+                // RELOAD THE ASSESSMENT WITH INCLUDED RELATED ENTITIES BEFORE CREATING NOTIFICATION
+                var savedAssessment = db.AssessmentResults
+                    .Include(a => a.TrainingSession)  // Include TrainingSession
+                    .Include(a => a.Guard)            // Include Guard
+                    .FirstOrDefault(a => a.AssessmentId == assessment.AssessmentId);
+
+                if (savedAssessment != null)
+                {
+                    // Create notification for the guard
+                    CreateAssessmentNotification(savedAssessment, instructor.FullName);
+                }
+
+                TempData["SuccessMessage"] = $"Assessment created successfully! Guard {(isPassed ? "passed" : "failed")} the training.";
+                return RedirectToAction("ViewAssessments", new { trainingSessionId = model.TrainingSessionId });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in CreateAssessment (POST): {ex.Message}");
+                TempData["ErrorMessage"] = "Error creating assessment: " + ex.Message;
+
+                // Repopulate guards dropdown on error
+                var trainingSession = db.TrainingSessions
+                    .Include(ts => ts.Enrollments.Select(e => e.Guard))
+                    .FirstOrDefault(ts => ts.Id == model.TrainingSessionId);
+
+                if (trainingSession != null)
+                {
+                    var enrolledGuards = trainingSession.Enrollments
+                        .Select(e => e.Guard)
+                        .ToList();
+                    ViewBag.Guards = new SelectList(enrolledGuards, "GuardId", "FullName");
+                }
+
+                return View(model);
+            }
+        }
+
+        // GET: TrainingSessions/ViewAssessments
+        public ActionResult ViewAssessments(int trainingSessionId)
+        {
+            try
+            {
+                var trainingSession = db.TrainingSessions
+                    .Include(ts => ts.Enrollments)
+                    .FirstOrDefault(ts => ts.Id == trainingSessionId);
+
+                if (trainingSession == null)
+                {
+                    TempData["ErrorMessage"] = "Training session not found.";
+                    return RedirectToAction("AssessmentResults");
+                }
+
+                var assessments = db.AssessmentResults
+                    .Include(a => a.Guard)
+                    .Include(a => a.TrainingSession)
+                    .Where(a => a.TrainingSessionId == trainingSessionId)
+                    .OrderBy(a => a.Guard.Guard_FName)
+                    .ToList();
+
+                var viewModel = new AssessmentResultsViewModel
+                {
+                    TrainingSession = trainingSession,
+                    AssessmentResults = assessments,
+                    TotalAssessments = assessments.Count,
+                    PassedCount = assessments.Count(a => a.IsPassed),
+                    FailedCount = assessments.Count(a => !a.IsPassed),
+                    AverageScore = assessments.Any() ? assessments.Average(a => a.Score) : 0
+                };
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in ViewAssessments: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading assessments.";
+                return RedirectToAction("AssessmentResults");
+            }
+        }
+
+        // GET: TrainingSessions/EditAssessment
+        public ActionResult EditAssessment(int id)
+        {
+            try
+            {
+                var assessment = db.AssessmentResults
+                    .Include(a => a.Guard)
+                    .Include(a => a.TrainingSession)
+                    .FirstOrDefault(a => a.AssessmentId == id);
+
+                if (assessment == null)
+                {
+                    TempData["ErrorMessage"] = "Assessment not found.";
+                    return RedirectToAction("AssessmentResults");
+                }
+
+                var model = new AssessmentViewModel
+                {
+                    TrainingSessionId = assessment.TrainingSessionId,
+                    TrainingSessionTitle = assessment.TrainingSession.Title,
+                    GuardId = assessment.GuardId,
+                    GuardName = assessment.Guard.FullName,
+                    Score = assessment.Score,
+                    MaxScore = assessment.MaxScore,
+                    PassingPercentage = assessment.PassingPercentage,
+                    Comments = assessment.Comments,
+                    IsPassed = assessment.IsPassed,
+                    CertificateNumber = assessment.CertificateNumber
+                };
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in EditAssessment: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading the assessment.";
+                return RedirectToAction("AssessmentResults");
+            }
+        }
+
+        // POST: TrainingSessions/EditAssessment
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult EditAssessment(AssessmentViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return View(model);
+                }
+
+                var assessment = db.AssessmentResults.Find(model.AssessmentId);
+                if (assessment == null)
+                {
+                    TempData["ErrorMessage"] = "Assessment not found.";
+                    return RedirectToAction("AssessmentResults");
+                }
+
+                // Calculate if passed
+                bool isPassed = model.Score >= model.PassingPercentage;
+                bool statusChanged = assessment.IsPassed != isPassed;
+
+                assessment.Score = model.Score;
+                assessment.MaxScore = model.MaxScore;
+                assessment.PassingPercentage = model.PassingPercentage;
+                assessment.IsPassed = isPassed;
+                assessment.Comments = model.Comments;
+                assessment.AssessmentDate = DateTime.Now;
+
+                // Handle certificate generation if status changed to passed
+                if (isPassed && !assessment.CertificateGenerated)
+                {
+                    assessment.CertificateGenerated = true;
+                    assessment.CertificateGeneratedDate = DateTime.Now;
+                    assessment.CertificateNumber = GenerateCertificateNumber();
+                }
+                else if (!isPassed && assessment.CertificateGenerated)
+                {
+                    assessment.CertificateGenerated = false;
+                    assessment.CertificateGeneratedDate = null;
+                    assessment.CertificateNumber = null;
+                }
+
+                db.SaveChanges();
+
+                // Create notification if status changed
+                if (statusChanged)
+                {
+                    var currentUserId = User.Identity.GetUserId();
+                    var instructor = db.Instructors.FirstOrDefault(i => i.UserId == currentUserId);
+                    CreateAssessmentNotification(assessment, instructor?.FullName ?? "Instructor");
+                }
+
+                TempData["SuccessMessage"] = "Assessment updated successfully!";
+                return RedirectToAction("ViewAssessments", new { trainingSessionId = assessment.TrainingSessionId });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in EditAssessment (POST): {ex.Message}");
+                TempData["ErrorMessage"] = "Error updating assessment: " + ex.Message;
+                return View(model);
+            }
+        }
+
+        // GET: TrainingSessions/GenerateCertificate
+        public ActionResult GenerateCertificate(int assessmentId)
+        {
+            try
+            {
+                var assessment = db.AssessmentResults
+                    .Include(a => a.Guard)
+                    .Include(a => a.TrainingSession)
+                    .FirstOrDefault(a => a.AssessmentId == assessmentId);
+
+                if (assessment == null || !assessment.IsPassed)
+                {
+                    TempData["ErrorMessage"] = "Certificate not available. Guard must pass the assessment to generate a certificate.";
+                    return RedirectToAction("ViewAssessments", new { trainingSessionId = assessment?.TrainingSessionId });
+                }
+
+                // In a real application, you would generate a PDF certificate here
+                // For now, we'll create a simple HTML certificate that can be printed
+
+                return View(assessment);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GenerateCertificate: {ex.Message}");
+                TempData["ErrorMessage"] = "Error generating certificate: " + ex.Message;
+                return RedirectToAction("ViewAssessments");
+            }
+        }
+
+        // AJAX: Get guards by training session
+        [HttpPost]
+        public JsonResult GetGuardsByTrainingSession(int trainingSessionId)
+        {
+            try
+            {
+                var guards = db.TrainingEnrollments
+                    .Where(e => e.TrainingSessionId == trainingSessionId)
+                    .Select(e => new {
+                        id = e.Guard.GuardId,
+                        name = e.Guard.Guard_FName + " " + e.Guard.Guard_LName,
+                        badge = e.Guard.PSIRAnumber ?? e.Guard.GuardId.ToString()
+                    })
+                    .ToList();
+
+                return Json(new { success = true, guards = guards });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetGuardsByTrainingSession: {ex.Message}");
+                return Json(new { success = false, message = "Error loading guards: " + ex.Message });
+            }
+        }
+
+        // Helper method to generate certificate number
+        private string GenerateCertificateNumber()
+        {
+            var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+            var random = new Random().Next(1000, 9999);
+            return $"CERT-{timestamp}-{random}";
+        }
+
+        // Helper method to create assessment notifications
+        private void CreateAssessmentNotification(AssessmentResult assessment, string instructorName)
+        {
+            try
+            {
+                // Add null checks
+                if (assessment == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("Assessment is null in CreateAssessmentNotification");
+                    return;
+                }
+
+                if (assessment.Guard == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("Guard is null in CreateAssessmentNotification");
+                    return;
+                }
+
+                if (assessment.TrainingSession == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("TrainingSession is null in CreateAssessmentNotification");
+                    return;
+                }
+
+                string title = assessment.IsPassed ? "Training Assessment Passed" : "Training Assessment Failed";
+                string message = assessment.IsPassed
+                    ? $"Congratulations! You have passed the training session '{assessment.TrainingSession.Title}' with a score of {assessment.Score}%. You can now download your certificate."
+                    : $"You have not passed the training session '{assessment.TrainingSession.Title}'. Your score: {assessment.Score}%. Please contact your instructor for retraining options.";
+
+                var notification = new Notification
+                {
+                    GuardId = assessment.Guard.GuardId,
+                    UserId = assessment.Guard.GuardId.ToString(),
+                    UserType = "Guard",
+                    Title = title,
+                    Message = message,
+                    IsRead = false,
+                    CreatedAt = DateTime.Now,
+                    RelatedUrl = assessment.IsPassed ? $"/TrainingSessions/GenerateCertificate/{assessment.AssessmentId}" : "/Guard/Training",
+                    NotificationType = "Assessment",
+                    IsImportant = true,
+                    PriorityLevel = assessment.IsPassed ? 1 : 2,
+                    TrainingSessionId = assessment.TrainingSessionId
+                };
+
+                db.Notifications.Add(notification);
+                db.SaveChanges();
+
+                System.Diagnostics.Debug.WriteLine($"Created assessment notification for guard: {assessment.Guard.FullName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating assessment notification: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            }
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)

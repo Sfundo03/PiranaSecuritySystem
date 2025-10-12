@@ -1,0 +1,120 @@
+﻿@model PiranaSecuritySystem.Models.AssessmentViewModel
+@{
+    ViewBag.Title = "Edit Assessment";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-edit me-2"></i>Edit Assessment
+        </h1>
+        <div>
+            <a href="@Url.Action("ViewAssessments", "TrainingSessions", new { trainingSessionId = Model.TrainingSessionId })"
+               class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Assessments
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-primary text-white">
+            <h6 class="m-0 font-weight-bold">Training Session: @Model.TrainingSessionTitle</h6>
+        </div>
+        <div class="card-body">
+            @using (Html.BeginForm("EditAssessment", "TrainingSessions", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+                @Html.HiddenFor(model => model.AssessmentId)
+                @Html.HiddenFor(model => model.TrainingSessionId)
+                @Html.HiddenFor(model => model.TrainingSessionTitle)
+                @Html.HiddenFor(model => model.GuardId)
+                @Html.HiddenFor(model => model.GuardName)
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Guard Name</label>
+                            <input type="text" class="form-control" value="@Model.GuardName" readonly>
+                            <small class="form-text text-muted">Guard cannot be changed for an existing assessment.</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.Score, new { @class = "form-label" })
+                            @Html.TextBoxFor(model => model.Score, new { @class = "form-control", type = "number", step = "0.1", min = "0", max = "100", required = "required" })
+                            @Html.ValidationMessageFor(model => model.Score, "", new { @class = "text-danger" })
+                        </div>
+
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.MaxScore, new { @class = "form-label" })
+                            @Html.TextBoxFor(model => model.MaxScore, new { @class = "form-control", type = "number", step = "0.1", min = "0", max = "100", required = "required" })
+                            @Html.ValidationMessageFor(model => model.MaxScore, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.PassingPercentage, new { @class = "form-label" })
+                            @Html.TextBoxFor(model => model.PassingPercentage, new { @class = "form-control", type = "number", step = "0.1", min = "0", max = "100", required = "required" })
+                            @Html.ValidationMessageFor(model => model.PassingPercentage, "", new { @class = "text-danger" })
+                        </div>
+
+                        <div class="form-group mb-3">
+                            @Html.LabelFor(model => model.Comments, new { @class = "form-label" })
+                            @Html.TextAreaFor(model => model.Comments, new { @class = "form-control", rows = "4", placeholder = "Enter instructor comments..." })
+                            @Html.ValidationMessageFor(model => model.Comments, "", new { @class = "text-danger" })
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Current Status:</strong>
+                            <span id="currentStatus">
+                                @if (Model.IsPassed)
+                                {
+                                    <span class="text-success"><i class="fas fa-check-circle me-1"></i>PASSED</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger"><i class="fas fa-times-circle me-1"></i>FAILED</span>
+                                }
+                            </span>
+                            <br>
+                            <strong>New Status:</strong>
+                            <span id="newPassingStatus">Will be calculated automatically</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-save me-2"></i>Update Assessment
+                    </button>
+                    <a href="@Url.Action("ViewAssessments", new { trainingSessionId = Model.TrainingSessionId })" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            function updatePassingStatus() {
+                var score = parseFloat($('#Score').val()) || 0;
+                var passingPercentage = parseFloat($('#PassingPercentage').val()) || 70;
+                var isPassed = score >= passingPercentage;
+
+                var statusText = isPassed ?
+                    `<span class="text-success"><i class="fas fa-check-circle me-1"></i>PASSED (${score}% ≥ ${passingPercentage}%)</span>` :
+                    `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>FAILED (${score}% < ${passingPercentage}%)</span>`;
+
+                $('#newPassingStatus').html(statusText);
+            }
+
+            $('#Score, #PassingPercentage').on('input', updatePassingStatus);
+            updatePassingStatus(); // Initial calculation
+        });
+    </script>
+}

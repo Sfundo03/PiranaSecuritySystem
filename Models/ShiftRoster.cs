@@ -120,6 +120,16 @@ namespace PiranaSecuritySystem.Models
         }
     }
 
+    public class RosterGroupViewModel
+    {
+        public string Site { get; set; }
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public string MonthName { get; set; }
+        public List<RosterDisplayViewModel> Rosters { get; set; }
+    }
+
+
     public class GuardShiftHistory
     {
         public int GuardId { get; set; }

@@ -1,14 +1,14 @@
 ﻿@model List<PiranaSecuritySystem.Models.RosterDisplayViewModel>
 
 @{
-    ViewBag.Title = "Shift Rosters";
+    ViewBag.Title = "Shift Rosters - Organized View";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Shift Rosters</h1>
+        <h1 class="h3 mb-0 text-gray-800">Shift Rosters </h1>
         <div>
             <a href="@Url.Action("Dashboard", "Instructor")" class="btn btn-secondary btn-sm">
                 <i class="fas fa-arrow-left"></i> Back to Dashboard
@@ -19,7 +19,7 @@
     <!-- Rosters Table -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Shift Roster Records</h6>
+            <h6 class="m-0 font-weight-bold text-primary">Shift Roster Records - Organized by Site and Month</h6>
         </div>
         <div class="card-body">
             @if (TempData["SuccessMessage"] != null)
@@ -40,67 +40,98 @@
                 </div>
             }
 
-        <div class="mb-3">
-            @Html.ActionLink("Create New Roster", "Create", null, new { @class = "btn btn-primary" })
-            @Html.ActionLink("Delete Entire Roster", "DeleteAll", "ShiftRoster", null, new
-            {
-    @class = "btn btn-danger",
-    onclick = "return confirm('⚠ Are you sure you want to delete ALL rosters? This action cannot be undone.');"
-})
-        </div>
+            <div class="mb-3">
+                @Html.ActionLink("Create New Roster", "Create", "ShiftRoster", null, new { @class = "btn btn-primary" })
+                @Html.ActionLink("Delete Entire Roster", "DeleteAll", "ShiftRoster", null, new
+                {
+                    @class = "btn btn-danger",
+                    onclick = "return confirm('⚠ Are you sure you want to delete ALL rosters? This action cannot be undone.');"
+                })
+            </div>
 
             @if (Model.Any())
             {
-                <div class="table-responsive">
-                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Site</th>
-                                <th>Day Shift (4 guards)</th>
-                                <th>Night Shift (4 guards)</th>
-                                <th>Off Duty (4 guards)</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td>
-                                        <strong>@item.RosterDate.ToString("yyyy-MM-dd")</strong>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-primary">@item.Site</span>
-                                    </td>
-                                    <td>
-                                        @foreach (var guard in item.DayShiftGuards)
-                                        {
-                                            <span class="badge bg-success mb-1" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
-                                        }
-                                    </td>
-                                    <td>
-                                        @foreach (var guard in item.NightShiftGuards)
-                                        {
-                                            <span class="badge bg-info mb-1" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
-                                        }
-                                    </td>
-                                    <td>
-                                        @foreach (var guard in item.OffDutyGuards)
-                                        {
-                                            <span class="badge bg-secondary mb-1" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            @Html.ActionLink("Delete", "Delete", new { date = item.RosterDate.ToString("yyyy-MM-dd"), site = item.Site }, new { @class = "btn btn-danger btn-sm" })
-                                        </div>
-                                    </td>
-                                </tr>
+                // Group by Site first
+                var sitesGrouped = Model.GroupBy(r => r.Site).OrderBy(g => g.Key);
+
+                foreach (var siteGroup in sitesGrouped)
+                {
+                    <div class="card shadow mb-4 border-left-primary">
+                        <div class="card-header py-3 bg-light">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-building me-2"></i>Site: @siteGroup.Key
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            @{
+                                // Group by Year and Month within this site
+                                var monthGroups = siteGroup
+                                    .GroupBy(r => new { Year = r.RosterDate.Year, Month = r.RosterDate.Month })
+                                    .OrderBy(g => g.Key.Year)
+                                    .ThenBy(g => g.Key.Month);
                             }
-                        </tbody>
-                    </table>
-                </div>
+
+                            @foreach (var monthGroup in monthGroups)
+                            {
+                                var monthName = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(monthGroup.Key.Month);
+                                <div class="mb-4">
+                                    <h5 class="text-gray-800 mb-3 border-bottom pb-2">
+                                        <i class="fas fa-calendar me-2"></i>@monthName @monthGroup.Key.Year
+                                        <span class="badge bg-info">@monthGroup.Count() rosters</span>
+                                    </h5>
+
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm table-hover roster-table" width="100%" cellspacing="0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Day Shift (4 guards)</th>
+                                                    <th>Night Shift (4 guards)</th>
+                                                    <th>Off Duty (4 guards)</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var roster in monthGroup.OrderBy(r => r.RosterDate))
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <strong>@roster.RosterDate.ToString("yyyy-MM-dd")</strong>
+                                                        </td>
+                                                        <td>
+                                                            @foreach (var guard in roster.DayShiftGuards)
+                                                            {
+                                                                <span class="badge bg-success mb-1" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @foreach (var guard in roster.NightShiftGuards)
+                                                            {
+                                                                <span class="badge bg-info mb-1" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @foreach (var guard in roster.OffDutyGuards)
+                                                            {
+                                                                <span class="badge bg-secondary mb-1" title="PSIRA: @guard.PSIRAnumber">@guard.FullName</span><br />
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            <div class="btn-group" role="group">
+                                                                @Html.ActionLink("Delete", "Delete", "ShiftRoster", new { date = roster.RosterDate.ToString("yyyy-MM-dd"), site = roster.Site }, new { @class = "btn btn-danger btn-sm" })
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <hr class="my-3" />
+                            }
+                        </div>
+                    </div>
+                }
             }
             else
             {
@@ -115,16 +146,16 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Initialize DataTable
-            $('#dataTable').DataTable({
-                "order": [[0, "desc"]],
-                "pageLength": 25,
+            // Initialize DataTable for each monthly table
+            $('.roster-table').DataTable({
+                "paging": false,
+                "searching": true,
+                "info": false,
+                "ordering": true,
+                "autoWidth": false,
                 "language": {
-                    "search": "Search rosters:",
-                    "lengthMenu": "Show _MENU_ entries",
-                    "info": "Showing _START_ to _END_ of _TOTAL_ entries",
-                    "infoEmpty": "Showing 0 to 0 of 0 entries",
-                    "infoFiltered": "(filtered from _MAX_ total entries)"
+                    "search": "Filter within this month:",
+                    "zeroRecords": "No rosters found for this period"
                 }
             });
         });

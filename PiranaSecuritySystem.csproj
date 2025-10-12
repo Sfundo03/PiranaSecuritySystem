@@ -225,8 +225,13 @@
     <Compile Include="Migrations\202510041318052_InitialCreate.Designer.cs">
       <DependentUpon>202510041318052_InitialCreate.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202510120923348_AddAssessmentResults.cs" />
+    <Compile Include="Migrations\202510120923348_AddAssessmentResults.Designer.cs">
+      <DependentUpon>202510120923348_AddAssessmentResults.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
+    <Compile Include="Models\AssessmentResult.cs" />
     <Compile Include="Models\DashboardStats.cs" />
     <Compile Include="Models\Director.cs" />
     <Compile Include="Models\DirectorViewModel.cs" />
@@ -236,6 +241,7 @@
     <Compile Include="Models\GuardCalendarViewModel.cs" />
     <Compile Include="Models\GuardCheckIn.cs" />
     <Compile Include="Models\GuardCheckInViewModel.cs" />
+    <Compile Include="Models\GuardTrainingResultsViewModel.cs" />
     <Compile Include="Models\IdentityModels.cs" />
     <Compile Include="Models\IncidentReport.cs" />
     <Compile Include="Models\IncidentStatusData.cs" />
@@ -376,6 +382,13 @@
     <Content Include="Views\Guard\Details.cshtml" />
     <Content Include="Views\Admin\EditInstructor.cshtml" />
     <Content Include="Views\Resident\Profile.cshtml" />
+    <Content Include="Views\TrainingSessions\AssessmentResults.cshtml" />
+    <Content Include="Views\TrainingSessions\CreateAssessment.cshtml" />
+    <Content Include="Views\TrainingSessions\ViewAssessments.cshtml" />
+    <Content Include="Views\TrainingSessions\GenerateCertificate.cshtml" />
+    <Content Include="Views\Guard\TrainingResults.cshtml" />
+    <Content Include="Views\Guard\ViewCertificate.cshtml" />
+    <Content Include="Views\TrainingSessions\EditAssessment.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -413,6 +426,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202510041318052_InitialCreate.resx">
       <DependentUpon>202510041318052_InitialCreate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202510120923348_AddAssessmentResults.resx">
+      <DependentUpon>202510120923348_AddAssessmentResults.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

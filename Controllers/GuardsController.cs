@@ -1576,7 +1576,215 @@ namespace PiranaSecuritySystem.Controllers
                 new SelectListItem { Value = "Critical", Text = "Critical" }
             };
         }
+        // GET: Guard/TrainingResults
+        public ActionResult TrainingResults()
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
 
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found. Please contact administrator.";
+                    return RedirectToAction("ProfileNotFound", "Error");
+                }
+
+                // Get all training sessions the guard is enrolled in
+                var trainingSessions = db.TrainingEnrollments
+                    .Where(e => e.GuardId == guard.GuardId)
+                    .Include(e => e.TrainingSession)
+                    .OrderByDescending(e => e.TrainingSession.StartDate)
+                    .Select(e => e.TrainingSession)
+                    .ToList();
+
+                // Get assessment results for this guard
+                var assessmentResults = db.AssessmentResults
+                    .Where(a => a.GuardId == guard.GuardId)
+                    .Include(a => a.TrainingSession)
+                    .OrderByDescending(a => a.AssessmentDate)
+                    .ToList();
+
+                var viewModel = new GuardTrainingResultsViewModel
+                {
+                    Guard = guard,
+                    TrainingSessions = trainingSessions,
+                    AssessmentResults = assessmentResults
+                };
+
+                return View("~/Views/Guard/TrainingResults.cshtml", viewModel);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in TrainingResults: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading training results.";
+                return RedirectToAction("Dashboard");
+            }
+        }
+
+        // GET: Guard/DownloadCertificate
+        public ActionResult DownloadCertificate(int assessmentId)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found.";
+                    return RedirectToAction("TrainingResults");
+                }
+
+                var assessment = db.AssessmentResults
+                    .Include(a => a.TrainingSession)
+                    .Include(a => a.Guard)
+                    .FirstOrDefault(a => a.AssessmentId == assessmentId && a.GuardId == guard.GuardId);
+
+                if (assessment == null)
+                {
+                    TempData["ErrorMessage"] = "Assessment not found or you don't have permission to access it.";
+                    return RedirectToAction("TrainingResults");
+                }
+
+                if (!assessment.IsPassed || !assessment.CertificateGenerated)
+                {
+                    TempData["ErrorMessage"] = "Certificate not available. You must pass the assessment to download a certificate.";
+                    return RedirectToAction("TrainingResults");
+                }
+
+                // Generate the certificate PDF (you can implement PDF generation here)
+                // For now, we'll redirect to the certificate view which can be printed
+                return RedirectToAction("ViewCertificate", new { assessmentId = assessmentId });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in DownloadCertificate: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while downloading the certificate.";
+                return RedirectToAction("TrainingResults");
+            }
+        }
+
+        // GET: Guard/ViewCertificate
+        public ActionResult ViewCertificate(int assessmentId)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    TempData["ErrorMessage"] = "Guard profile not found.";
+                    return RedirectToAction("TrainingResults");
+                }
+
+                var assessment = db.AssessmentResults
+                    .Include(a => a.TrainingSession)
+                    .Include(a => a.Guard)
+                    .FirstOrDefault(a => a.AssessmentId == assessmentId && a.GuardId == guard.GuardId);
+
+                if (assessment == null)
+                {
+                    TempData["ErrorMessage"] = "Assessment not found or you don't have permission to access it.";
+                    return RedirectToAction("TrainingResults");
+                }
+
+                if (!assessment.IsPassed || !assessment.CertificateGenerated)
+                {
+                    TempData["ErrorMessage"] = "Certificate not available. You must pass the assessment to view the certificate.";
+                    return RedirectToAction("TrainingResults");
+                }
+
+                return View("~/Views/Guard/ViewCertificate.cshtml", assessment);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in ViewCertificate: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while loading the certificate.";
+                return RedirectToAction("TrainingResults");
+            }
+        }
+
+        // GET: Guard/GetTrainingSessionDetails
+        [HttpGet]
+        public JsonResult GetTrainingSessionDetails(int trainingSessionId)
+        {
+            try
+            {
+                var currentUserId = User.Identity.GetUserId();
+                var guard = db.Guards.FirstOrDefault(g => g.UserId == currentUserId);
+
+                if (guard == null)
+                {
+                    return Json(new { success = false, message = "Guard not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                // Check if guard is enrolled in this training session
+                var enrollment = db.TrainingEnrollments
+                    .FirstOrDefault(e => e.GuardId == guard.GuardId && e.TrainingSessionId == trainingSessionId);
+
+                if (enrollment == null)
+                {
+                    return Json(new { success = false, message = "You are not enrolled in this training session" }, JsonRequestBehavior.AllowGet);
+                }
+
+                var trainingSession = db.TrainingSessions
+                    .Include(ts => ts.Enrollments)
+                    .FirstOrDefault(ts => ts.Id == trainingSessionId);
+
+                if (trainingSession == null)
+                {
+                    return Json(new { success = false, message = "Training session not found" }, JsonRequestBehavior.AllowGet);
+                }
+
+                // Get assessment result if available
+                var assessment = db.AssessmentResults
+                    .FirstOrDefault(a => a.TrainingSessionId == trainingSessionId && a.GuardId == guard.GuardId);
+
+                var result = new
+                {
+                    success = true,
+                    trainingSession = new
+                    {
+                        id = trainingSession.Id,
+                        title = trainingSession.Title,
+                        startDate = trainingSession.StartDate.ToString("MMM dd, yyyy 'at' hh:mm tt"),
+                        endDate = trainingSession.EndDate.ToString("MMM dd, yyyy 'at' hh:mm tt"),
+                        site = trainingSession.Site,
+                        capacity = trainingSession.Capacity,
+                        enrolledCount = trainingSession.Enrollments.Count
+                    },
+                    assessment = assessment != null ? new
+                    {
+                        assessmentId = assessment.AssessmentId,
+                        score = assessment.Score,
+                        maxScore = assessment.MaxScore,
+                        passingPercentage = assessment.PassingPercentage,
+                        isPassed = assessment.IsPassed,
+                        comments = assessment.Comments,
+                        assessmentDate = assessment.AssessmentDate.ToString("MMM dd, yyyy"),
+                        assessedBy = assessment.AssessedBy,
+                        certificateGenerated = assessment.CertificateGenerated,
+                        certificateNumber = assessment.CertificateNumber
+                    } : null
+                };
+
+                return Json(result, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetTrainingSessionDetails: {ex.Message}");
+                return Json(new { success = false, message = "Error loading training session details" }, JsonRequestBehavior.AllowGet);
+            }
+        }
         protected override void Dispose(bool disposing)
         {
             if (disposing)

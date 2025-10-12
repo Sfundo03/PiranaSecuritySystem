@@ -337,6 +337,29 @@
             margin-bottom: 8px;
             border-radius: 4px;
         }
+        /* Training Results specific styles */
+        .border-left-success {
+            border-left: 4px solid #1cc88a !important;
+        }
+
+        .border-left-danger {
+            border-left: 4px solid #e74a3b !important;
+        }
+
+        .border-left-primary {
+            border-left: 4px solid #4e73df !important;
+        }
+
+        .border-left-warning {
+            border-left: 4px solid #f6c23e !important;
+        }
+
+        .training-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -598,6 +621,11 @@
                                     <!-- View Calendar Button -->
                                     <a href="@Url.Action("Calendar", "Guard")" class="btn btn-warning btn-lg">
                                         <i class="fas fa-calendar-alt me-2"></i>View Calendar
+                                    </a>
+
+                                    <!-- Training Results Button -->
+                                    <a href="@Url.Action("TrainingResults", "Guard")" class="btn btn-success btn-lg">
+                                        <i class="fas fa-graduation-cap me-2"></i>Training Results & Certificates
                                     </a>
                                 </div>
                             </div>

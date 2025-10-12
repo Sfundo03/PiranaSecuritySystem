@@ -3,6 +3,7 @@ using PiranaSecuritySystem.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Globalization;
 using System.Linq;
 using System.Web.Mvc;
 
@@ -357,20 +358,36 @@ namespace PiranaSecuritySystem.Controllers
                     return RedirectToAction("Dashboard");
                 }
 
-                // Get unique roster dates and sites created by this instructor
+                // Get rosters grouped by site, then by year/month
                 var rosters = db.ShiftRosters
                     .Where(s => s.InstructorName == instructor.FullName)
-                    .GroupBy(s => new { s.RosterDate, s.Site })
-                    .Select(g => new RosterDisplayViewModel
-                    {
-                        RosterDate = g.Key.RosterDate,
-                        Site = g.Key.Site,
-                        DayShiftGuards = g.Where(x => x.ShiftType == "Day").Select(x => x.Guard).ToList(),
-                        NightShiftGuards = g.Where(x => x.ShiftType == "Night").Select(x => x.Guard).ToList(),
-                        OffDutyGuards = g.Where(x => x.ShiftType == "Off").Select(x => x.Guard).ToList()
+                    .AsEnumerable() // Switch to client-side for date grouping
+                    .GroupBy(s => new {
+                        Site = s.Site,
+                        Year = s.RosterDate.Year,
+                        Month = s.RosterDate.Month
                     })
-                    .OrderByDescending(r => r.RosterDate)
-                    .ThenBy(r => r.Site)
+                    .Select(g => new RosterGroupViewModel
+                    {
+                        Site = g.Key.Site,
+                        Year = g.Key.Year,
+                        Month = g.Key.Month,
+                        MonthName = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key.Month),
+                        Rosters = g.GroupBy(x => new { x.RosterDate, x.Site })
+                                  .Select(x => new RosterDisplayViewModel
+                                  {
+                                      RosterDate = x.Key.RosterDate,
+                                      Site = x.Key.Site,
+                                      DayShiftGuards = x.Where(r => r.ShiftType == "Day").Select(r => r.Guard).ToList(),
+                                      NightShiftGuards = x.Where(r => r.ShiftType == "Night").Select(r => r.Guard).ToList(),
+                                      OffDutyGuards = x.Where(r => r.ShiftType == "Off").Select(r => r.Guard).ToList()
+                                  })
+                                  .OrderBy(r => r.RosterDate)
+                                  .ToList()
+                    })
+                    .OrderBy(g => g.Site)
+                    .ThenBy(g => g.Year)
+                    .ThenBy(g => g.Month)
                     .ToList();
 
                 return View(rosters);

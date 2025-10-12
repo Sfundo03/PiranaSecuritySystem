@@ -93,6 +93,7 @@ namespace PiranaSecuritySystem.Models
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Director> Directors { get; set; }
         public DbSet<TrainingEnrollment> TrainingEnrollments { get; set; }
+        public DbSet<AssessmentResult> AssessmentResults { get; set; }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
@@ -116,7 +117,13 @@ namespace PiranaSecuritySystem.Models
             modelBuilder.Entity<ApplicationUser>()
                 .Property(u => u.LastLoginDate)
                 .HasColumnType("datetime2");
+
+            // Add unique constraint for assessment results
+        modelBuilder.Entity<AssessmentResult>()
+            .HasIndex(a => new { a.TrainingSessionId, a.GuardId })
+            .IsUnique();
         }
+
 
 
         public static ApplicationDbContext Create()

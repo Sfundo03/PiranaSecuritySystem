@@ -1,0 +1,115 @@
+﻿@model PiranaSecuritySystem.Models.AssessmentViewModel
+@{
+    ViewBag.Title = "Assessment Results Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-clipboard-check me-2"></i>Assessment Results Management
+        </h1>
+        <div>
+            <a href="@Url.Action("Dashboard", "Instructor")" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Assessment
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @using (Html.BeginForm("CreateAssessment", "TrainingSessions", FormMethod.Get))
+                    {
+                        <div class="form-group mb-3">
+                            <label for="trainingSessionId" class="form-label">Select Training Session:</label>
+                            @Html.DropDownList("trainingSessionId", (SelectList)ViewBag.TrainingSessions,
+                                new { @class = "form-control", required = "required" })
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-arrow-right me-2"></i>Proceed to Assessment
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-info text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-list me-2"></i>View Existing Assessments
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @using (Html.BeginForm("ViewAssessments", "TrainingSessions", FormMethod.Get))
+                    {
+                        <div class="form-group mb-3">
+                            <label for="trainingSessionId" class="form-label">Select Training Session:</label>
+                            @Html.DropDownList("trainingSessionId", (SelectList)ViewBag.TrainingSessions,
+                                new { @class = "form-control", required = "required" })
+                        </div>
+                        <button type="submit" class="btn btn-info w-100">
+                            <i class="fas fa-eye me-2"></i>View Assessments
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-light">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-info-circle me-2"></i>Assessment Guidelines
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-center p-3 border rounded">
+                        <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                        <h5>Passing Criteria</h5>
+                        <p class="text-muted">Minimum 70% score required to pass the assessment and receive certificate.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 border rounded">
+                        <i class="fas fa-certificate text-warning fa-2x mb-2"></i>
+                        <h5>Certificate Generation</h5>
+                        <p class="text-muted">Certificates are automatically generated for guards who pass the assessment.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 border rounded">
+                        <i class="fas fa-bell text-info fa-2x mb-2"></i>
+                        <h5>Notifications</h5>
+                        <p class="text-muted">Guards receive immediate notifications about their assessment results.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

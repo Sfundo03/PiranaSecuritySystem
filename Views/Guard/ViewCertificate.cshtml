@@ -1,0 +1,253 @@
+﻿@model PiranaSecuritySystem.Models.AssessmentResult
+@{
+    ViewBag.Title = "Training Certificate";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Certificate - @Model.Guard.FullName</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .certificate-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            border: 10px solid #f26522;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .certificate-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .certificate-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .certificate-subtitle {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .certificate-body {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .certificate-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #34495e;
+            margin-bottom: 20px;
+        }
+
+        .guard-name {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+            padding: 10px;
+            border-bottom: 2px solid #f26522;
+            display: inline-block;
+        }
+
+        .training-details {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .signature-section {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .signature {
+            text-align: center;
+        }
+
+        .signature-line {
+            width: 200px;
+            border-bottom: 1px solid #34495e;
+            margin: 10px 0;
+        }
+
+        .certificate-footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120px;
+            color: rgba(242, 101, 34, 0.1);
+            font-weight: bold;
+            z-index: 0;
+            white-space: nowrap;
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        @@media print {
+            body {
+                background: white !important;
+            }
+
+            .print-btn {
+                display: none;
+            }
+
+            .certificate-container {
+                box-shadow: none;
+                border: 15px solid #f26522;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="btn btn-primary print-btn" onclick="window.print()">
+        <i class="fas fa-print me-2"></i>Print Certificate
+    </button>
+
+    <div class="certificate-container">
+        <div class="watermark">PIRANA SECURITY</div>
+
+        <div class="certificate-header">
+            <div class="certificate-title">
+                <i class="fas fa-certificate text-warning me-2"></i>
+                CERTIFICATE OF COMPLETION
+            </div>
+            <div class="certificate-subtitle">
+                This certifies that
+            </div>
+        </div>
+
+        <div class="certificate-body">
+            <div class="guard-name">
+                @Model.Guard.FullName
+            </div>
+
+            <div class="certificate-text">
+                has successfully completed the training session
+            </div>
+
+            <div class="certificate-text fw-bold text-primary" style="font-size: 1.3rem;">
+                "@Model.TrainingSession.Title"
+            </div>
+
+            <div class="training-details">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Score Achieved:</strong><br>
+                        <span class="text-success fw-bold" style="font-size: 1.2rem;">
+                            @Model.Score.ToString("0.0")%
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Passing Score:</strong><br>
+                        <span class="text-info" style="font-size: 1.2rem;">
+                            @Model.PassingPercentage.ToString("0.0")%
+                        </span>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <strong>Training Date:</strong><br>
+                        @Model.TrainingSession.StartDate.ToString("MMMM dd, yyyy")
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Assessment Date:</strong><br>
+                        @Model.AssessmentDate.ToString("MMMM dd, yyyy")
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <strong>Certificate Number:</strong><br>
+                        <code>@Model.CertificateNumber</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="certificate-text">
+                demonstrating proficiency and commitment to professional development in security services.
+            </div>
+        </div>
+
+        <div class="signature-section">
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div>@Model.AssessedBy</div>
+                <div class="text-muted">Training Instructor</div>
+            </div>
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div>Pirana Security Systems</div>
+                <div class="text-muted">Authorized Signature</div>
+            </div>
+        </div>
+
+        <div class="certificate-footer">
+            <p>
+                <i class="fas fa-shield-alt me-2"></i>
+                Issued by Pirana Security Systems - Enhancing Security Excellence
+                <br>
+                <small>This certificate is issued electronically and can be verified through our training portal.</small>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-print option
+        setTimeout(() => {
+            if (confirm('Do you want to print the certificate?')) {
+                window.print();
+            }
+        }, 1000);
+
+        // Add download as PDF functionality (you can implement this with a PDF library)
+        function downloadAsPDF() {
+            // This would require a PDF generation library like jsPDF
+            // For now, printing serves the same purpose
+            window.print();
+        }
+    </script>
+</body>
+</html>

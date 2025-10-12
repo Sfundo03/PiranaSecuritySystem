@@ -1,0 +1,316 @@
+﻿@model PiranaSecuritySystem.ViewModels.GuardTrainingResultsViewModel
+@{
+    ViewBag.Title = "Training Results & Certificates";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-graduation-cap me-2"></i>Training Results & Certificates
+        </h1>
+        <div>
+            <a href="@Url.Action("Dashboard", "Guard")" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Training Sessions
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TrainingSessions.Count</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Passed Assessments
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.AssessmentResults.Count(a => a.IsPassed)
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Available Certificates
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.AssessmentResults.Count(a => a.CertificateGenerated)
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-certificate fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Average Score
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @(Model.AssessmentResults.Any() ? Model.AssessmentResults.Average(a => a.Score).ToString("0.0") + "%" : "N/A")
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-clipboard-list me-2"></i>Training Assessment Results
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.AssessmentResults.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="resultsTable" width="100%" cellspacing="0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Training Session</th>
+                                        <th>Assessment Date</th>
+                                        <th>Score</th>
+                                        <th>Passing Score</th>
+                                        <th>Status</th>
+                                        <th>Instructor</th>
+                                        <th>Certificate</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var assessment in Model.AssessmentResults)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@assessment.TrainingSession.Title</strong><br />
+                                                <small class="text-muted">@assessment.TrainingSession.Site</small>
+                                            </td>
+                                            <td>@assessment.AssessmentDate.ToString("MMM dd, yyyy")</td>
+                                            <td>
+                                                <span class="fw-bold @(assessment.IsPassed ? "text-success" : "text-danger")">
+                                                    @assessment.Score.ToString("0.0")%
+                                                </span>
+                                            </td>
+                                            <td>@assessment.PassingPercentage.ToString("0.0")%</td>
+                                            <td>
+                                                @if (assessment.IsPassed)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>PASSED
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times-circle me-1"></i>FAILED
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>@assessment.AssessedBy</td>
+                                            <td>
+                                                @if (assessment.IsPassed && assessment.CertificateGenerated)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-certificate me-1"></i>Available
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Not Available</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (assessment.IsPassed && assessment.CertificateGenerated)
+                                                {
+                                                    <a href="@Url.Action("DownloadCertificate", new { assessmentId = assessment.AssessmentId })"
+                                                       class="btn btn-success btn-sm" title="Download Certificate">
+                                                        <i class="fas fa-download"></i> Download
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">No actions available</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center py-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No assessment results found. Your training assessments will appear here once completed.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Sessions Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-info text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-calendar-alt me-2"></i>My Training Sessions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.TrainingSessions.Any())
+                    {
+                        <div class="row">
+                            @foreach (var session in Model.TrainingSessions)
+                            {
+                                var assessment = Model.AssessmentResults.FirstOrDefault(a => a.TrainingSessionId == session.Id);
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100 border-left-@(assessment != null ? (assessment.IsPassed ? "success" : "danger") : "primary")">
+                                        <div class="card-body">
+                                            <h6 class="card-title">@session.Title</h6>
+                                            <p class="card-text small text-muted">
+                                                <i class="fas fa-calendar me-1"></i>
+                                                @session.StartDate.ToString("MMM dd, yyyy 'at' hh:mm tt")<br />
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                @session.Site
+                                            </p>
+                                            @if (assessment != null)
+                                            {
+                                                <div class="mt-2">
+                                                    <span class="badge bg-@(assessment.IsPassed ? "success" : "danger")">
+                                                        @(assessment.IsPassed ? "PASSED" : "FAILED") - @assessment.Score.ToString("0.0")%
+                                                    </span>
+                                                    @if (assessment.IsPassed && assessment.CertificateGenerated)
+                                                    {
+                                                        <a href="@Url.Action("DownloadCertificate", new { assessmentId = assessment.AssessmentId })"
+                                                           class="btn btn-success btn-sm mt-1">
+                                                            <i class="fas fa-certificate me-1"></i>Get Certificate
+                                                        </a>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Awaiting Assessment</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info text-center py-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No training sessions found. You will be enrolled in training sessions by your instructor.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalLabel">Training Session Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Initialize DataTable
+            $('#resultsTable').DataTable({
+                "order": [[1, "desc"]],
+                "pageLength": 10,
+                "language": {
+                    "search": "Search results:",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ entries"
+                }
+            });
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function () {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+        });
+    </script>
+}
